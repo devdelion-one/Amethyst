@@ -146,7 +146,7 @@ export const ICONS: Record<string, string> = {
   help: '<svg class="ic" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M7.7 7.9a2.4 2.4 0 1 1 3.4 2.2c-.7.35-1.1.9-1.1 1.6v.5"/><circle cx="10" cy="14.6" r=".45"/></svg>',
   clip: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><rect x="3.2" y="3" width="9.6" height="11" rx="1.2"/><path d="M6 3V2h4v1M5.8 7h4.4M5.8 9.6h3"/></svg>',
   newFile: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M9 2.5H4.5v11h7V5zM9 2.5V5h2.5M8 7.5v4M6 9.5h4"/></svg>',
-  newAny: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v11M2.5 8h11"/></svg>',
+  newAny: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.75"/><path d="M8 5.2v5.6M5.2 8h5.6"/></svg>',
   newBoard: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M2.5 6.5h11M6.5 6.5v7"/></svg>',
   newFolder: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4.5v8h12V6H8L6.5 4.5zM8 8v3M6.5 9.5h3"/></svg>',
   tab: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 13.5h13M3 13.5v-8h5v-2h5.5v10"/></svg>',

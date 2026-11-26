@@ -115,8 +115,9 @@ body.resizing-y, body.resizing-y * { cursor: row-resize !important; user-select:
 #switch #btn-ue .ue-ic { width: 15px; height: 15px; }
 #switch #btn-ue .ue-st { position: absolute; right: 0; bottom: 0; width: auto; font-size: var(--fs-mark); line-height: 1; }
 #switch #btn-ue .ue-ring { width: 8px; height: 8px; border-width: 1.5px; }
-#switch #btn-more { border-color: var(--line); background: var(--raised); color: var(--text-dim); }
-#switch #btn-more:hover { border-color: var(--text-dim); color: var(--text-strong); }
+#switch #btn-more { border-color: transparent; background: none; color: var(--text-dim); }
+#switch #btn-more:hover { border-color: transparent; background: var(--hover); color: var(--text-strong); }
+#switch #btn-more .ic { width: 15px; height: 15px; stroke-width: 1.35; }
 #switch #btn-fold { font-size: var(--fs-md); line-height: 1; }
 #switch #btn-fold.on { background: var(--hover); color: var(--text-strong); }
 #switch .rf-box { position: fixed; z-index: 54; display: flex; flex-wrap: wrap; width: max-content; max-width: calc(6 * 32px + 12px); padding: 6px; border-radius: var(--r-panel); background: var(--raised); box-shadow: var(--float); }
@@ -1108,8 +1109,8 @@ button[data-qk]:hover { background: var(--hover); }
 #btn-qagent.ask::after { content: ''; position: absolute; top: 2px; right: 2px; width: 6px; height: 6px; border-radius: 50%; background: var(--ask); }
 #btn-qpwsh[hidden] { display: none; }
 #btn-scratch.off, #btn-sketch.off, #btn-inbox.off, #btn-qterm.off, #btn-qpwsh.off, #btn-qagent.off, #btn-newchat.off, #btn-more.off, #btn-pins.off, #btn-win.off { display: none; }
-#btn-more { flex: none; min-height: 0; height: 28px; padding: 0 9px; border-color: var(--line); background: var(--raised); font-size: var(--fs-sm); font-weight: 600; }
-#btn-more:hover { border-color: var(--text-dim); background: var(--raised); }
+#btn-more { flex: none; min-height: 0; height: 28px; padding: 0 9px; border-color: transparent; background: none; font-size: var(--fs-sm); font-weight: 600; }
+#btn-more:hover { border-color: transparent; background: var(--hover); }
 #btn-win:hover { color: var(--text-strong); }
 #btn-win .ic { width: 14px; height: 14px; }
 button[data-qk] .gem { width: 15px; height: 15px; color: var(--accent); }
@@ -4525,9 +4526,9 @@ body:has(> .img-view) :is(#colormenu, #tip) { z-index: 110; }
 .ch-img { cursor: zoom-in; }
 
 .pj-tab, .pj-more { border-color: transparent; background: none; }
-#ws-btn, #status > #ws-all, #btn-more { border-color: transparent; background: color-mix(in srgb, var(--text) 10%, transparent); }
+#ws-btn, #status > #ws-all { border-color: transparent; background: color-mix(in srgb, var(--text) 10%, transparent); }
 #status > #btn-settings { border-color: transparent; background: none; }
-.pj-tab:hover, .pj-more:hover, #status > :is(#ws-all, #btn-settings):hover, #btn-more:hover { border-color: transparent; background: color-mix(in srgb, var(--text) 16%, transparent); }
+.pj-tab:hover, .pj-more:hover, #status > :is(#ws-all, #btn-settings):hover { border-color: transparent; background: color-mix(in srgb, var(--text) 16%, transparent); }
 .md-n, .pj-n, .dk-st, #btn-timer, .sc-x, .fg-time { font-family: var(--mono); }
 .md-n, .pj-n { font-weight: 600; }
 #side > .bt, #wsx .bt, #pins > .bt { font: var(--label-weight) var(--label-size) var(--label-font); letter-spacing: var(--label-track); text-transform: uppercase; }
@@ -4546,8 +4547,8 @@ body:has(> .img-view) :is(#colormenu, #tip) { z-index: 110; }
 .pj-tab.on .gem:not(.pj-wk .gem) .b { fill: var(--flip-ink); }
 .pj-tab.on .gem:not(.pj-wk .gem) .b:not([d="M0 0"]) + path { fill: color-mix(in srgb, var(--flip-ink) 35%, var(--flip)); }
 #ws-btn:has(#ws-go.on) { border-color: transparent; background: var(--flip); }
-#btn-scratch, #btn-sketch, #btn-inbox, #btn-qterm, #btn-qpwsh, #btn-qagent, .pn-qa { border-color: transparent; background: color-mix(in srgb, var(--text) 10%, transparent); color: var(--text-dim); }
-#btn-scratch:hover, #btn-sketch:hover, #btn-inbox:hover, #btn-qterm:hover, #btn-qpwsh:hover, #btn-qagent:hover, .pn-qa:hover { border-color: transparent; background: color-mix(in srgb, var(--text) 16%, transparent); color: var(--text-strong); }
+#btn-scratch, #btn-sketch, #btn-inbox, #btn-qterm, #btn-qpwsh, #btn-qagent, .pn-qa { border-color: transparent; background: none; color: var(--text-dim); }
+#btn-scratch:hover, #btn-sketch:hover, #btn-inbox:hover, #btn-qterm:hover, #btn-qpwsh:hover, #btn-qagent:hover, .pn-qa:hover { border-color: transparent; background: var(--hover); color: var(--text-strong); }
 #btn-newchat, .pn-nc { border-color: color-mix(in srgb, var(--accent) 60%, transparent); background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--text); }
 #btn-newchat:hover, .pn-nc:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--text-strong); }
 :root[data-light] #status > #btn-settings.on, :root[data-light].accent-newbtn :is(#btn-newchat, .pn-nc) { border-color: var(--accent); background: var(--raised); }
