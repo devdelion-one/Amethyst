@@ -558,7 +558,7 @@ async function closeKeeping(kind: string, id: string, n: number) {
     ticks: { items: list.map((a) => ({ id: a.id, html: agentLine(a), off: false })), say },
     menu: { label: 'move to…', open: (btn, pick, ticked) => setsMenu(kind, btn, id, (to, how) => pick({ to, how }), null, list.filter((a) => ticked.includes(a.id))) },
     end: { label: list.length === 1 ? `end it` : `end all ${list.length}`, value: 'end' },
-    main: orch ? { label: 'move to orchestration', value: 'orch' } : null,
+    main: orch ? { label: 'to orchestration', value: 'orch' } : null,
   });
   if (!r) return;
   if (r.value === 'orch') {
