@@ -45,11 +45,7 @@ export const nameHtml = (name: string): string => {
   const c = extColor(name);
   return `${esc(name.slice(0, -e.length))}<span class="ext"${c ? ` style="--ec:${esc(c)}"` : ''}>${esc(e)}</span>`;
 };
-export const fileTint = (name: string, own?: string | null): string => {
-  if (own) return `--ic:${esc(own)}`;
-  const c = extColor(name);
-  return c ? `--ic:color-mix(in srgb, ${esc(c)} 55%, var(--text-dim))` : '';
-};
+export const fileTint = (_name: string, own?: string | null): string => (own ? `--ic:${esc(own)}` : '');
 
 const svg = (d: string, box = '0 0 16 16') => `<svg class="ol" viewBox="${box}" aria-hidden="true"><path d="${d}"/></svg>`;
 const DIR_C = 'M1.75 4.25a1 1 0 0 1 1-1h3.1l1.4 1.4h6a1 1 0 0 1 1 1v6.6a1 1 0 0 1-1 1H2.75a1 1 0 0 1-1-1z';
