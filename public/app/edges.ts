@@ -29,12 +29,22 @@ function writeEdges(got: Edge[] | null) {
 }
 const job = { name: 'edges', read: readEdges, write: writeEdges };
 
+const CONTAINERS = new Set(['app', 'shell', 'decks', 'main']);
+const hasPanel = (n: Node) => n instanceof Element && (n.matches(PANELS) || (n.firstElementChild !== null && !!n.querySelector(PANELS)));
 export const moves = (r: MutationRecord): boolean => {
-  if (r.type === 'childList') return true;
+  if (r.type === 'childList') {
+    const t = r.target as Element;
+    if (CONTAINERS.has(t.id)) return true;
+    for (const n of r.addedNodes) if (hasPanel(n)) return true;
+    for (const n of r.removedNodes) if (hasPanel(n)) return true;
+    return false;
+  }
   const el = r.target as Element;
-  return el.id === 'app' || el.matches(PANELS) || !!el.querySelector(PANELS);
+  return el.id === 'app' || el.matches(PANELS);
 };
-const soon = () => nextFrame(job);
+let pending = false;
+const soon = () => (document.hidden ? void (pending = true) : nextFrame(job));
+document.addEventListener('visibilitychange', () => !document.hidden && pending && ((pending = false), nextFrame(job)));
 const sizes = new WeakSet<Element>();
 const size = new ResizeObserver(soon);
 

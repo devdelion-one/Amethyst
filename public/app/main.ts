@@ -250,7 +250,7 @@ if (WIN > 1) {
       claim(k);
       document.documentElement.classList.add('xsolo');
       wireSize(k);
-      settle(m).then(() => (openView(k), render(), send('raised')));
+      settle(m).then(() => (openView(k), render(true), send('raised')));
     });
     on('claimwin', (m) => {
       if (!forMe(m) || !isSpare() || !m.to) return;
@@ -259,7 +259,7 @@ if (WIN > 1) {
       document.documentElement.classList.remove('xpop', 'xsolo');
       watchAskClose();
       winBar();
-      settle(m).then(() => (tabsLevel(), sync(), render(), send('raised', { was })));
+      settle(m).then(() => (tabsLevel(), sync(), render(true), send('raised', { was })));
     });
     document.documentElement.classList.add('xpop');
     if (SOLO) document.documentElement.classList.add('xsolo');
@@ -278,7 +278,7 @@ if (WIN > 1) {
         if (t?.path && !t.abs) send('shownq', { path: t.path });
       };
       on('quickopen', (m) => forMe(m) && Promise.resolve(open(m.open)).then(report));
-      on('claim', (m) => forMe(m) && isSpare() && (claim(), wireSize('quick'), settle(m).then(() => open(m.open)).then(() => (report(), send('raised')))));
+      on('claim', (m) => forMe(m) && isSpare() && (claim(), wireSize('quick'), settle(m).then(() => open(m.open)).then(() => (render(true), report(), send('raised')))));
       addEventListener('pointerdown', () => setTimeout(report, 50), true);
     }
     if (DESKTOP) {

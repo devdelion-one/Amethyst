@@ -100,9 +100,9 @@ export const aim = (kind: string, slot: number | null, side: Side = 'rail') => (
 let cells = 0;
 const railN = () => cells || Math.max(1, Math.floor($('#switch').clientHeight / PITCH));
 const dashN = () => Math.floor(($('#dash > .slots') as HTMLElement).clientWidth / PITCH);
-type Surf = { side: Side; get: () => Spots; put: (at: Spots) => void; n: () => number; last: Map<number, string>; el: () => HTMLElement; x: boolean; seen: Set<string>; seenAt: string; fold: boolean; off: () => void; size: number };
-const RAIL_S: Surf = { side: 'rail', get: spots, put: save, n: railN, last: new Map(), el: () => $<HTMLElement>('#switch'), x: false, seen: new Set(), seenAt: '', fold: false, off: () => {}, size: 0 };
-const DASH_S: Surf = { side: 'dash', get: dashSpots, put: saveDash, n: dashN, last: new Map(), el: () => $<HTMLElement>('#dash > .slots'), x: true, seen: new Set(), seenAt: '', fold: false, off: () => {}, size: 0 };
+type Surf = { side: Side; get: () => Spots; put: (at: Spots) => void; n: () => number; last: Map<number, string>; el: () => HTMLElement; x: boolean; seen: Set<string>; seenAt: string; fold: boolean; off: () => void; size: number; struct: string; html: Map<string, string> };
+const RAIL_S: Surf = { side: 'rail', get: spots, put: save, n: railN, last: new Map(), el: () => $<HTMLElement>('#switch'), x: false, seen: new Set(), seenAt: '', fold: false, off: () => {}, size: 0, struct: '', html: new Map() };
+const DASH_S: Surf = { side: 'dash', get: dashSpots, put: saveDash, n: dashN, last: new Map(), el: () => $<HTMLElement>('#dash > .slots'), x: true, seen: new Set(), seenAt: '', fold: false, off: () => {}, size: 0, struct: '', html: new Map() };
 const SURFS = [RAIL_S, DASH_S];
 const surf = (side: Side) => (side === 'dash' ? DASH_S : RAIL_S);
 const onRail = (r: string, s: number, n: number) => absCells(r, s, n).filter((c) => c >= 0 && c < n);
@@ -364,6 +364,48 @@ export function slotHtml(views: SlotView[], at: Spots, side: Side = 'rail') {
   const fold = more == null ? '' : `<nav class="sv sb rf-at" data-kind="btn" data-ref="btn:fold" style="${posOf(spotAt(more, n), x)}" aria-label="more"><button id="${x ? 'btn-dfold' : 'btn-fold'}" class="rf-btn${sf.fold ? ' on' : ''}" title="More&#10;The buttons that don't fit in the ${where} to see them in it." aria-label="more of the ${x ? 'dashboard' : 'rail'}" aria-expanded="${sf.fold}">⋯</button></nav><div class="rf-box"${sf.fold ? '' : ' hidden'}>${byRank.map((v) => navOf(v, '')).join('')}</div>`;
   if (more == null) sf.fold = false;
   return boxes + navs + fold;
+}
+
+export function paintSlots(sw: HTMLElement, views: SlotView[], at: Spots, side: Side = 'rail', force = false) {
+  const sf = surf(side), x = sf.x;
+  if (!x && !cells) cells = Math.floor($('#switch').clientHeight / PITCH);
+  const shown = views.filter((v) => v.shown && Number.isInteger(at[v.ref])), n = Math.max(x ? sf.n() : cells, 1);
+  const { live, folded, more } = fit(shown, at, n);
+  const [A, B] = x ? ['left', 'right'] : ['top', 'bottom'];
+  sf.last.clear();
+  for (const [r, cs] of live) for (const c of cs) sf.last.set(c, r);
+  if (more != null) sf.last.set(more, 'btn:fold');
+  const low = (r: string | undefined) => (r && live.has(r) ? Math.max(...live.get(r)!) >= n / 2 : false);
+  const boxPos = (c: number) => {
+    const r = sf.last.get(c);
+    return (r && r !== 'btn:fold' ? low(r) : c >= n / 2) ? `${B}:${(n - 1 - c) * PITCH + 3}px` : `${A}:${c * PITCH + 3}px`;
+  };
+  const navPos = (r: string) => {
+    const cs = live.get(r)!;
+    return low(r) ? `${B}:${(n - 1 - Math.max(...cs)) * PITCH}px` : `${A}:${Math.min(...cs) * PITCH}px`;
+  };
+  if (more == null) sf.fold = false;
+  const struct = `${n}|${more ?? ''}|${sf.fold ? 1 : 0}|${shown.filter((v) => live.has(v.ref)).map((v) => `${v.ref}:${navPos(v.ref)}:${spanOf(v.ref)}:${v.g || ''}`).join(',')}|${folded.join(',')}`;
+  if (!force && sf.struct === struct && sw.childElementCount) {
+    for (const v of shown) {
+      if (!v.html || sf.html.get(v.ref) === v.html) continue;
+      const el = sw.querySelector<HTMLElement>(`.sv[data-ref="${CSS.escape(v.ref)}"]`);
+      if (el) el.innerHTML = v.html;
+      sf.html.set(v.ref, v.html);
+    }
+    return false;
+  }
+  const boxes = Array.from({ length: n }, (_, c) => `<i class="sl-box" data-i="${c}" style="${boxPos(c)}"></i>`).join('');
+  const navs = shown.filter((v) => live.has(v.ref)).map((v) => navOf(v, navPos(v.ref))).join('');
+  const byRank = folded.map((r) => shown.find((v) => v.ref === r)!);
+  const where = x ? 'dashboard. Make the window wider' : 'rail. Make the window taller';
+  const fold = more == null ? '' : `<nav class="sv sb rf-at" data-kind="btn" data-ref="btn:fold" style="${posOf(spotAt(more, n), x)}" aria-label="more"><button id="${x ? 'btn-dfold' : 'btn-fold'}" class="rf-btn${sf.fold ? ' on' : ''}" title="More&#10;The buttons that don't fit in the ${where} to see them in it." aria-label="more of the ${x ? 'dashboard' : 'rail'}" aria-expanded="${sf.fold}">⋯</button></nav><div class="rf-box"${sf.fold ? '' : ' hidden'}>${byRank.map((v) => navOf(v, '')).join('')}</div>`;
+  sf.struct = struct;
+  sf.html = new Map(shown.filter((v) => v.html).map((v) => [v.ref, v.html]));
+  pullBtns(sw);
+  sw.innerHTML = boxes + navs + fold;
+  homeBtns(RAIL_S.el());
+  return true;
 }
 
 const home = () => $('#rail-home');

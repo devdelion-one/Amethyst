@@ -7,7 +7,10 @@ import { chatOn, chatsOn, onPref } from '../base/prefs.ts';
 const AGENTS = [['claude', 'Claude'], ['codex', 'Codex'], ['antigravity', 'Antigravity'], ['cursor', 'Cursor'], ['copilot', 'Copilot'], ['grok', 'Grok']];
 const U: { key: string | null; info: any; agent: string } = { key: null, info: null, agent: store.get('setup:agent', 'claude') };
 const panel = $('#setup');
-const shown = () => panel.offsetParent !== null;
+const shown = () => {
+  const a = $('#app');
+  return !document.documentElement.classList.contains('xwin') && !a.classList.contains('ws') && !a.classList.contains('launch') && !a.classList.contains('side-hidden') && a.classList.contains('setup');
+};
 const nameOf = () => AGENTS.find(([k]) => k === U.agent)?.[1] || U.agent;
 const base = (p: string) => p.split(/[\\/]/).pop()!;
 

@@ -320,6 +320,7 @@ body.rd-moving, body.rd-moving * { cursor: grabbing !important; user-select: non
 .ca-nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ch-log { position: relative; flex: 1; min-height: 0; overflow: auto; overflow-anchor: none; scrollbar-gutter: stable; padding: 18px max(var(--s6), calc((100% - 820px) / 2)) var(--s4) max(var(--s5), calc((100% - 820px) / 2)); }
 .ch-flow { display: flex; flex-direction: column; gap: 10px; }
+.ch-flow > .ch-msg, .ch-flow > .ch-steps { content-visibility: auto; contain-intrinsic-size: auto 72px; }
 .ch-msg { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.55; }
 .ch-you { align-self: flex-end; max-width: 85%; padding: var(--s2) var(--s3); border: 0; border-radius: var(--r-lg); background: var(--hover); color: var(--text-strong); white-space: normal; }
 .ch-msg code { padding: 0 4px; border-radius: var(--r-sm); background: var(--hover); font: var(--fs-sm) var(--mono); }

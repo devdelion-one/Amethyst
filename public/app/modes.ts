@@ -3,7 +3,7 @@ import { markMenu } from '../base/agentrow.ts';
 import { agentMenu, launchAgent, pinOf } from '../base/agentmenu.ts';
 import { ask, barMenu, flyFocus, ICONS, keepMenu, keyChip, menuHead, modeOrder, popMenu, railActions, setSwatches, sortable, sorting, topBarMenu, topRow } from '../base/controls.ts';
 import { addSet, freeCell, setsHolding, agentLine, createDeck, dropSet, inCells, markSet, moveAway, moveSet, moveSetChats, cellsOf, chatsFromOrch, setChatsToOrch, nextColor, nextSet, orderHex, putInSet, restoreSet, swapInSet, setAgents, setAway, setColor, setInfo, setInfos, setOf, setOn, sets, setsMenu, setTurn, shareDeck, showSet, takeHere, toOrch } from '../decks/deck.ts';
-import { aim, bottomBtns, btnShown, dragging, freeAt, freeNear, homeBtns, inDash, moveRef, orderAt, pinDropIn, placeAt, placeBoth, pullBtns, railSel, slotDrag, slotHtml, topBtns, watchFold, watchSlots } from './slots.ts';
+import { aim, bottomBtns, btnShown, dragging, freeAt, freeNear, inDash, moveRef, orderAt, paintSlots, pinDropIn, placeAt, placeBoth, railSel, slotDrag, topBtns, watchFold, watchSlots } from './slots.ts';
 import type { Side, SlotView, Spot } from './slots.ts';
 import { drawDash, showDash } from './topdash.ts';
 import type { MoveHow } from '../decks/deck.ts';
@@ -75,7 +75,12 @@ const infosOf = (k: string, tab?: ((a: Agent) => boolean) | null) => {
 };
 export const PLUS = '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg>';
 const onScreen = (): [any, any] => (mode() === 'editor' ? [null, null] : [mode(), setOn(mode())]);
-let drawn = '', lastAll: SlotView[] = [];
+let drawn = '', lastAll: SlotView[] = [], switchDirty = false, projectsDirty = false;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+  if (switchDirty) paintSwitch();
+  if (projectsDirty) paintProjects();
+});
 export const railViews = () => lastAll;
 let warmed = '';
 
@@ -222,6 +227,9 @@ export function renderModes() {
 }
 
 export function paintSwitch() {
+  if (WIN > 1) return;
+  if (document.hidden) return void (switchDirty = true);
+  switchDirty = false;
   paintHere();
   const sw = $('#switch');
   sw.hidden = atLaunch();
@@ -279,13 +287,9 @@ export function paintSwitch() {
   if (!ws && fresh.some((r) => !r.startsWith('btn:'))) syncOrders();
   if (dragging()) return;
   drawDash(dash, dashAt);
-  const html = slotHtml(rail, at);
-  if (drawn !== html) {
-    drawn = html;
-    pullBtns(sw);
-    sw.innerHTML = html;
-  }
-  homeBtns(sw);
+  const force = drawn === '';
+  drawn = 'ok';
+  paintSlots(sw, rail, at, 'rail', force);
 }
 const SLOT_KINDS = ['orch', 'chat', 'term', 'research'];
 function freezeColors() {
@@ -825,6 +829,9 @@ $('#setwin').addEventListener('click', (e: MouseEvent) => {
 });
 
 function paintProjects() {
+  if (WIN > 1) return;
+  if (document.hidden) return void (projectsDirty = true);
+  projectsDirty = false;
   const nav = $<NavEl>('#projects');
   nav.hidden = atLaunch();
   if (nav.hidden) return void (nav._shape = '');

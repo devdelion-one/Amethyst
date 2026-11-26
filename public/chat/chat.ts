@@ -18,7 +18,7 @@ import { api, edShown, isSelected, mode, S, seenWhenPicked } from '../base/model
 import { fullPath, inProject, quotePieces, quoteSplit, quoteToken, refLabel, streamed, youLinks } from '../base/chattext.ts';
 import { agents, follow as stream, forgetAgent, onAgents, started } from '../base/stream.ts';
 import { agentName, bigStore, chatProgram, chatTabOf, esc, quietly, setSave, showErr, store, uid } from '../base/util.ts';
-import { on, POP, send } from '../base/windows.ts';
+import { on, POP, send, WIN } from '../base/windows.ts';
 import { editsStrip } from './editstrip.ts';
 import { clearNote, editFile, editsOf, firstChange, noteOf, onEdits, onNote } from '../base/edits.ts';
 import { draftOf, keepDraft as putDraft } from '../base/place.ts';
@@ -177,7 +177,7 @@ export const pooled = () => [...pool.keys()];
 let warming = 0;
 function warm() {
   for (const [id, v] of pool) if (!agents.all.has(id)) v.shut();
-  if (POP || !agents.loaded || warming) return;
+  if (WIN > 1 || !agents.loaded || warming) return;
   const have = new Set([...boxes].map((b) => b.tab.chat));
   const todo = [...agents.all.values()].filter((a) => a.kind === 'chat' && !have.has(a.id));
   if (!todo.length) return;

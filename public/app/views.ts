@@ -119,7 +119,7 @@ export function sideNow() {
   $('#btn-github').classList.toggle('on', sideShown() && S.sideView === 'github');
   revealWaiting();
 }
-export function layout() {
+export function layout(fit = true) {
   const app = $('#app'), o = S.open;
   sideNow();
   app.classList.toggle('ws', atWs());
@@ -145,7 +145,7 @@ export function layout() {
   place();
   placePanels();
   placeAll();
-  fitOrch();
+  if (fit) fitOrch();
   for (const b of document.querySelectorAll('[data-view]')) b.classList.toggle('on', shows((b as HTMLElement).dataset.view!));
   const now = new Set(['archive'].filter(shows));
   runWeb(mindsShown());
@@ -222,9 +222,17 @@ export function moved(from: string, to: string, tell = true) {
   if (tell) send('moved', { lvl: levelKey(), from, to });
 }
 
-let drew = false, again = false;
-export function render() {
-  if (drew && !document.hidden) return void (again = true);
+let drew = false, again = false, hiddenDirty = false;
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && hiddenDirty) {
+    hiddenDirty = false;
+    render();
+  }
+});
+export function render(force = false) {
+  if (document.hidden && !force) return void (hiddenDirty = true);
+  hiddenDirty = false;
+  if (drew && !force) return void (again = true);
   if (!drew) {
     drew = true;
     requestAnimationFrame(() => {
@@ -238,7 +246,7 @@ export function render() {
   return span('render', draw);
 }
 function draw() {
-  span('render.layout', layout);
+  span('render.layout', () => layout(false));
   span('render.modes', renderModes);
   span('render.pins', renderPins);
   span('render.fit', fitOrch);

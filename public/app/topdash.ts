@@ -2,13 +2,13 @@ import { atLaunch, atWs } from '../base/model.ts';
 import { tell } from '../base/notify.ts';
 import { onPref, pref, setPref } from '../base/prefs.ts';
 import { $ } from '../base/util.ts';
-import { pullBtns, railChanged, slotHtml } from './slots.ts';
+import { paintSlots, railChanged } from './slots.ts';
 import type { SlotView } from './slots.ts';
 
 const box = () => $<HTMLElement>('#dash');
 const cells = () => $<HTMLElement>('#dash > .slots');
 const otherWin = () => document.documentElement.classList.contains('xwin');
-let drawn: string | null = null, any = true;
+let force = true, any = true;
 
 export function showDash(has = any) {
   any = has;
@@ -21,11 +21,9 @@ export function showDash(has = any) {
 export function drawDash(views: SlotView[], at: Record<string, number>) {
   const c = cells();
   if (box().hidden || c.classList.contains('dragging')) return;
-  const html = slotHtml(views, at, 'dash');
-  if (drawn === html) return;
-  drawn = html;
-  pullBtns(c);
-  c.innerHTML = html;
+  const f = force;
+  force = false;
+  paintSlots(c, views, at, 'dash', f);
 }
 
 export function toggleDash() {
@@ -36,6 +34,6 @@ export function toggleDash() {
 
 onPref('dash:on', () => {
   showDash();
-  drawn = null;
+  force = true;
   railChanged();
 });

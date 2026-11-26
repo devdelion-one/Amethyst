@@ -21,7 +21,10 @@ const P = {
   busy: false,
 };
 const panel = $<HTMLElement>('#github');
-const shown = () => panel.offsetParent !== null;
+const shown = () => {
+  const a = $('#app');
+  return !document.documentElement.classList.contains('xwin') && !a.classList.contains('ws') && !a.classList.contains('launch') && !a.classList.contains('side-hidden') && a.classList.contains('ghv');
+};
 const TABS: [string, string][] = [
   ['mine', 'mine'],
   ['review', 'to review'],
