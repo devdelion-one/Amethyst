@@ -24,6 +24,7 @@ import * as drive from './server/chat/drive/routes.ts';
 import { ACTIONS as CHAT_ACTS } from './server/chat/drive/actions.ts';
 import * as workers from './server/chat/workers/routes.ts';
 import { ACTIONS as AGENT_ACTS } from './server/chat/workers/actions.ts';
+import { ACTIONS as PROJECT_ACTS } from './server/project/actions.ts';
 import { ACTIONS as DEBUG_ACTS } from './server/debug/actions.ts';
 import { ACTIONS as UE_ACTS } from './server/ue/actions.ts';
 import { ACTIONS as GIT_ACTS } from './server/git/actions.ts';
@@ -39,8 +40,9 @@ import type { Disk, ArchiveStore } from './server/base/routes.ts';
 import type { Project, RouteHandler, Routes } from './public/base/types.ts';
 import type { Live } from './server/base/live.ts';
 import { exists, isDir, replace, WIN } from './server/base/util.ts';
-import { asUser, gate } from './server/base/user.ts';
+import { asUser, gate, isUser } from './server/base/user.ts';
 import * as runs from './server/base/runs.ts';
+import * as agentfiles from './server/base/agentfiles.ts';
 
 type Root = ReturnType<typeof openRoot> & { ROOT: string };
 interface WsEntry {
@@ -320,10 +322,21 @@ github.init({ ask: agents.ask, show: gitShow, napIn: agents.napIn, roots: () => 
 } });
 setup.init({ archiveAt, moveAcross });
 clips.init({ dataDir: path.join(WS_DIR, DOT) });
-ue.init({ dataDir: path.join(WS_DIR, DOT), debugger: { start: debug.start, debugging: debug.debugging, sessionOf: debug.sessionOf, ready: debug.engineMissing, prepare: debug.prepare, who: debug.whoOf, allow: debug.allow } });
+ue.init({
+  dataDir: path.join(WS_DIR, DOT),
+  debugger: { start: debug.start, debugging: debug.debugging, sessionOf: debug.sessionOf, ready: debug.engineMissing, prepare: debug.prepare, who: debug.whoOf, allow: debug.allow },
+  projects: {
+    resolveWorkspace: (a) => {
+      const w = resolveWorkspace(a);
+      return { id: w.id, name: w.name };
+    },
+    validateProjectDir: (dir, wid, opts) => validateProjectDir(dir, wid ? wsById(wid) : null, opts),
+    registerProject: (dir, opts) => registerProject(dir, { W: wsById(opts.wid), name: opts.name, create: opts.create }),
+  },
+});
 terms.init({ dataDir: path.join(WS_DIR, DOT), port: PORT, claudeAccount: agents.claudeAccount, hookPath: path.join(import.meta.dirname, 'hook.js') });
 
-const ACTS = [...CHAT_ACTS, ...AGENT_ACTS, ...UE_ACTS, ...DEBUG_ACTS, ...GIT_ACTS, ...GH_ACTS];
+const ACTS = [...CHAT_ACTS, ...AGENT_ACTS, ...PROJECT_ACTS, ...UE_ACTS, ...DEBUG_ACTS, ...GIT_ACTS, ...GH_ACTS];
 for (const p of checkActs(ACTS)) console.error(p);
 const OPEN = new Set([...ACTS.map((a) => a.route), 'GET /api/acts', 'GET /api/where', 'POST /api/term/hook']);
 const ELECTRON = !!process.versions.electron;
@@ -568,6 +581,106 @@ const folderArg = (dir: unknown) => {
   return path.resolve(dir.trim());
 };
 
+type ResolveWsArgs = { workspace?: unknown; by?: unknown; key?: unknown; pid?: string; wid?: string; cwd?: unknown; targetDir?: string };
+function resolveWorkspace(a: ResolveWsArgs): Ws {
+  const liveWs = wsList().filter((x) => fs.existsSync(x.path));
+  const want = String(a.workspace || '').trim();
+  if (want) {
+    const hit = liveWs.find((w) => w.id === want || w.name.toLowerCase() === want.toLowerCase());
+    if (!hit) {
+      const names = liveWs.map((w) => w.name).join(', ');
+      throw new HttpError(404, names ? `no workspace named "${want}": available workspaces are ${names}` : `no workspace named "${want}": open or make a workspace in Amethyst first`);
+    }
+    return wsById(hit.id);
+  }
+  const who = a.by ? drive.knownCaller(a as Record<string, unknown>) : null;
+  const pid = who ? who.pid : a.pid || '';
+  if (pid) {
+    const hit = liveWs.find((w) => (wsRoot(w).meta.projects as Project[]).some((p) => p.id === pid));
+    if (hit) return wsById(hit.id);
+  }
+  if (who?.root) {
+    const hit = liveWs.find((w) => within(who.root, w.path));
+    if (hit) return wsById(hit.id);
+  }
+  if (a.wid) {
+    const hit = liveWs.find((w) => w.id === a.wid);
+    if (hit) return wsById(hit.id);
+  }
+  if (a.targetDir) {
+    const hit = liveWs.filter((w) => within(a.targetDir!, w.path)).sort((x, y) => y.path.length - x.path.length)[0];
+    if (hit) return wsById(hit.id);
+  }
+  if (liveWs.length === 1) return wsById(liveWs[0].id);
+  if (liveWs.length > 1) throw new HttpError(400, `which workspace? pass --workspace with one of: ${liveWs.map((w) => w.name).join(', ')}`);
+  throw new HttpError(400, 'a project goes in a workspace: open or make one in Amethyst first');
+}
+
+const CRED_DIRS = ['.ssh', '.gnupg', '.aws', '.azure', '.kube', '.config', '.claude', '.codex', '.cursor', '.gemini', '.copilot', '.grok'];
+async function validateProjectDir(dir: string, W: Ws | null, { nonUser }: { nonUser: boolean }) {
+  const raw = typeof dir === 'string' ? dir.trim() : '';
+  if (!raw) throw new HttpError(400, 'give a folder path');
+  if (live.network(raw)) throw new HttpError(400, 'network paths cannot be added as a project');
+  if (!path.isAbsolute(raw)) throw new HttpError(400, 'give the full folder path, e.g. D:\\Notes\\Work');
+  const abs = path.resolve(raw);
+  if (path.parse(abs).root === abs) throw new HttpError(400, 'a drive or filesystem root cannot be a project');
+  const real = await realOf(abs).catch((e) => {
+    if (e instanceof HttpError) throw new HttpError(400, 'broken or unreadable symlink in path');
+    throw e;
+  });
+  if (live.network(real)) throw new HttpError(400, 'network paths cannot be added as a project');
+  if (path.parse(real).root === real) throw new HttpError(400, 'a drive or filesystem root cannot be a project');
+  const ownDirs = await Promise.all([APP_DATA, WS_DIR, ARCHIVE, archiveDir(), WORKTREES, worktreesDir(), CHECKPOINTS].filter(Boolean).map((d) => realOf(path.resolve(d)).catch(() => path.resolve(d))));
+  for (const d of ownDirs) {
+    if (within(real, d) || within(d, real)) throw new HttpError(400, "that folder overlaps Amethyst's own data folder");
+  }
+  if (nonUser) {
+    const home = await realOf(path.resolve(os.homedir())).catch(() => path.resolve(os.homedir()));
+    const tmp = await realOf(path.resolve(os.tmpdir())).catch(() => path.resolve(os.tmpdir()));
+    const inTmp = within(real, tmp) && !same(real, tmp);
+    if (same(real, home) || within(home, real)) throw new HttpError(400, 'that system or home folder cannot be added as a project');
+    for (const c of CRED_DIRS) {
+      const cd = await realOf(path.join(home, c)).catch(() => path.join(home, c));
+      if (within(real, cd) || within(cd, real)) throw new HttpError(400, 'that credential or agent config folder cannot be added as a project');
+    }
+    const sysEnv = WIN
+      ? [process.env.WINDIR, process.env.SystemRoot, process.env.ProgramFiles, process.env['ProgramFiles(x86)'], process.env.ProgramData, process.env.APPDATA, process.env.LOCALAPPDATA]
+      : ['/etc', '/usr', '/bin', '/sbin', '/var', '/sys', '/proc', '/dev', '/boot', '/root', '/System', '/Library'];
+    for (const s of sysEnv) {
+      if (!s) continue;
+      const sd = await realOf(path.resolve(s)).catch(() => path.resolve(s));
+      if (inTmp && within(tmp, sd)) continue;
+      if (within(real, sd) || within(sd, real)) throw new HttpError(400, 'that system or application data folder cannot be added as a project');
+    }
+  }
+  if (W) {
+    if (W.loose) throw new HttpError(400, 'a project goes in a workspace: open or make one first');
+    const wReal = await realOf(W.path).catch(() => path.resolve(W.path));
+    const hidden = path.relative(real, wReal).split(path.sep).some((s) => s.startsWith('.') && s !== '..');
+    if (within(wReal, real) && !hidden) throw new HttpError(400, 'that folder holds the workspace');
+    if (W.home && within(real, WS_DIR)) throw new HttpError(400, 'that folder overlaps the workspace');
+    for (const w of wsList()) {
+      const wr = await realOf(w.path).catch(() => path.resolve(w.path));
+      if (same(wr, real)) throw new HttpError(400, `that folder is the workspace "${w.name}"`);
+    }
+    for (const x of W.root.meta.projects as Project[]) {
+      const xr = await realOf(x.path).catch(() => path.resolve(x.path));
+      if (same(xr, real) || same(x.path, abs)) throw new HttpError(409, `that folder is already registered as the project "${x.name}"`);
+      if (within(real, xr) || within(xr, real)) throw new HttpError(409, `that folder overlaps the project "${x.name}"`);
+    }
+  }
+  return real;
+}
+
+async function registerProject(dir: string, opts: { W: Ws; name?: unknown; create?: boolean }) {
+  const p = path.resolve(dir);
+  if (opts.create) await makeFolder(p);
+  const proj = { id: newId(), name: cleanName(opts.name) || path.basename(p), path: p, desc: '', color: null };
+  opts.W.root.meta.projects.push(proj);
+  await opts.W.root.saveMeta();
+  return proj;
+}
+
 const IMAGE_EXT = /\.(png|jpe?g|gif|webp|bmp|ico)$/i;
 
 async function extFile(p: unknown) {
@@ -738,6 +851,35 @@ const APP_ROUTES: Routes = {
     const ws = wsList().filter((w) => within(dir!, w.path)).sort((a, b) => b.path.length - a.path.length)[0];
     if (ws) return { workspace: ws.id, project: '', name: ws.name, path: ws.path };
     throw new HttpError(404, `${dir} is in no Amethyst project: run it in a project's folder, or give --project <name>`);
+  },
+
+  'POST /api/project/add': async (body, _, wid, pid) => {
+    const b = body || {};
+    const rawPath = b.path ? String(b.path).trim() : String(b.cwd || '').trim();
+    if (!rawPath) throw new HttpError(400, 'give a folder path');
+    if (live.network(rawPath)) throw new HttpError(400, 'network paths cannot be added as a project');
+    const abs = path.isAbsolute(rawPath) ? path.resolve(rawPath) : b.cwd ? path.resolve(String(b.cwd), rawPath) : '';
+    if (!abs || !path.isAbsolute(abs)) throw new HttpError(400, 'give the full folder path, e.g. D:\\Notes\\Work');
+    const W = resolveWorkspace({ workspace: b.workspace, by: b.by, key: b.key, pid: pid || '', wid: String(wid || ''), cwd: b.cwd, targetDir: abs });
+    const real = await validateProjectDir(abs, W, { nonUser: !isUser() });
+    const st = await fsp.stat(abs).catch(() => null);
+    if (st && !st.isDirectory()) throw new HttpError(400, 'that is a file, not a folder');
+    if (!st && !b.create) throw new HttpError(404, `folder not found: ${abs} (pass --create to make it)`);
+    if (st) await agentfiles.keepOutDir(b, real);
+    const secs = b.timeout == null ? 300 : Number(b.timeout) || 0;
+    const projName = cleanName(b.name) || path.basename(abs);
+    await runs.mayRun(
+      b,
+      (who) => ({
+        title: `Allow adding project ${projName}?`,
+        text: `${who} asks to add ${abs} as a project in workspace ${W.name}${!st ? ' (creating the folder)' : ''}.`,
+      }),
+      secs,
+    );
+    const realAfter = await validateProjectDir(abs, W, { nonUser: !isUser() });
+    if (await isDir(abs)) await agentfiles.keepOutDir(b, realAfter);
+    const proj = await registerProject(abs, { W, name: b.name, create: !!b.create });
+    return { ...proj, workspace: W.name, workspaceId: W.id, text: `added project ${proj.name} (${proj.path}) to workspace ${W.name}` };
   },
 
   'PUT /api/settings': async ({ archive, browser, worktrees, tools }) => {
@@ -930,12 +1072,15 @@ const WS_ROUTES: Routes = {
 
   'POST /api/project': async ({ name, path: dir }, _, W: Ws) => {
     if (W.loose) throw new HttpError(400, 'a project goes in a workspace: open or make one first');
+    if (live.network(dir)) throw new HttpError(400, 'network paths cannot be added as a project');
     const p = folderArg(dir);
     const hidden = path.relative(p, W.path).split(path.sep).some((s) => s.startsWith('.') && s !== '..');
     if (within(W.path, p) && !hidden) throw new HttpError(400, 'that folder holds the workspace');
     if (W.home && within(p, WS_DIR)) throw new HttpError(400, 'that folder overlaps the workspace');
     const ws = wsList().find((w) => same(w.path, p));
     if (ws) throw new HttpError(400, `that folder is the workspace “${ws.name}”`);
+    const dup = W.root.meta.projects.find((x: Project) => same(x.path, p));
+    if (dup) throw new HttpError(409, `that folder is already registered as the project “${dup.name}”`);
     const clash = W.root.meta.projects.find((x: Project) => !same(x.path, p) && (within(p, x.path) || within(x.path, p)));
     if (clash) throw new HttpError(409, `that folder overlaps the project “${clash.name}”`);
     await makeFolder(p);
@@ -1015,8 +1160,12 @@ const serve = async (req: IncomingMessage, res: ServerResponse) => {
     const user = gate.allow(req.headers, OPEN.has(key));
     if (key !== 'GET /api/stream' && key !== 'POST /api/chats/wait') inFlight(key, res);
     if (req.method === 'GET' && url.pathname === '/api/stream') return live.stream(url.searchParams.get('c'), req, res);
-    let handler = routeIn(APP_TABLES, key), extra = null, root = HOME_ROOT, pid = '';
+    let handler = routeIn(APP_TABLES, key), extra: any = null, root = HOME_ROOT, pid = '';
     if (key === 'POST /api/stream') handler = (b) => live.follow(b, { chat: agents.follow, term: terms.follow, scope: () => scopeIn(req, url), files: (out: Out) => watchFiles(whereIn(req, url).R, out), path: watchExt, ue: (out: Out) => ue.follow(whereIn(req, url).R.ROOT, out), ueask: (out: Out) => ue.followAsks(out), runask: (out: Out) => runs.follow(out), debug: (out: Out) => debug.follow(whereIn(req, url).R.ROOT, out) });
+    if (handler && key === 'POST /api/project/add') {
+      extra = widOf(req, url);
+      pid = pidOf(req, url);
+    }
     if (!handler) {
       const W = wsById(widOf(req, url));
       pid = pidOf(req, url);

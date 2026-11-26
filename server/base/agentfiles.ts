@@ -160,3 +160,72 @@ export async function keepOut(body: Body, cwd: string, from: string, to: string,
   const why = refusal(await agentFiles(cwd, from, to, how));
   if (why) throw new HttpError(403, why);
 }
+
+const SKIP_DIRS = new Set(['.git', 'node_modules', 'binaries', 'intermediate', 'saved', 'deriveddatacache']);
+const MAX_DIR_DEPTH = 32;
+const MAX_DIR_ENTRIES = 20000;
+
+export async function scanDir(dir: string): Promise<Found> {
+  const found: Found = { files: [], unchecked: [] };
+  let count = 0;
+  let capped = false;
+  async function walk(cur: string, prefix: string, depth: number): Promise<void> {
+    if (capped) return;
+    if (depth > MAX_DIR_DEPTH) {
+      capped = true;
+      found.unchecked.push(prefix || '.');
+      return;
+    }
+    let entries: fs.Dirent[];
+    try {
+      entries = await fs.promises.readdir(cur, { withFileTypes: true });
+    } catch {
+      found.unchecked.push(prefix || '.');
+      return;
+    }
+    for (const d of entries) {
+      if (capped) return;
+      if (++count > MAX_DIR_ENTRIES) {
+        capped = true;
+        found.unchecked.push(prefix || '.');
+        return;
+      }
+      const rel = prefix ? `${prefix}/${d.name}` : d.name;
+      const full = path.join(cur, d.name);
+      if (d.isSymbolicLink()) {
+        if (linked(rel)) found.files.push(rel);
+        continue;
+      }
+      if (d.isDirectory()) {
+        if (SKIP_DIRS.has(d.name.toLowerCase())) continue;
+        await walk(full, rel, depth + 1);
+        continue;
+      }
+      if (d.isFile()) {
+        if (listed(rel)) found.files.push(rel);
+        continue;
+      }
+      const st = await fs.promises.lstat(full).catch(() => null);
+      if (!st) found.unchecked.push(rel);
+      else if (st.isSymbolicLink()) {
+        if (linked(rel)) found.files.push(rel);
+      } else if (st.isDirectory()) {
+        if (!SKIP_DIRS.has(d.name.toLowerCase())) await walk(full, rel, depth + 1);
+      } else if (st.isFile() && listed(rel)) found.files.push(rel);
+    }
+  }
+  await walk(dir, '', 0);
+  return found;
+}
+
+export function refusalDir({ files, unchecked }: Found) {
+  if (files.length) return `This folder has ${some(files)}, which can let chats run commands without asking you. ${DO}`;
+  if (unchecked.length) return `Amethyst couldn't check ${some(unchecked)} in this folder for an agent's settings or hooks. ${DO}`;
+  return '';
+}
+
+export async function keepOutDir(body: Body, dir: string) {
+  if (free(body)) return;
+  const why = refusalDir(await scanDir(dir));
+  if (why) throw new HttpError(403, why);
+}

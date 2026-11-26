@@ -266,4 +266,4 @@ function init(o: Init) {
 
 const freeToRun = (a: Record<string, any>) => byUser(knownCaller(a)) || cfg.settings().asks;
 
-export { askerOf, callerOf, freeToRun, init, ROUTES };
+export { askerOf, callerOf, freeToRun, init, knownCaller, ROUTES };

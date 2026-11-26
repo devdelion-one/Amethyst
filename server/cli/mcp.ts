@@ -16,7 +16,7 @@ async function tools() {
 }
 async function project() {
   if (inChat) return null;
-  if (here === undefined) here = await where(process.cwd()).catch(() => null);
+  if (!here || !here.project) here = await where(process.cwd()).catch(() => null);
   return here;
 }
 

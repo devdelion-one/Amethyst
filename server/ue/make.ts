@@ -586,10 +586,15 @@ const UE_GITIGNORE = [
   'desktop.ini',
 ];
 
-async function newProject(root: string, b: { name?: string; engine: { id: string } }) {
-  const name = String(b.name || '').trim();
+function checkProjectName(raw: unknown) {
+  const name = String(raw || '').trim();
   if (!name) throw new HttpError(400, 'type a name');
   if (!ID.test(name)) throw new HttpError(400, `"${name}" isn't a C++ name: letters, digits and _, not starting with a digit`);
+  return name;
+}
+
+async function newProject(root: string, b: { name?: string; engine: { id: string } }) {
+  const name = checkProjectName(b.name);
   const there = (await fs.promises.readdir(root).catch(() => [])).find((f) => /\.uproject$/i.test(f));
   if (there) throw new HttpError(409, `${there} is already here: one Unreal project per folder, nothing is overwritten`);
   const eol = '\r\n', lines = (xs: string[]) => xs.join(eol) + eol;
@@ -612,4 +617,4 @@ async function newProject(root: string, b: { name?: string; engine: { id: string
   return { name, engine: b.engine.id, made: [...files.map(([f]) => slash(path.relative(root, f))), 'Content/'] };
 }
 
-export { newProject, create, addModuleDeps, pluginTemplates, projectPlugins, addDependency, addToList, addTargetModule, TYPES, PHASES };
+export { checkProjectName, newProject, create, addModuleDeps, pluginTemplates, projectPlugins, addDependency, addToList, addTargetModule, TYPES, PHASES };

@@ -16,6 +16,8 @@ import { stopUht, uht } from './uht.ts';
 import { debugConfig, exeOf } from './debug.ts';
 import * as asks from './ask.ts';
 import * as gate from '../base/runs.ts';
+import { isUser } from '../base/user.ts';
+import { keepOutDir } from '../base/agentfiles.ts';
 import type { ChildProcessWithoutNullStreams } from 'child_process';
 import type { Routes } from '../../public/base/types.ts';
 import type { Config } from './debug.ts';
@@ -103,9 +105,16 @@ type Debugger = {
   who: (body: Record<string, unknown>, root: string | null) => Who;
   allow: (w: Who, what: string) => void;
 };
+type ProjectHooks = {
+  resolveWorkspace: (a: { workspace?: unknown; by?: unknown; key?: unknown; pid?: string; wid?: string; cwd?: unknown; targetDir?: string }) => { id: string; name: string };
+  validateProjectDir: (dir: string, wid: string | null, opts: { nonUser: boolean }) => Promise<string>;
+  registerProject: (dir: string, opts: { wid: string; name?: unknown; create?: boolean }) => Promise<{ id: string; name: string; path: string }>;
+};
 let debug: Debugger = { start: async () => ({ why: 'no-debugger' }), debugging: () => false, sessionOf: () => null, ready: () => null, prepare: () => {}, who: (_b, root) => ({ agent: false, chat: '', root, outside: false }), allow: () => {} };
-const init = ({ dataDir, debugger: d }: { dataDir: string; debugger?: Debugger }) => {
+let projects: ProjectHooks | null = null;
+const init = ({ dataDir, debugger: d, projects: p }: { dataDir: string; debugger?: Debugger; projects?: ProjectHooks }) => {
   if (d) debug = d;
+  if (p) projects = p;
   addedFile = path.join(dataDir, 'ue-engines.json');
   okFile = path.join(dataDir, 'ue-ok.json');
   uhtLog = path.join(dataDir, 'ue-uht-missed.log');
@@ -1005,12 +1014,58 @@ const CMD_ROUTES: Routes = {
     ];
     return { ...r, text: lines.join('\n') };
   },
-  'POST /api/ue/cmd/project': async (body, _, root: string | null) => {
-    if (!root) throw new HttpError(400, 'run it inside the project folder it should fill');
-    if (body?.cwd && !sameDir(path.resolve(String(body.cwd)), path.resolve(root))) throw new HttpError(400, `run it in the folder of an Amethyst project: ${body.cwd} isn't one, so nothing was made (add the folder as a project in Amethyst first)`);
+  'POST /api/ue/cmd/project': async (body, q, root: string | null, pid?: string) => {
+    const rawDir = body?.dir ? String(body.dir).trim() : '';
+    if (rawDir && network(rawDir)) throw new HttpError(400, 'network paths are not allowed');
+    const base = String(body?.cwd || root || '').trim();
+    const targetDir = rawDir ? (path.isAbsolute(rawDir) ? path.resolve(rawDir) : base ? path.resolve(base, rawDir) : '') : base ? path.resolve(base) : '';
+    if (!targetDir || !path.isAbsolute(targetDir)) throw new HttpError(400, 'run it inside the project folder it should fill, or pass --dir <folder>');
+    if (pid && root && sameDir(targetDir, path.resolve(root))) {
+      const e = await newestEngine(String(body?.engine || '').trim());
+      const r = await make.newProject(root, { name: body?.name, engine: e });
+      return { ...r, path: path.resolve(root), text: [`made the Unreal project ${r.name} for Unreal Engine ${r.engine}:`, ...r.made.map((m) => `made ${m}`), 'Next: amethyst ue new plugin <Name> adds a plugin; amethyst ue generate, amethyst ue build, then amethyst ue editor.'].join('\n') };
+    }
+    const shouldAdd = body?.add !== false;
+    if (!projects) throw new HttpError(500, 'project registration is not configured');
+    const ws = shouldAdd ? projects.resolveWorkspace({ workspace: body?.workspace, by: body?.by, key: body?.key, pid, wid: q?.get('w') || '', cwd: body?.cwd, targetDir }) : null;
+    const real = await projects.validateProjectDir(targetDir, ws ? ws.id : null, { nonUser: !isUser() });
+    const st = await fs.promises.stat(targetDir).catch(() => null);
+    if (st) {
+      if (!st.isDirectory()) throw new HttpError(400, 'that is a file, not a folder');
+      await keepOutDir(body, real);
+      const entries = await fs.promises.readdir(real);
+      const nonGit = entries.filter((x) => x.toLowerCase() !== '.git');
+      if (nonGit.length) throw new HttpError(409, `${targetDir} is not empty: ue project in a new folder requires an empty folder (or add the folder as an Amethyst project first with amethyst project add)`);
+    }
+    const projName = make.checkProjectName(body?.name);
     const e = await newestEngine(String(body?.engine || '').trim());
-    const r = await make.newProject(root, { name: body?.name, engine: e });
-    return { ...r, text: [`made the Unreal project ${r.name} for Unreal Engine ${r.engine}:`, ...r.made.map((m) => `made ${m}`), 'Next: amethyst ue new plugin <Name> adds a plugin; amethyst ue generate, amethyst ue build, then amethyst ue editor.'].join('\n') };
+    const secs = body?.timeout == null ? 300 : Number(body.timeout) || 0;
+    await gate.mayRun(
+      body,
+      (who) => ({
+        title: `Allow creating Unreal project ${projName}?`,
+        text: `${who} asks to create Unreal project ${projName} (UE ${e.id}) in ${targetDir}${ws ? ` and add it to workspace ${ws.name}` : ''}.`,
+      }),
+      secs,
+    );
+    await projects.validateProjectDir(targetDir, ws ? ws.id : null, { nonUser: !isUser() });
+    const stAfter = await fs.promises.stat(targetDir).catch(() => null);
+    if (stAfter) {
+      if (!stAfter.isDirectory()) throw new HttpError(400, 'that is a file, not a folder');
+      await keepOutDir(body, real);
+      const entries = await fs.promises.readdir(real);
+      if (entries.some((x) => x.toLowerCase() !== '.git')) throw new HttpError(409, `${targetDir} is not empty: ue project in a new folder requires an empty folder (or add the folder as an Amethyst project first with amethyst project add)`);
+    }
+    await fs.promises.mkdir(targetDir, { recursive: true });
+    const r = await make.newProject(targetDir, { name: projName, engine: e });
+    const proj = ws ? await projects.registerProject(targetDir, { wid: ws.id, name: projName }) : null;
+    const lines = [
+      `made the Unreal project ${r.name} for Unreal Engine ${r.engine} in ${targetDir}:`,
+      ...r.made.map((m) => `made ${m}`),
+      ...(proj && ws ? [`added project ${proj.name} to workspace ${ws.name}`] : []),
+      'Next: amethyst ue new plugin <Name> adds a plugin; amethyst ue generate, amethyst ue build, then amethyst ue editor.',
+    ];
+    return { ...r, path: targetDir, ...(proj && { project: proj, workspace: ws!.name }), text: lines.join('\n') };
   },
 };
 

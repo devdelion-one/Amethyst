@@ -18,6 +18,7 @@ Exit codes: `0` done, `1` failed (error from Amethyst or app not running), `2` i
 
 - [Agent subagents (`amethyst agent`)](#agent-subagents-amethyst-agent)
 - [Chat orchestration (`amethyst chat`)](#chat-orchestration-amethyst-chat)
+- [Projects (`amethyst project`)](#projects-amethyst-project)
 - [Git (`amethyst git`)](#git-amethyst-git)
 - [Pull requests (`amethyst pr`)](#pull-requests-amethyst-pr)
 - [Issues (`amethyst issue`)](#issues-amethyst-issue)
@@ -368,6 +369,25 @@ amethyst chat end <chat>
 ```
 
 - `chat` (string, required): The chat: its code (Q20 or @Q20), its title, or its id. Only chats in your own project.
+## Projects (`amethyst project`)
+
+### `amethyst project add`
+
+**Surface:** CLI and MCP tool `project_add`
+
+Add a folder as an Amethyst project in a workspace so Amethyst tools (such as ue generate, ue build, ue editor, chat and git) can work in it. Without --create, the folder must already exist. While the user has "chats answer other chats' permission asks" off, adding a project waits for their OK in Amethyst's window, and folders containing an agent's settings or hooks are refused.
+
+```powershell
+amethyst project add [path] [--name <name>] [--workspace <workspace>] [--create] [--timeout <timeout>]
+```
+
+- `path` (string, optional): The folder path (relative to the current folder, or absolute); the current folder by default
+- `--name` (string, optional): The project display name (defaults to the folder name)
+- `--workspace` (string, optional): The workspace name or id to add the project to
+- `--create` (boolean, optional): Create the folder if it doesn't exist yet
+- `--timeout` (number, optional): Seconds to wait for the user's OK in Amethyst, 300 by default, 0 for no limit
+
+Example: `amethyst project add E:\MyGame --workspace Games`
 ## Git (`amethyst git`)
 
 ### `amethyst git status`
@@ -913,14 +933,18 @@ Example: `amethyst issue start 12`
 
 **Surface:** CLI and MCP tool `ue_project`
 
-Make a new, empty Unreal C++ project in this folder: <Name>.uproject, Source/<Name>.Target.cs, Source/<Name>Editor.Target.cs (BuildSettingsVersion and IncludeOrderVersion Latest), one Runtime module Source/<Name> with IMPLEMENT_PRIMARY_GAME_MODULE, Config/DefaultEngine.ini, Config/DefaultGame.ini, .gitignore (when none is there) and Content/. It refuses if the folder already has a .uproject, and never overwrites a file. It lists the files it made.
+Make a new, empty Unreal C++ project in this folder (or --dir): <Name>.uproject, Source/<Name>.Target.cs, Source/<Name>Editor.Target.cs (BuildSettingsVersion and IncludeOrderVersion Latest), one Runtime module Source/<Name> with IMPLEMENT_PRIMARY_GAME_MODULE, Config/DefaultEngine.ini, Config/DefaultGame.ini, .gitignore (when none is there) and Content/. In a new or empty unregistered folder, it creates the folder and registers it as an Amethyst project (unless --no-add), waiting for the user's OK in Amethyst's window while "chats answer other chats' permission asks" is off. It refuses if the folder already has a .uproject, and never overwrites a file. It lists the files it made.
 
 ```powershell
-amethyst ue project <name> [--engine <engine>]
+amethyst ue project <name> [--engine <engine>] [--dir <dir>] [--workspace <workspace>] [--add] [--timeout <timeout>]
 ```
 
 - `name` (string, required): The project name, a C++ name
 - `--engine` (string, optional): The engine: a version such as 5.7, or its folder; the newest one installed by default
+- `--dir` (string, optional): Target folder (relative to the current folder, or absolute); the current folder by default
+- `--workspace` (string, optional): Workspace name or id to register the new project in
+- `--add` (boolean, optional): Register the folder as an Amethyst project (default true; pass --no-add to skip)
+- `--timeout` (number, optional): Seconds to wait for the user's OK in Amethyst, 300 by default, 0 for no limit
 
 Example: `amethyst ue project ProjectIsometric --engine 5.7`
 
@@ -1062,6 +1086,97 @@ amethyst ue log [which] [--lines <lines>] [--category <category>] [--verbosity <
 - `--since` (number, optional): Only the last this many seconds
 
 Example: `amethyst ue log --category LogModuleManager --lines 40`
+
+### `amethyst ue console`
+
+**Surface:** CLI and MCP tool `ue_console`
+
+Run a console command inside this project's open Unreal Editor and return the log output written by that command. Requires the editor to be linked (opened via amethyst ue editor or with PythonScriptPlugin Remote Execution enabled). While the user has "chats answer other chats' permission asks" off, each run first waits for their OK in Amethyst's window.
+
+```powershell
+amethyst ue console <command...> [--timeout <timeout>]
+```
+
+- `command` (string, required): The Unreal console command to run
+- `--timeout` (number, optional): Seconds to wait at most, 30 by default
+
+Example: `amethyst ue console stat fps`
+
+### `amethyst ue python`
+
+**Surface:** CLI and MCP tool `ue_python`
+
+Run Python code or a project .py script inside this project's open Unreal Editor and return its stdout, log output, and expression result. Requires the editor to be linked (opened via amethyst ue editor or with PythonScriptPlugin Remote Execution enabled). While the user has "chats answer other chats' permission asks" off, each run first waits for their OK in Amethyst's window.
+
+```powershell
+amethyst ue python [code...] [--file <file>] [--eval] [--timeout <timeout>]
+```
+
+- `code` (string, optional): Python code to execute (omit when passing --file)
+- `--file` (string, optional): Path to a .py script inside the project root
+- `--eval` (boolean, optional): Evaluate a single Python expression and return its value
+- `--timeout` (number, optional): Seconds to wait at most, 30 by default
+
+Example: `amethyst ue python "import unreal; print(unreal.Paths.project_dir())"`
+
+### `amethyst ue modules`
+
+**Surface:** CLI and MCP tool `ue_modules`
+
+List loaded Unreal modules from this project's open Unreal Editor (project and project-plugin modules by default; pass --all to include engine modules).
+
+```powershell
+amethyst ue modules [--all] [--loaded] [--filter <filter>]
+```
+
+- `--all` (boolean, optional): Include engine modules in addition to project and plugin modules
+- `--loaded` (boolean, optional): Only show modules currently loaded
+- `--filter` (string, optional): Only show modules whose name contains this substring
+
+Example: `amethyst ue modules --loaded`
+
+### `amethyst ue screenshot`
+
+**Surface:** CLI and MCP tool `ue_screenshot`
+
+Capture a PNG screenshot from this project's open Unreal Editor and return its saved file path. Captures the editor viewport by default when linked, or the full Unreal Editor window (including Slate panels) with --window.
+
+```powershell
+amethyst ue screenshot [--window] [--width <width>] [--height <height>] [--game-view] [--out <out>] [--timeout <timeout>]
+```
+
+- `--window` (boolean, optional): Capture the full Unreal Editor window (Slate UI) instead of only the viewport
+- `--width` (number, optional): Viewport screenshot width in pixels, 1280 by default
+- `--height` (number, optional): Viewport screenshot height in pixels, 720 by default
+- `--game-view` (boolean, optional): Hide editor gizmos and overlays in viewport capture
+- `--out` (string, optional): Output PNG path inside the project root (defaults to Saved/Screenshots/Amethyst/)
+- `--timeout` (number, optional): Seconds to wait at most, 15 by default
+
+Example: `amethyst ue screenshot --width 1280 --height 720`
+
+### `amethyst ue assets`
+
+**Surface:** CLI and MCP tool `ue_assets`
+
+Inspect and manipulate Unreal .uasset/.umap files through Unreal's Python API (live linked editor when open, headless UnrealEditor-Cmd.exe when closed). Operations: deps <path> (list package dependencies), migrate <paths...> --to <project> (copy assets and their dependency closure into another registered Amethyst project), move <from> <to> (move/rename an asset and fix up redirectors), props <path> (read Blueprint CDO or DataAsset properties), new <class> <path> (create a Blueprint, DataAsset, map or factory asset and set properties). While the user has "chats answer other chats' permission asks" off, each run first waits for their OK in Amethyst's window.
+
+```powershell
+amethyst ue assets <op> [args...] [--to <to>] [--dest-root <dest-root>] [--overwrite] [--soft] [--recursive] [--keys <a,b>] [--parent <parent>] [--set <json>] [--timeout <timeout>]
+```
+
+- `op` (string, required): Operation: deps, migrate, move, props or new
+- `args` (list, optional): Positional arguments: deps <path>, migrate <paths...>, move <from> <to>, props <path>, new <class> <path>
+- `--to` (string, optional): migrate: destination Amethyst project name
+- `--dest-root` (string, optional): migrate: optional destination package root (e.g. /Game/Imported or /MyPlugin)
+- `--overwrite` (boolean, optional): migrate: overwrite existing files in the destination project
+- `--soft` (boolean, optional): deps or migrate: include soft package dependencies
+- `--recursive` (boolean, optional): deps: include transitive dependencies (migrate is always recursive)
+- `--keys` (list, optional): props: property names to read, comma separated; omit to read all editable properties
+- `--parent` (string, optional): new: parent class for Blueprint (e.g. Actor, Pawn, /Script/MyGame.MyActor)
+- `--set` (object, optional): new: JSON object of properties to set on the asset or Blueprint CDO (e.g. {"Speed":600})
+- `--timeout` (number, optional): Seconds to wait at most (120 live or 300 headless by default, max 600)
+
+Example: `amethyst ue assets deps /Game/BP_Hero --recursive`
 ## Unreal debugger (`amethyst debug`)
 
 ### `amethyst debug start`
