@@ -352,17 +352,33 @@ const ROUTES: Routes = {
     const { n, worktree } = body;
     const cwd = inRepo(root), k = num(n), t = await target(cwd);
     await ready();
-    if (!free(body)) {
-      must(await gitLong(cwd, ['fetch', '--quiet', t.remote, `refs/pull/${k}/head`], { what: 'fetching the pull request' }));
-      await keepOut(body, cwd, 'HEAD', must(await git(cwd, ['rev-parse', '--verify', 'FETCH_HEAD^{commit}'])).trim());
+    if (!worktree && free(body)) {
+      await ghRun(cwd, ['pr', 'checkout', String(k), '-R', t.repo], 120e3);
+      return said(`on #${k}'s branch now`);
     }
+    const p = worktree ? null : await ghJson(cwd, ['pr', 'view', String(k), '-R', t.repo, '--json', 'headRefName,isCrossRepository']);
+    must(await gitLong(cwd, ['fetch', '--quiet', '--no-tags', t.remote, `+refs/pull/${k}/head:refs/amethyst/pr/${k}`], { what: 'fetching the pull request' }));
+    const sha = must(await git(cwd, ['rev-parse', '--verify', `refs/amethyst/pr/${k}^{commit}`])).trim();
+    await keepOut(body, cwd, 'HEAD', sha);
     if (worktree) {
       const b = await nameFor('pr', cwd, { n: k });
-      must(await gitLong(cwd, ['fetch', '--quiet', t.remote, `+refs/pull/${k}/head:refs/heads/${b}`], { what: 'fetching the pull request' }));
+      must(await git(cwd, ['branch', '-f', b, sha]));
       const w = await branchWorktree(cwd, b);
       return said(`#${k} is open in its own folder: ${w.path}`, w);
     }
-    await ghRun(cwd, ['pr', 'checkout', String(k), '-R', t.repo], 120e3);
+    const name = String(p?.headRefName || '');
+    if (!name || name.startsWith('-') || (await git(cwd, ['check-ref-format', '--branch', name])).code) throw new HttpError(409, `#${k} has no branch name Amethyst can use.`);
+    if ((await git(cwd, ['show-ref', '--verify', '-q', `refs/heads/${name}`])).code) must(await git(cwd, ['switch', '-q', '-c', name, sha]));
+    else {
+      if ((await git(cwd, ['merge-base', '--is-ancestor', `refs/heads/${name}`, sha])).code) throw new HttpError(409, `Your branch ${name} has commits that #${k} doesn't: it stays as it is.`);
+      if ((await branchOf(cwd)) === name) must(await git(cwd, ['merge', '-q', '--ff-only', sha]));
+      else {
+        must(await git(cwd, ['branch', '-f', name, sha]));
+        must(await git(cwd, ['switch', '-q', name]));
+      }
+    }
+    must(await git(cwd, ['config', `branch.${name}.remote`, t.remote]));
+    must(await git(cwd, ['config', `branch.${name}.merge`, p.isCrossRepository ? `refs/pull/${k}/head` : `refs/heads/${name}`]));
     return said(`on #${k}'s branch now`);
   },
 };
