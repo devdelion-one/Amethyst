@@ -128,7 +128,7 @@ export function createRefs({ el, log, pid, where, openFile }: RefsCtx) {
     let hopFor: HTMLElement | null = null, hopOff = 0;
     const hopHide = () => {
       clearTimeout(hopOff);
-      hopOff = setTimeout(() => (hop.hidden = true), 200);
+      hopOff = setTimeout(() => { if (!hop.hidden) hop.hidden = true; }, 200);
     };
     log.addEventListener('mouseover', (e) => {
       const a = (e.target as HTMLElement).closest?.<HTMLElement>('.ch-link');
@@ -141,7 +141,7 @@ export function createRefs({ el, log, pid, where, openFile }: RefsCtx) {
       hop.hidden = false;
     });
     log.addEventListener('mouseout', (e) => (e.target as HTMLElement).closest?.('.ch-link') && hopHide());
-    log.addEventListener('scroll', () => (hop.hidden = true), { passive: true });
+    log.addEventListener('scroll', () => { if (!hop.hidden) hop.hidden = true; }, { passive: true });
     hop.addEventListener('mouseenter', () => clearTimeout(hopOff));
     hop.addEventListener('mouseleave', hopHide);
     hop.addEventListener('click', (e) => {
@@ -160,8 +160,8 @@ export function createRefs({ el, log, pid, where, openFile }: RefsCtx) {
       const above = r.top > 200;
       Object.assign(pvf.style, { left: Math.max(8, Math.min(r.left, innerWidth - 248)) + 'px', top: above ? 'auto' : r.bottom + 6 + 'px', bottom: above ? innerHeight - r.top + 6 + 'px' : 'auto' });
     });
-    log.addEventListener('mouseout', (e) => (e.target as HTMLElement).closest?.('.ch-img') && (pvf.hidden = true));
-    log.addEventListener('scroll', () => (pvf.hidden = true), { passive: true });
+    log.addEventListener('mouseout', (e) => { if (!pvf.hidden && (e.target as HTMLElement).closest?.('.ch-img')) pvf.hidden = true; });
+    log.addEventListener('scroll', () => { if (!pvf.hidden) pvf.hidden = true; }, { passive: true });
   }
   return { isLink, dragLink, dragLinks, windowLink, rawOf, openRef, refMenu, listen };
 }

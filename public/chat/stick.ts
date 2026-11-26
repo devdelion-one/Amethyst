@@ -1,7 +1,7 @@
 import { onSize } from '../base/measure.ts';
 
 type StickOpts = { el?: HTMLElement | null; selected?: (() => boolean) | null; grew?: ((growing: boolean) => void) | null; up?: HTMLElement | null; live?: (() => HTMLElement | null) | null; hold?: (() => boolean) | null };
-const GAP = 6, HERE = 4, MSGS = '.ch-you, .ch-ai';
+const GAP = 6, HERE = 4, EASE_MAX = 120, MSGS = '.ch-you, .ch-ai';
 export function stick(log: HTMLElement, inner: HTMLElement, jump: HTMLElement, { el = null, selected = null, grew = null, up = null, live = null, hold = null }: StickOpts = {}) {
   let holding: HTMLElement | null = null;
   const wasHeld = new WeakSet<HTMLElement>();
@@ -31,14 +31,16 @@ export function stick(log: HTMLElement, inner: HTMLElement, jump: HTMLElement, {
   function easeTo(y: number) {
     goal = y;
     cancelAnimationFrame(ease);
-    let was = Infinity;
+    let was = Infinity, frames = 0;
+    const done = (to: number) => { log.scrollTop = to; top = log.scrollTop; goal = null; if (atEnd()) pin(true); };
     const step = () => {
-      const H = log.scrollHeight, to = Math.min(goal!, H - log.clientHeight), d = to - log.scrollTop;
+      const H = log.scrollHeight, to = Math.min(goal!, H - log.clientHeight), from = log.scrollTop, d = to - from;
       if (pinned && goal === Infinity && H > was) { log.scrollTop = H; goal = null; return; }
       was = H;
-      if (Math.abs(d) < 1) { log.scrollTop = to; top = log.scrollTop; goal = null; if (atEnd()) pin(true); return; }
-      log.scrollTop += Math.sign(d) * Math.min(Math.abs(d), Math.max(2, Math.abs(d) * 0.35));
+      if (Math.abs(d) < 1 || ++frames > EASE_MAX) return done(to);
+      log.scrollTop = from + Math.sign(d) * Math.min(Math.abs(d), Math.max(2, Math.abs(d) * 0.35));
       top = log.scrollTop;
+      if (top === from) return done(to);
       ease = requestAnimationFrame(step);
     };
     step();

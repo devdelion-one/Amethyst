@@ -21,6 +21,11 @@ function squareEdges() {
   seen = next;
 }
 
+export const moves = (r: MutationRecord): boolean => {
+  if (r.type === 'childList') return true;
+  const el = r.target as Element;
+  return el.id === 'app' || el.matches(PANELS) || !!el.querySelector(PANELS);
+};
 const soon = () => { if (!queued) { queued = true; requestAnimationFrame(squareEdges); } };
 const sizes = new WeakSet<Element>();
 const size = new ResizeObserver(soon);
@@ -30,7 +35,7 @@ function start() {
   if (!app) return;
   size.observe(app);
   for (const el of app.querySelectorAll(PANELS)) { sizes.add(el); size.observe(el); }
-  new MutationObserver(soon).observe(app, { attributes: true, attributeFilter: ['class', 'hidden'], childList: true, subtree: true });
+  new MutationObserver((recs) => { if (recs.some(moves)) soon(); }).observe(app, { attributes: true, attributeFilter: ['class', 'hidden'], childList: true, subtree: true });
   soon();
 }
 
