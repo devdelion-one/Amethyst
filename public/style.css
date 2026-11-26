@@ -3447,6 +3447,9 @@ a.up-btn { display: flex; align-items: center; text-decoration: none; }
 .dk-id { flex: 0 999 auto; display: flex; align-items: center; gap: 8px; min-width: 0; }
 .dk-ch :is(.dk-code, .dk-title, .dk-provider, .dk-st) { font-size: var(--fs-sm); line-height: 16px; }
 .dk-ch :is(.dk-code, .dk-provider, .dk-st) { display: flex; align-items: center; }
+.dk-ch .dk-id { align-items: baseline; }
+.dk-ch .dk-id > .dk-mark { align-self: center; }
+.dk-ch .dk-st > .dk-sw { align-self: baseline; }
 .dk-ch .dk-who { flex: none; color: var(--text-strong); font-size: var(--fs-sm); font-weight: 600; }
 .dk-code { flex: none; color: var(--gem-c, var(--accent)); font: 500 var(--fs-xs) var(--mono); letter-spacing: .02em; }
 .dk-cell[style*="--gem-c"] .dk-ch { box-shadow: inset 2px 0 0 var(--gem-c); }
