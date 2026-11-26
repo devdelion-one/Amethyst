@@ -1448,7 +1448,7 @@ body.fg-toast { margin: 0; overflow: hidden; background: var(--raised); user-sel
 .oc-list > .dk-gh.oc-gh:first-child { margin-top: 0; }
 .oc-gh > span { flex: none; font: 500 var(--fs-2xs)/1 var(--mono); }
 .oc-list > .dk-gh.oc-gh:has(> .oc-new) { padding-right: 0; }
-.oc-gh > .oc-new { flex: none; display: grid; place-items: center; width: 22px; height: 22px; padding: 0; border: 1px solid color-mix(in srgb, var(--accent) 60%, transparent); border-radius: var(--r-sm); background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); cursor: pointer; }
+.oc-gh > .oc-new { flex: none; display: grid; place-items: center; width: 22px; min-height: 0; height: 22px; padding: 0; border: 1px solid color-mix(in srgb, var(--accent) 60%, transparent); border-radius: var(--r-sm); background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); cursor: pointer; }
 .oc-gh > .oc-new:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 22%, transparent); }
 .oc-gh > .oc-new .gem { width: 13px; height: 13px; color: var(--accent); }
 .oc-gh > .oc-new .gem .b { fill: var(--text-strong); }
