@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { WIN } from '../base/util.ts';
 import { HttpError } from '../base/routes.ts';
-import { git, must, why, placeOf, forgetPlace } from '../base/gitcli.ts';
+import { git, must, why, placeOf, forgetPlace, guardsAt } from '../base/gitcli.ts';
 import type { Place } from '../base/gitcli.ts';
 import { ghSeen, ghState } from '../base/ghcli.ts';
 import { forgetWorktrees } from '../base/worktrees.ts';
@@ -114,7 +114,10 @@ function fetchNow(place: Place, cwd: string) {
   const last = fetched.get(place.top) || 0;
   if (Date.now() - last < FETCH_EVERY) return;
   fetched.set(place.top, Date.now());
-  git(cwd, ['fetch', '--quiet'], { timeout: 60e3, quiet: true }).then((r) => fetchSaid(place, r.code ? why(r) : ''));
+  guardsAt(cwd).then((g) => {
+    if (g.fetchKeys.length) return fetchSaid(place, `Not checked on its own: this repository's git config names its own program (${g.fetchKeys.join(', ')}). Fetch checks it.`);
+    return git(cwd, ['fetch', '--quiet'], { timeout: 60e3, quiet: true }).then((r) => fetchSaid(place, r.code ? why(r) : ''));
+  });
 }
 const stashCount = (place: Place) => {
   try {

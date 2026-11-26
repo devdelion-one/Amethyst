@@ -1,8 +1,13 @@
-import { run } from './gitcli.ts';
+import { run, guardsAt } from './gitcli.ts';
+import { runsGit } from './gitconfig.ts';
 import type { RunOpts } from './gitcli.ts';
 
 const FAKE = process.env.MIND_FAKE_GH;
-const gh = (cwd: string, args: string[], o?: RunOpts) => (FAKE ? run(process.execPath, [FAKE, ...args], cwd, o) : run('gh', args, cwd, o));
+async function gh(cwd: string, args: string[], o?: RunOpts) {
+  const g = await guardsAt(cwd, o?.env);
+  if (g.packs.length && runsGit(args)) return { out: '', err: `fatal: gh would run git with this repository's own ${g.packs.join(', ')}`, code: 1, missing: false, timedOut: false, guarded: g.keys };
+  return FAKE ? run(process.execPath, [FAKE, ...args], cwd, o, g) : run('gh', args, cwd, o, g);
+}
 
 const githubAnswers = () => fetch('https://api.github.com', { method: 'HEAD', signal: AbortSignal.timeout(5000) }).then(() => true, () => false);
 async function ghAsk() {

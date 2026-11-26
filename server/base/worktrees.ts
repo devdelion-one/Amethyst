@@ -1,4 +1,3 @@
-import { execFile } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -80,10 +79,7 @@ async function copyIncluded(top: string, dir: string) {
   if (!fs.existsSync(list)) return [];
   const named = (await git(top, ['ls-files', '-o', '-i', '-z', `--exclude-from=${list}`], { timeout: 60e3 })).out.split('\0').filter(Boolean);
   if (!named.length) return [];
-  const ignored = await new Promise<string[]>((resolve) => {
-    const p = execFile('git', ['check-ignore', '-z', '--stdin'], { cwd: top, windowsHide: true, maxBuffer: 64 * 1024 * 1024, encoding: 'utf8' }, (_e, out) => resolve(String(out || '').split('\0').filter(Boolean)));
-    p.stdin!.end(named.join('\0'));
-  });
+  const ignored = (await git(top, ['check-ignore', '-z', '--stdin'], { input: named.join('\0'), timeout: 60e3 })).out.split('\0').filter(Boolean);
   const copied: string[] = [];
   for (const rel of ignored.slice(0, 2000)) {
     try {
