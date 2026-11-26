@@ -9,7 +9,7 @@ import { ENGINE, modelOf, onRemove } from './voice.ts';
 
 type Proc = { p: ChildProcess; port: number; ready: Promise<void>; dead: boolean };
 type Sentence = { text: string; tidy: boolean; from: number; to: number; seg: number };
-type Session = { id: string; ws: WebSocket; open: Promise<void>; model: string; audio: Float32Array[]; total: number; sentences: Sentence[]; jobs: Promise<void>[]; seen: number; done: Promise<void>; finish: () => void };
+type Session = { id: string; ws: WebSocket; open: Promise<void>; model: string; audio: Float32Array[]; total: number; sentences: Sentence[]; jobs: Promise<void>[]; seen: number; done: Promise<void>; finish: () => void; version: number; watchers: (() => void)[] };
 
 const RATE = 16000;
 const IDLE = () => Number(process.env.MIND_VOICE_IDLE_MS) || 120e3;
@@ -113,7 +113,7 @@ async function startWhisper(model: string) {
   if (whisper && !whisper.dead && whisper.model === model) return whisper;
   kill(whisper);
   const src = ENGINE.sources(), port = await freePort();
-  const args = ['-m', ENGINE.modelFile(model), '--host', '127.0.0.1', '--port', String(port), '-t', String(ENGINE.threads()), '-l', 'auto', '-nt'];
+  const args = ['-m', ENGINE.modelFile(model), '--host', '127.0.0.1', '--port', String(port), '-t', String(ENGINE.threads()), '-l', 'auto', '-nt', '-bo', '1', '-nf'];
   const up = async (_: string, p: number) => {
     try {
       await fetch(`http://127.0.0.1:${p}/`, { signal: AbortSignal.timeout(500) });
@@ -189,7 +189,10 @@ function tidy(s: Session, x: Sentence) {
       if (t) x.text = t;
     })
     .catch(() => {})
-    .finally(() => (x.tidy = true));
+    .finally(() => {
+      x.tidy = true;
+      bump(s);
+    });
   s.jobs.push(job as Promise<void>);
 }
 
@@ -216,9 +219,38 @@ function onResult(s: Session, data: unknown) {
     s.sentences.push(cur);
   }
   if (cur.seg === seg && !cur.tidy && cur.to < 0) cur.text = text;
+  bump(s);
+}
+
+function bump(s: Session) {
+  s.version++;
+  for (const w of s.watchers.splice(0)) w();
+}
+
+async function watch(id: unknown, seen: unknown) {
+  const s = session(id);
+  if (s.version <= Number(seen || 0)) {
+    let w = () => {};
+    await new Promise<void>((r) => {
+      w = r;
+      s.watchers.push(w);
+      setTimeout(r, 1000);
+    });
+    s.watchers = s.watchers.filter((x) => x !== w);
+  }
+  return { version: s.version, ...view(s) };
 }
 
 const view = (s: Session) => ({ sentences: s.sentences.filter((x) => x.text.trim() || !x.tidy).map((x) => ({ text: x.text, tidy: x.tidy })) });
+
+function warm(model: string) {
+  const st = ENGINE.state(model);
+  if (!st.ready || !st.live.have) return { warm: false };
+  touch();
+  startSherpa().catch(() => {});
+  startWhisper(model).catch(() => {});
+  return { warm: true };
+}
 
 async function start(model: string) {
   const st = ENGINE.state(model);
@@ -235,7 +267,7 @@ async function start(model: string) {
   ws.binaryType = 'arraybuffer';
   let finish = () => {};
   const done = new Promise<void>((r) => (finish = r));
-  const s: Session = { id: crypto.randomUUID(), ws, model, audio: [], total: 0, sentences: [], jobs: [], seen: Date.now(), done, finish: () => finish(), open: Promise.resolve() };
+  const s: Session = { id: crypto.randomUUID(), ws, model, audio: [], total: 0, sentences: [], jobs: [], seen: Date.now(), done, finish: () => finish(), open: Promise.resolve(), version: 0, watchers: [] };
   s.open = new Promise<void>((resolve, reject) => {
     ws.onopen = () => resolve();
     ws.onerror = () => reject(new HttpError(500, "Can't reach the live speech program."));
@@ -270,8 +302,9 @@ function feed(id: unknown, pcm: unknown) {
 async function stop(id: unknown) {
   const s = session(id);
   sessions.delete(s.id);
+  for (const w of s.watchers.splice(0)) w();
   if (s.ws.readyState === WebSocket.OPEN) {
-    s.ws.send(new Float32Array(RATE * 0.6).buffer);
+    s.ws.send(new Float32Array(RATE * 0.2).buffer);
     s.ws.send('Done');
     await Promise.race([s.done, new Promise((r) => setTimeout(r, 3000))]);
   }
@@ -299,6 +332,8 @@ const ROUTES: Routes = {
   'POST /api/voice/live/start': async (body) => start(modelOf(body?.model)),
   'POST /api/voice/live/feed': async (body) => feed(body?.id, body?.pcm),
   'POST /api/voice/live/stop': async (body) => stop(body?.id),
+  'POST /api/voice/live/watch': async (body) => watch(body?.id, body?.seen),
+  'POST /api/voice/live/warm': async (body) => warm(modelOf(body?.model)),
 };
 
 export { ROUTES };

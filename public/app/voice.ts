@@ -151,7 +151,7 @@ let working: HTMLElement | null = null;
 async function record(onChunk?: (f: Float32Array) => void): Promise<Rec> {
   const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
   const ctx = new AudioContext({ sampleRate: 16000 });
-  const src = ctx.createMediaStreamSource(stream), node = ctx.createScriptProcessor(onChunk ? 1024 : 4096, 1, 1), parts: Float32Array[] = [];
+  const src = ctx.createMediaStreamSource(stream), node = ctx.createScriptProcessor(onChunk ? 512 : 4096, 1, 1), parts: Float32Array[] = [];
   node.onaudioprocess = (e) => {
     const f = new Float32Array(e.inputBuffer.getChannelData(0));
     if (onChunk) onChunk(f);
@@ -246,7 +246,7 @@ async function finish(btn: HTMLElement, box: Box, at: number, r: Rec) {
 
 type Live = { btn: HTMLElement; box: Box; at: number; ins: string; own: string; text: string; id: string; r: Rec | null; queue: Int16Array[]; busy: boolean; stopping: boolean; t0: number; changed: number; loud: number; floor: number; off: () => void };
 let live: Live | null = null;
-const QUIET_MS = 2000, QUIET_NOISY_MS = 4000, NOTHING_MS = 8000;
+const QUIET_MS = 1500, QUIET_NOISY_MS = 4000, NOTHING_MS = 8000;
 
 const pcmOf = (f: Float32Array) => Int16Array.from(f, (x) => {
   const c = Math.max(-1, Math.min(1, x));
@@ -294,6 +294,16 @@ async function pump(L: Live) {
     }
   } finally {
     L.busy = false;
+  }
+}
+
+async function follow(L: Live) {
+  let seen = 0;
+  while (live === L && !L.stopping) {
+    const r = await quietly(api('POST', '/api/voice/live/watch', { id: L.id, seen }), null);
+    if (!r) return;
+    seen = r.version;
+    if (live === L && !L.stopping) show(L, r.sentences || []);
   }
 }
 
@@ -363,6 +373,7 @@ async function startLive(btn: HTMLElement, box: Box) {
     if (L.stopping) return void quietly(api('POST', '/api/voice/live/stop', { id }), null);
     L.t0 = L.changed = Date.now();
     pump(L);
+    follow(L);
   } catch (e) {
     if (live !== L) return;
     tell(btn, { title: "Can't start live text", line: String((e as Error).message || e), ms: 4000 });
@@ -403,6 +414,18 @@ export async function micClick(btn: HTMLElement, box: Box) {
     micError(btn, e);
   }
 }
+
+let warmed = 0;
+async function warmUp(e: Event) {
+  const t = e.target as HTMLElement | null;
+  if (!t?.closest?.('.ch-box') || Date.now() - warmed < 60e3 || !pref('chat:mic') || !pref('voice:live')) return;
+  warmed = Date.now();
+  if (!state) await loadVoice();
+  if (!state?.ready || !liveOn() || !state.live.have || state.installing) return;
+  quietly(api('POST', '/api/voice/live/warm', { model: model() }), null);
+}
+document.addEventListener('focusin', warmUp);
+document.addEventListener('pointerover', warmUp);
 
 function dropRec() {
   if (live) endLive(live, false);
