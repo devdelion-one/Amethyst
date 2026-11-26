@@ -73,10 +73,12 @@ When anything was dropped, a line says how many earlier steps were left out. Whe
 
 ## The full chat on disk
 
-Every handoff also writes the whole chat, with nothing filtered or cut, to your project folder:
+Every handoff also writes the whole chat, with nothing filtered or cut, to the project's folder in Amethyst's data (`%APPDATA%\Amethyst\projects\<project>-<code>\handoffs\`), never into the project itself:
 
-- `.amethyst/handoffs/<chat id>-<n>.md` for a switch (`n` counts the switches)
-- `.amethyst/handoffs/<chat id>-shrink-<n>.md` before an Improved Handoff summary
+- `<chat id>-<n>.md` for a switch (`n` counts the switches)
+- `<chat id>-shrink-<n>.md` before an Improved Handoff summary
+
+The files are deleted when you close the chat. The agent is given access to that folder, so it reads them without asking.
 
 It lists the files changed and every step, including reads and searches. The new agent is pointed to it, so a detail cut from the handoff is still one file read away. It stays on your computer.
 
@@ -84,7 +86,7 @@ It lists the files changed and every step, including reads and searches. The new
 
 A plain handoff is instant and free: it is built from the log. Improved Handoff adds one step for long chats: before the switch (or before a model change), the **current** agent summarizes the chat with its own compact command. That costs one turn on the old agent and takes as long as that turn.
 
-- **What it asks.** Amethyst first saves the full chat to `.amethyst/handoffs/<chat id>-shrink-<n>.md`, then sends `/compact` asking the agent to keep file paths, numbers, decisions, and errors word for word, and telling it where the full chat is saved. Codex uses its own compact call (`thread/compact/start`) instead of a `/compact` prompt.
+- **What it asks.** Amethyst first saves the full chat to `<chat id>-shrink-<n>.md` in that folder, then sends `/compact` asking the agent to keep file paths, numbers, decisions, and errors word for word, and telling it where the full chat is saved. Codex uses its own compact call (`thread/compact/start`) instead of a `/compact` prompt.
 - **After a switch,** the new agent gets that summary in the header, plus only the turns after it.
 - **After a model change** on the same agent, there is no handoff: the agent keeps its session, now compacted, so the new model starts light. If you pick another model while the summary is still running, the latest model you picked is applied once it finishes.
 - **When it is skipped,** with no summary and no cost:

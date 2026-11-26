@@ -36,5 +36,5 @@ Amethyst automatically records file checkpoints (restore points) before turns th
 ### Storage and limits
 
 - Restore points are stored outside your repository under `%LOCALAPPDATA%\Amethyst\checkpoints` (Amethyst never touches your git staging area or creates extra git commits for checkpoints).
-- Very large files (over 50 MB) and the `.amethyst/` folder are skipped automatically.
+- Very large files (over 50 MB) are skipped automatically.
 - Restore points can be turned off in **Settings -> Agents**. When off, you can still view per-tool diffs on each tool card in the chat.

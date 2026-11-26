@@ -11,7 +11,7 @@ This notice covers the Amethyst desktop app and the website amethyst.run. Amethy
 Amethyst has no accounts and sends me nothing unless you say yes to the install count below: no usage statistics, no crash reports and no telemetry. What it keeps stays on your computer:
 
 - settings, workspaces, chat history and usage figures in `%APPDATA%\Amethyst`;
-- each project's notes and agent data in the project's `.amethyst` folder.
+- each project's notes and agent data in that project's own folder in Amethyst's data (`%APPDATA%\Amethyst\projects\`), not in the project.
 
 Uninstalling Amethyst may leave these folders behind. Delete them to remove that data.
 

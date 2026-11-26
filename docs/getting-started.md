@@ -24,7 +24,7 @@ See [Agent setup and accounts](agent-setup-and-accounts.md) for managing multipl
 
 ## 3. Set up your first workspace and project
 
-- A **project** is any folder on disk (usually a git repository). Each project keeps its own chats, tabs, terminals, and state in a `.amethyst/` folder.
+- A **project** is any folder on disk (usually a git repository). Each project keeps its own chats, tabs, terminals, and state in its own folder in Amethyst's data (`%APPDATA%\Amethyst\projects\`); nothing is written into the project.
 - A **workspace** is a collection of projects shown together in the project dock at the bottom of the window.
 
 Add your project folder to a workspace, then click projects in the dock (or press `Alt+Shift+Left` / `Alt+Shift+Right`) to switch in one click. Chats and terminals run in Amethyst's local server, so agents in other projects keep working while you switch.
