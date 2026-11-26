@@ -26,7 +26,7 @@ const RS = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'].map((z) => `<i data-rs="
 const svg = (d: string, cls = '') => `<svg${cls ? ` class="${cls}"` : ''} viewBox="0 0 16 16" aria-hidden="true">${d}</svg>`;
 const CUBE = '<path d="M8 1.8 13.5 5v6L8 14.2 2.5 11V5z M2.5 5 8 8.2 13.5 5 M8 8.2v6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>';
 export const UE_ICON = svg(CUBE, 'ue-ic');
-export const ueHead = (pop: boolean) => fwHead('build', UE_ICON, winX('–', `data-uehide aria-label="${pop ? 'minimize' : 'hide'}"`) + winX('×', 'data-uex title="Close&#10;A running build goes on." aria-label="close"'), '<span class="qt-pj"></span>');
+export const ueHead = (pop: boolean) => fwHead('Build', UE_ICON, winX('–', `data-uehide aria-label="${pop ? 'minimize' : 'hide'}"`) + winX('×', 'data-uex title="Close&#10;A running build goes on." aria-label="close"'), '<span class="qt-pj"></span>');
 const I_ENG = svg(CUBE);
 const I_CFG = svg('<path d="M3 4.5h10M3 8h10M3 11.5h10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="6" cy="4.5" r="1.6" fill="var(--raised)" stroke="currentColor" stroke-width="1.2"/><circle cx="10.5" cy="8" r="1.6" fill="var(--raised)" stroke="currentColor" stroke-width="1.2"/><circle cx="5" cy="11.5" r="1.6" fill="var(--raised)" stroke="currentColor" stroke-width="1.2"/>');
 const I_EXT = svg('<path d="M6 3.5H3.5v9h9V10M9 2.5h4.5V7M13.5 2.5l-6 6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>');
@@ -36,8 +36,12 @@ const I_PLAY = svg('<path d="M5 3.2v9.6L12.6 8z" fill="currentColor"/>');
 const I_STOP = svg('<rect x="4" y="4" width="8" height="8" rx="1.5" fill="currentColor"/>');
 const I_BOLT = svg('<path d="M9 1.5 3.5 9H8l-1 5.5L12.5 7H8z" fill="currentColor"/>');
 const I_AGAIN = svg('<path d="M13 8a5 5 0 1 1-1.5-3.6M13 2.5v3h-3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>');
+const I_FILES = '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M9 2.5H4.5v11h7V5zM9 2.5V5h2.5M6.5 8.5h3M6.5 11h3" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round"/></svg>';
+const I_FILT = svg('<path d="M2.5 3.5h11l-4.2 5v4l-2.6-1.3V8.5z" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round"/>');
+const I_ERR = svg('<circle cx="8" cy="8" r="5.8" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M5.8 5.8l4.4 4.4M10.2 5.8l-4.4 4.4" stroke="currentColor" stroke-width="1.4"/>');
+const I_WARN = svg('<path d="M8 2.4L14 13H2Z" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"/><path d="M8 6.4v3.2M8 11.2v.4" stroke="currentColor" stroke-width="1.4"/>');
 const TABS = [['out', 'Output'], ['problems', 'Problems'], ['ubt', 'UBT log'], ['editor', 'Editor log']];
-const ACTS = { build: 'build', rebuild: 'rebuild', clean: 'clean', generate: 'project files' };
+const ACTS = { build: 'Build', rebuild: 'Rebuild', clean: 'Clean', generate: 'Project files' };
 
 type Engine = { id: string; dir: string; how?: string; from?: string };
 type Target = { name: string; type: string };
@@ -143,16 +147,16 @@ function footNow(): Foot {
   const i = st.info, r = st.run, f = { cls: '', mark: '', word: '', time: '', what: '', tip: '', counts: false };
   if (!i) return { ...f, cls: st.err ? 'warn' : '', mark: st.err ? '!' : '', word: st.err ? 'No answer' : 'Looking…' };
   if (i.why) return { ...f, cls: i.why === 'none' || i.why === 'os' ? 'idle' : 'warn', mark: i.why === 'none' || i.why === 'os' ? '○' : '!', word: i.why === 'none' || i.why === 'os' ? 'Not Unreal' : i.why === 'no-targets' ? 'No C++' : 'Set up' };
-  const edWhat = st.ed.playing ? ' · playing in the editor' : st.ed.linked ? ' · editor linked' : st.ed.open ? ' · editor open' : '';
-  if (!r) return { ...f, cls: 'idle', mark: '○', word: 'Ready', what: `${i.name} · ${engineName(i.engine)}${edWhat}` };
-  const what = r.action === 'generate' ? 'project files' : r.action === 'livecoding' ? `${r.target} · in the open editor` : `${r.target} · ${label(i.targets.find((t) => t.name === r.target), r.config)}`;
+  const edWhat = st.ed.playing ? ', playing in the editor' : st.ed.linked ? ', editor linked' : st.ed.open ? ', editor open' : '';
+  if (!r) return { ...f, cls: 'idle', mark: '○', word: 'Ready', what: `${i.name}, ${engineName(i.engine)}${edWhat}` };
+  const what = r.action === 'generate' ? 'project files' : r.action === 'livecoding' ? `${r.target} in the open editor` : `${r.target}, ${label(i.targets.find((t) => t.name === r.target), r.config)}`;
   const counts = r.action === 'build' || r.action === 'rebuild' || r.action === 'livecoding' || r.action === 'restart';
   if (live(r)) {
     const p = r.state === 'running' ? progress() : null;
     const phase = ({ saving: 'Saving', closing: 'Closing', waiting: 'Waiting', building: 'Building', opening: 'Opening' } as Record<string, string>)[r.phase];
-    const word = r.state === 'waiting' ? 'Waiting' : phase || ({ build: 'Building', rebuild: 'Rebuilding', clean: 'Cleaning', generate: 'Making files', livecoding: 'Live coding', restart: 'Restarting' } as Record<string, string>)[r.action] || 'Building';
+    const word = r.state === 'waiting' ? 'Waiting' : phase || ({ build: 'Building', rebuild: 'Rebuilding', clean: 'Cleaning', generate: 'Making files', livecoding: 'Hot Reload', restart: 'Restarting' } as Record<string, string>)[r.action] || 'Building';
     const doing = r.phase === 'waiting' ? 'close Unreal Editor to go on' : r.phase === 'saving' ? 'answer Unreal’s save dialog if it shows' : what;
-    return { ...f, cls: 'run', mark: '<i class="ue-ring"></i>', word, time: clock(Date.now() - r.started), what: (p ? `${p.n} / ${p.of} · ` : '') + (r.state === 'waiting' ? 'for another build to finish' : doing), tip: `started at ${hhmm(r.started)}`, counts };
+    return { ...f, cls: 'run', mark: '<i class="ue-ring"></i>', word, time: clock(Date.now() - r.started), what: (p ? `${p.n} / ${p.of} ` : '') + (r.state === 'waiting' ? 'for another build to finish' : doing), tip: `started at ${hhmm(r.started)}`, counts };
   }
   const tip = `finished at ${hhmm(r.started + (r.ms || 0))}`, time = took(r.ms);
   if (r.state === 'cancelled') return { ...f, cls: 'stop', mark: '✕', word: r.action === 'livecoding' ? 'Not followed' : 'Cancelled', time, what, tip, counts };
@@ -307,6 +311,7 @@ async function openEditor() {
 }
 const NOT_LINKED: Record<string, string> = { unlinked: "Amethyst can't reach this Unreal Editor: it wasn't opened from Amethyst", closed: 'Unreal Editor is not open: open it from Amethyst first (the editor button)' };
 async function liveCoding(anyway = false) {
+  if (!anyway && !(await ask({ title: 'Hot Reload', text: 'Are you sure you want to do Hot Reload?', choices: [{ label: 'Hot Reload', value: true, main: true }] }))) return;
   try {
     const r = await call('POST', '/api/ue/livecoding', { ...where(), anyway });
     if (r.refused) {
@@ -422,7 +427,6 @@ function paintButton() {
 export const ueTip = () => buttonTip();
 
 const I_CLEAN = '<svg class="ic" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 6h12M8 6V4.5h4V6M6 6l.7 9.5h6.6L14 6"/></svg>';
-const I_FILES = '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M9 2.5H4.5v11h7V5zM9 2.5V5h2.5M6.5 8.5h3M6.5 11h3"/></svg>';
 const ACT_ROWS: Record<string, [string, string, string]> = {
   build: [I_PLAY, 'build', 'Builds the configuration ticked below.'],
   rebuild: [I_AGAIN, 'rebuild', 'Cleans, then builds everything again.'],
@@ -442,7 +446,7 @@ Builds ${x.name} as ${label(x, c)}.`)}"`, I_CFG, esc(label(x, c)));
     if (run) groups.push(mi('data-ueact="cancel"', I_STOP, st.run?.action === 'livecoding' ? 'stop following Live Coding' : 'cancel the build', st.run?.action === 'livecoding' ? 'Amethyst stops following this Live Coding compile. Unreal has no way to cancel it from outside.' : 'Stops the build that is running.'));
     else {
       groups.push(Object.entries(ACT_ROWS).map(([a, [ic, text, tip]]) => mi(`data-ueact="${a}"`, ic, text, tip, a === 'build' ? keyChip(UEKEY) : '')).join(''));
-      if (st.ed.linked) groups.push(mi('data-ueact="live"', I_BOLT, 'patch the open editor', guarded() ? 'A change needs a restart first: this shows why.' : 'Live Coding: builds your change and patches it into the editor while it runs.') + (guarded() ? mi('data-ueact="restart"', I_AGAIN, 'restart and build', 'Saves, closes the editor, builds and opens it again.') : ''));
+      if (st.ed.linked) groups.push(mi('data-ueact="live"', I_BOLT, 'Hot Reload the open editor', guarded() ? 'A change needs a restart first: this shows why.' : 'Live Coding: builds your change and patches it into the editor while it runs.') + (guarded() ? mi('data-ueact="restart"', I_AGAIN, 'restart and build', 'Saves, closes the editor, builds and opens it again.') : ''));
     }
     if (st.ed.linked) groups.push(mi('data-ueact="play"', st.ed.playing ? I_STOP : I_PLAY, st.ed.playing ? 'stop playing' : 'play in the editor', st.ed.playing ? 'Stops playing in the open editor.' : 'Starts playing in the open editor.'));
   }
@@ -525,9 +529,11 @@ export const toggleUe = () => (winShown() ? hideWindow() : showWindow());
 export const ueWinTip = () => "Build window\nThe Unreal build's output, problems and logs, in a window of its own.";
 
 let W: Win | null = null;
-const LOG_BTNS = '<button class="x" data-ue="refresh">refresh</button><button class="x" data-ue="asfile">open as a file tab</button>';
-const UE_TOP = (go = '', play = '') => `<div class="ue-top"><button class="ue-pick ue-eng" data-ue="engines"></button><button class="ue-pick ue-cfg" data-ue="cfgs"></button><span class="grow"></span><button class="ue-ed" data-ue="editor">${I_EXT}<span>editor</span><i class="ue-dot"></i></button><button class="ue-play" data-ue="play">${play}</button><button class="ue-sq" data-ue="more" aria-label="more actions">${I_MORE}</button><button class="primary ue-go" data-ue="go">${go}</button></div>`;
-export const ueBars = () => ({ top: W?.el.querySelector('.ue-top')?.outerHTML || UE_TOP(`${I_PLAY}<span>build</span>`, `${I_PLAY}<span>play</span>`), log: `<div class="ue-lbar"><span class="ue-lpath"></span>${LOG_BTNS}</div>` });
+const baseOf = (p: string) => p.split(/[\\/]/).pop() || p;
+const LOG_FILE = (name = 'Open as file') => `<button class="ue-lfile" data-ue="asfile" data-tip-mono title="Open as file&#10;Opens the log as a file tab in the Editor.">${I_FILES}<span class="ue-lfname">${esc(name)}</span></button>`;
+const LOG_REF = `<button class="ue-lic" data-ue="refresh" aria-label="Refresh" title="Refresh&#10;Reads the log again, from its file.">${I_AGAIN}</button>`;
+const UE_TOP = (go = '', play = '') => `<div class="ue-top"><button class="ue-pick ue-eng" data-ue="engines"></button><button class="ue-pick ue-cfg" data-ue="cfgs"></button><span class="grow"></span><button class="ue-ed" data-ue="editor">${I_EXT}<span>Editor</span></button><button class="ue-play" data-ue="play">${play}</button><button class="ue-sq" data-ue="more" aria-label="More actions">${I_MORE}</button><button class="primary ue-go" data-ue="go">${go}</button></div>`;
+export const ueBars = () => ({ top: W?.el.querySelector('.ue-top')?.outerHTML || UE_TOP(`${I_PLAY}<span>Build</span>`, `${I_PLAY}<span>Play</span>`), log: `<div class="ue-lbar">${LOG_FILE('Project.log')}<span class="grow"></span>${LOG_REF}</div>` });
 const tabNow = () => (TABS.some(([k]) => k === store.get(tabKey())) ? store.get(tabKey()) : 'out');
 function setTab(k: string) {
   store.set(tabKey(), k);
@@ -541,15 +547,15 @@ function makeWin() {
   el.className = 'box qtwin uewin';
   el.hidden = true;
   el.setAttribute('aria-label', 'Unreal build');
-  const tabs = TABS.map(([k, l]) => `<button class="ue-tab" role="tab" data-uetab="${k}">${l}${k === 'problems' ? '<b class="ue-n"></b>' : ''}</button>`).join('');
-  const log = (k: string) => `<div class="ue-pane ue-log" data-pane="${k}"><div class="ue-lbar"><span class="ue-lpath" data-tip-mono data-tip-cut></span>${LOG_BTNS}</div><pre class="ue-ltext"></pre></div>`;
-  const elog = `<div class="ue-pane ue-log ue-elog" data-pane="editor"><div class="ue-lbar"><button class="chip" data-uelv="all">all</button><button class="chip" data-uelv="warn">warnings + errors</button><button class="chip" data-uelv="err">errors</button><button class="x ue-lcat" data-uelcat title="Categories&#10;Chooses which of the log's categories show. The count is how many show now."></button><span class="ue-lpath" data-tip-mono data-tip-cut></span>${LOG_BTNS}</div><div class="ue-lskip dim" hidden></div><div class="ue-lrows"></div></div>`;
+  const tabs = TABS.map(([k, l]) => `<button class="ue-tab" role="tab" data-uetab="${k}">${l}${k === 'problems' ? '<i class="ue-pdot"></i>' : ''}</button>`).join('');
+  const log = (k: string) => `<div class="ue-pane ue-log" data-pane="${k}"><div class="ue-lbar">${LOG_FILE('Log.txt')}<span class="grow"></span>${LOG_REF}</div><pre class="ue-ltext"></pre></div>`;
+  const elog = `<div class="ue-pane ue-log ue-elog" data-pane="editor"><div class="ue-lbar"><button class="ue-tg e" data-uelv="err">${I_ERR}<span>Errors</span></button><button class="ue-tg w" data-uelv="warn">${I_WARN}<span>Warnings</span></button><button class="ue-tg ue-lcat" data-uelcat title="Categories&#10;Chooses which of the log's categories show. The count is how many show now.">${I_FILT}<span>Categories 0/0 ▾</span></button><span class="grow"></span>${LOG_FILE('Editor.log')}${LOG_REF}</div><div class="ue-lskip dim" hidden></div><div class="ue-lrows"></div></div>`;
   el.innerHTML = ueHead(POP) +
     UE_TOP() +
     `<div class="ue-note" role="status" hidden></div>` +
     `<div class="ue-tabs" role="tablist">${tabs}</div>` +
     `<div class="ue-panes"><div class="ue-pane ue-out" data-pane="out"><div class="ue-skip dim" hidden></div><div class="ue-lines"></div></div>` +
-    `<div class="ue-pane ue-probs" data-pane="problems"><div class="ue-pf"><button class="chip" data-uepf="all">all</button><button class="chip" data-uepf="error">errors</button><button class="chip" data-uepf="warning">warnings</button></div><div class="ue-plist"></div></div>` +
+    `<div class="ue-pane ue-probs" data-pane="problems"><div class="ue-pf"><button class="ue-tg e" data-uepf="error">${I_ERR}<span>0 Errors</span></button><button class="ue-tg w" data-uepf="warning">${I_WARN}<span>0 Warnings</span></button></div><div class="ue-plist"></div></div>` +
     log('ubt') + elog + `</div>` +
     `<div class="ue-foot" aria-live="polite"><i class="ue-pbar"></i><span class="ue-fs"></span><button class="ue-fc ue-fe" data-uetab="problems" data-uefilter="error"></button><button class="ue-fc ue-fw" data-uetab="problems" data-uefilter="warning"></button><span class="ue-ft"></span><span class="ue-fwhat"></span></div>${POP ? '' : RS}`;
   ($('#app') || document.body).append(el);
@@ -593,7 +599,12 @@ async function onClick(e: MouseEvent) {
     }
     return setTab(d.uetab);
   }
-  if (d.uepf) return (store.set('ue:pf', d.uepf), drawProblems());
+  if (d.uepf) {
+    const cur = ['error', 'warning'].includes(store.get('ue:pf')) ? store.get('ue:pf') : 'all';
+    const next = cur === 'all' ? d.uepf : 'all';
+    store.set('ue:pf', next);
+    return drawProblems();
+  }
   if (d.at) {
     const [abs, line] = d.at.split('|');
     return openAt(abs, +line);
@@ -612,7 +623,11 @@ async function onClick(e: MouseEvent) {
   if (d.uesay === 'lcanyway') return (store.set('ue:guardoff', guardSig()), liveCoding(true));
   if (d.uesay === 'guardoff') return (store.set('ue:guardoff', guardSig()), paint());
   if (d.uesay === 'restartoff') return (store.set('ue:restartoff', st.run?.id || 0), paint());
-  if (d.uelv) return (store.set('ue:logf', { ...logf(), v: d.uelv }), drawElog());
+  if (d.uelv) {
+    const cur = logf();
+    store.set('ue:logf', { ...cur, v: cur.v === d.uelv ? 'all' : d.uelv });
+    return drawElog();
+  }
   if ('uelcat' in d) return catMenu(b);
   const a = d.ue;
   if (!a) return;
@@ -638,7 +653,7 @@ function moreMenu(b: Element) {
 function cfgMenu(b: Element) {
   const i = st.info, { t, config } = cfg();
   if (!i?.targets?.length) return;
-  let html = '<div class="ml">configuration · Win64</div>';
+  let html = '<div class="ml">Configuration (Win64)</div>';
   for (const x of i.targets) for (const c of (UE_CONFIGS as Record<string, string[]>)[x.type]) html += `<button class="mi" data-uecfg="${esc(x.name)}|${c}">${x.name === t?.name && c === config ? '✓' : '&nbsp;&nbsp;'} ${esc(label(x, c))}<span class="d">${esc(x.name)}</span></button>`;
   html += `<div class="sep"></div><button class="mi" data-ueup>.uproject: ${esc(i.uproject)}<span class="d">${st.choice.uproject ? 'chosen' : 'found'}, click to choose another</span></button>`;
   const r = below(b);
@@ -650,8 +665,8 @@ function cfgMenu(b: Element) {
 }
 function engineMenu(b: Element) {
   const i = st.info, all = i?.engines || [], cur = i?.engine;
-  let html = '<div class="ml">engine</div>';
-  html += all.map((x) => `<button class="mi" data-ueeng="${esc(x.dir)}" data-ueid="${esc(x.id)}">${cur && cur.dir.toLowerCase() === x.dir.toLowerCase() ? '✓' : '&nbsp;&nbsp;'} ${esc(engineName(x))}${x.id === i?.assoc ? ' · the project\u2019s' : ''}<span class="d">${esc(x.dir)}</span></button>`).join('') || '<div class="ml">none found on this PC</div>';
+  let html = '<div class="ml">Engine</div>';
+  html += all.map((x) => `<button class="mi" data-ueeng="${esc(x.dir)}" data-ueid="${esc(x.id)}">${cur && cur.dir.toLowerCase() === x.dir.toLowerCase() ? '✓' : '&nbsp;&nbsp;'} ${esc(engineName(x))}${x.id === i?.assoc ? ' (project)' : ''}<span class="d">${esc(x.dir)}</span></button>`).join('') || '<div class="ml">None found on this PC</div>';
   html += `<div class="sep"></div><button class="mi" data-uechoose>choose folder…<span class="d">the folder with Engine in it</span></button>`;
   if (st.choice.engine) html += `<button class="mi" data-uedetect>use the one EngineAssociation names</button>`;
   html += `<button class="mi" data-ueagain>look again</button>`;
@@ -740,7 +755,14 @@ const drawProblemsSoon = () => (probTimer ||= requestAnimationFrame(() => ((prob
 function drawProblems() {
   if (!W) return;
   const pf = ['error', 'warning'].includes(store.get('ue:pf')) ? store.get('ue:pf') : 'all';
-  for (const b of W.el.querySelectorAll<HTMLElement>('[data-uepf]')) b.classList.toggle('on', b.dataset.uepf === pf);
+  const ec = countOf('error'), wc = countOf('warning');
+  for (const b of W.el.querySelectorAll<HTMLElement>('[data-uepf]')) {
+    const k = b.dataset.uepf!;
+    b.classList.toggle('off', pf !== 'all' && pf !== k);
+    b.classList.toggle('on', pf === k);
+    b.setAttribute('aria-pressed', String(pf === 'all' || pf === k));
+    b.querySelector('span')!.textContent = k === 'error' ? `${ec} ${ec === 1 ? 'Error' : 'Errors'}` : `${wc} ${wc === 1 ? 'Warning' : 'Warnings'}`;
+  }
   const list = st.problems.filter((p) => pf === 'all' || p.sev === pf);
   const by = new Map<string, Problem[]>();
   for (const p of list) {
@@ -748,7 +770,7 @@ function drawProblems() {
     if (!by.has(k)) by.set(k, []);
     by.get(k)!.push(p);
   }
-  const row = (p: Problem) => `<div class="ue-prow ${p.sev}" ${p.file && isPath(p.file) ? `data-at="${esc(p.file)}|${p.line}"` : ''}><span class="ue-sev">${p.sev === 'error' ? '✕' : '▲'}</span><span class="ue-ln">${p.line ? `${p.line}${p.col ? ':' + p.col : ''}` : ''}</span><span class="ue-code">${esc(p.code)}</span><span class="ue-txt">${esc(p.text)}</span>${pref('ue:ask') && p.text ? `<button class="ue-ask" data-ueask="${st.problems.indexOf(p)}" title="Ask the agent&#10;Puts this ${p.sev === 'error' ? 'error' : 'warning'} into the chat you used last in this project, or a new one, to ask the agent to fix it.">ask the agent</button>` : '<span></span>'}</div>`;
+  const row = (p: Problem) => `<div class="ue-prow ${p.sev}" ${p.file && isPath(p.file) ? `data-at="${esc(p.file)}|${p.line}"` : ''}><span class="ue-sev">${p.sev === 'error' ? '✕' : '▲'}</span><span class="ue-ln">${p.line ? `${p.line}${p.col ? ':' + p.col : ''}` : ''}</span><span class="ue-code">${esc(p.code)}</span><span class="ue-txt">${esc(p.text)}</span>${pref('ue:ask') && p.text ? `<button class="ue-ask" data-ueask="${st.problems.indexOf(p)}" title="Ask the agent&#10;Puts this ${p.sev === 'error' ? 'error' : 'warning'} into the chat you used last in this project, or a new one, to ask the agent to fix it.">Ask agent</button>` : '<span></span>'}</div>`;
   const keys = [...by.keys()].sort((a, b) => ((!a) as unknown as number) - ((!b) as unknown as number) || a.localeCompare(b));
   const groups = keys.map((k) => `<div class="ue-pfile" ${k ? `title="${esc(k)}" data-tip-mono data-tip-cut=".dim"` : ''}><b>${esc(k ? k.split(/[\\/]/).pop() : 'no file')}</b><span class="dim">${esc(k ? k.split(/[\\/]/).slice(0, -1).join('\\') : '')}</span><span class="ue-c">${by.get(k)!.length}</span></div>${by.get(k)!.map(row).join('')}`).join('');
   W.plist.innerHTML = (groups || `<div class="empty">${st.run ? (pf === 'all' ? 'No errors or warnings.' : `No ${pf}s.`) : 'Nothing built yet.'}</div>`);
@@ -762,8 +784,9 @@ async function readLog(which: string, again = false) {
   try {
     const r = await call('POST', '/api/ue/log', { which, uproject: st.choice.uproject, engine: st.choice.engine });
     W.logs[which] = r;
-    pane.querySelector('.ue-lpath')!.textContent = r.path || '';
-    pane.querySelector<HTMLElement>('.ue-lpath')!.title = r.path || '';
+    const fb = pane.querySelector<HTMLElement>('.ue-lfile')!;
+    fb.querySelector('.ue-lfname')!.textContent = r.path ? baseOf(r.path) : 'Log.txt';
+    fb.title = r.path ? `Open as file\n${r.path}` : 'Open as file\nOpens the log as a file tab in the Editor.';
     const txt = pane.querySelector('.ue-ltext')!;
     txt.textContent = r.missing ? `No log yet at ${r.path}.` : r.why ? whyLine() : (r.cut ? '(the start is cut: only the last 2 MB)\n' : '') + r.text;
     pane.scrollTop = pane.scrollHeight;
@@ -806,12 +829,17 @@ function paintElogBar() {
   const pane = elogPane();
   if (!pane) return;
   const f = logf(), cats = new Set(st.elog.map((r) => r.c || '—'));
-  for (const b of pane.querySelectorAll<HTMLElement>('[data-uelv]')) b.classList.toggle('on', b.dataset.uelv === f.v);
+  for (const b of pane.querySelectorAll<HTMLElement>('[data-uelv]')) {
+    const lv = b.dataset.uelv!;
+    b.classList.toggle('on', f.v === lv);
+    b.classList.toggle('off', f.v === 'err' && lv === 'warn');
+    b.setAttribute('aria-pressed', String(f.v === lv));
+  }
   const hid = f.off.filter((c) => cats.has(c)).length;
-  pane.querySelector('.ue-lcat')!.textContent = `categories ${cats.size - hid}/${cats.size} ▾`;
-  const p = pane.querySelector<HTMLElement>('.ue-lpath')!;
-  p.textContent = st.elogPath;
-  p.title = st.elogPath;
+  pane.querySelector('.ue-lcat > span')!.textContent = `Categories ${cats.size - hid}/${cats.size} ▾`;
+  const fb = pane.querySelector<HTMLElement>('.ue-lfile')!;
+  fb.querySelector('.ue-lfname')!.textContent = st.elogPath ? baseOf(st.elogPath) : 'Editor.log';
+  fb.title = st.elogPath ? `Open as file\n${st.elogPath}` : 'Open as file\nOpens the log as a file tab in the Editor.';
 }
 function drawElog() {
   const pane = elogPane();
@@ -852,15 +880,17 @@ function catMenu(b: Element) {
   const f = logf(), n = new Map<string, number>();
   for (const r of st.elog) n.set(r.c || '—', (n.get(r.c || '—') || 0) + 1);
   const cats = [...n.keys()].sort((a, b) => a.localeCompare(b));
-  let html = '<div class="ml">categories seen · click to hide or show</div>';
-  html += `<button class="mi" data-uecat="*">show all<span class="d">${cats.length}</span></button><div class="sep"></div>`;
-  html += cats.map((c) => `<button class="mi" data-uecat="${esc(c)}">${f.off.includes(c) ? '&nbsp;&nbsp;' : '✓'} ${esc(c)}<span class="d">${n.get(c)}</span></button>`).join('') || '<div class="ml">none yet</div>';
+  let html = `<div class="mh"><i class="mh-ic">${I_FILT}</i><span class="mh-n">Categories</span><span class="ue-cat-acts"><button data-uecat="*">All</button><button data-uecat="!">None</button></span></div>`;
+  html += cats.map((c) => `<button class="mi pick chk${f.off.includes(c) ? '' : ' on'}" data-uecat="${esc(c)}"><span class="mi-n">${esc(c)}</span><span class="d">${n.get(c)}</span></button>`).join('') || '<div class="ml">None yet</div>';
   const r = below(b);
   popMenu(r.left, r.bottom + 2, html, (m) => {
     const c = m.dataset.uecat!, now = logf();
-    store.set('ue:logf', { ...now, off: c === '*' ? [] : now.off.includes(c) ? now.off.filter((x) => x !== c) : [...now.off, c] });
+    const off = c === '*' ? [] : c === '!' ? cats : now.off.includes(c) ? now.off.filter((x) => x !== c) : [...now.off, c];
+    store.set('ue:logf', { ...now, off });
     drawElog();
+    if (c === '*' || c === '!') catMenu(b);
   });
+  keepMenu(() => catMenu(b));
 }
 
 function paintTabs() {
@@ -882,7 +912,7 @@ function paintTabs() {
 function paintWin() {
   if (!W) return;
   const i = st.info, ok = i && !i.why, run = live(st.run), { t, config } = cfg();
-  W.pj.textContent = st.where?.name ? ` · ${st.where.name}` : '';
+  W.pj.textContent = st.where?.name ? ` ${st.where.name}` : '';
   const put = (el: HTMLElement, html: string) => {
     if (el.dataset.html === html) return;
     el.innerHTML = html;
@@ -891,24 +921,25 @@ function paintWin() {
   put(W.eng, `${I_ENG}<span class="ue-pt">${esc(engineName(i?.engine))}</span><span class="cv">▾</span>`);
   W.eng.title = i?.engine ? `Engine: ${engineName(i.engine)}\n${i.engine.how === 'detected' ? `Found from EngineAssociation ${i.assoc}` : 'Chosen for this project'}, in ${i.engine.dir}. Click to choose another.` : '';
   W.eng.disabled = !i || i.why === 'none' || i.why === 'os';
-  put(W.cfgb, `${I_CFG}<span class="ue-pt">${esc(t ? label(t, config) : 'no configuration')}</span>${t ? '<span class="cv">▾</span>' : ''}`);
+  put(W.cfgb, `${I_CFG}<span class="ue-pt">${esc(t ? label(t, config) : 'No configuration')}</span>${t ? '<span class="cv">▾</span>' : ''}`);
   W.cfgb.title = t ? `Target: ${t.name}, ${label(t, config)}\nWhat a build makes, for Win64. Click to choose another target or configuration.` : 'Target and configuration\nNone to build yet.';
   W.cfgb.disabled = !ok;
   const g = guarded(), lc = lcOn();
-  put(W.go, `${run ? I_STOP : g ? I_AGAIN : lc ? I_BOLT : I_PLAY}<span>${run ? 'cancel' : g ? 'restart · build' : lc ? 'patch' : 'build'}</span>`);
-  W.go.title = run ? (st.run?.action === 'livecoding' ? 'Cancel\nStops following this Live Coding compile. Unreal has no way to cancel it from outside.' : '') : g ? `Restart and build\nSaves, closes Unreal Editor, builds, and opens it again. Live Coding is off for this change: ${st.ed.guard[0].path} changed outside a function body.` : lc ? 'Live coding\nPatches the open Unreal Editor with your changes.' : `Build\nBuilds ${t?.name || 'the project'}, ${label(t, config)}.`;
-  W.go.dataset.tipKeys = run ? '' : `${UEKEY}:${g ? 'restart and build' : lc ? 'live coding' : 'build'}`;
+  put(W.go, `${run ? I_STOP : g ? I_AGAIN : lc ? I_BOLT : I_PLAY}<span>${run ? 'Cancel' : g ? 'Restart and build' : lc ? 'Hot Reload' : 'Build'}</span>`);
+  W.go.title = run ? (st.run?.action === 'livecoding' ? 'Cancel\nStops following this Hot Reload compile. Unreal has no way to cancel it from outside.' : '') : g ? `Restart and build\nSaves, closes Unreal Editor, builds, and opens it again. Live Coding is off for this change: ${st.ed.guard[0].path} changed outside a function body.` : lc ? 'Hot Reload\nPatches the open Unreal Editor with your changes using Live Coding.' : `Build\nBuilds ${t?.name || 'the project'}, ${label(t, config)}.`;
+  W.go.dataset.tipKeys = run ? '' : `${UEKEY}:${g ? 'restart and build' : lc ? 'Hot Reload' : 'build'}`;
   W.go.classList.toggle('stop', run);
   W.go.disabled = !ok;
   const edb = W.el.querySelector<HTMLButtonElement>('.ue-top [data-ue="editor"]')!;
   edb.disabled = !i?.engine || !i.path || ['bad-json', 'not-engine', 'unlisted'].includes(i.why as string);
-  edb.querySelector('.ue-dot')!.className = `ue-dot${st.ed.linked ? ' on' : st.ed.open ? ' half' : ''}`;
-  edb.title = st.ed.linked ? 'Editor: linked\nUnreal Editor is open and linked to Amethyst. Live Coding, play and stop work from here.' : st.ed.open ? "Editor: not linked\nUnreal Editor is open, but it wasn't opened from Amethyst, so Amethyst can't reach it.\n\nClose it and open it from here to link it." : pref('ue:link') ? 'Editor\nOpens the project in Unreal Editor, linked to Amethyst, so Live Coding, play and stop work from here.' : 'Editor\nOpens the project in Unreal Editor.';
+  edb.classList.toggle('linked', !!st.ed.linked);
+  edb.classList.toggle('open', !st.ed.linked && !!st.ed.open);
+  edb.title = st.ed.linked ? 'Editor: linked\nUnreal Editor is open and linked to Amethyst. Hot Reload, play and stop work from here.' : st.ed.open ? "Editor: not linked\nUnreal Editor is open, but it wasn't opened from Amethyst, so Amethyst can't reach it.\n\nClose it and open it from here to link it." : pref('ue:link') ? 'Editor\nOpens the project in Unreal Editor, linked to Amethyst, so Hot Reload, play and stop work from here.' : 'Editor\nOpens the project in Unreal Editor.';
   const pb = W.el.querySelector<HTMLButtonElement>('.ue-top [data-ue="play"]')!;
-  put(pb, `${st.ed.playing ? I_STOP : I_PLAY}<span>${st.ed.playing ? 'stop' : 'play'}</span>`);
+  put(pb, `${st.ed.playing ? I_STOP : I_PLAY}<span>${st.ed.playing ? 'Stop' : 'Play'}</span>`);
   pb.classList.toggle('on', st.ed.playing);
   pb.setAttribute('aria-disabled', String(!st.ed.linked));
-  pb.title = st.ed.playing ? '' : st.ed.linked ? 'Play\nPlays the project in Unreal Editor (Play In Editor).' : st.ed.open ? "Play\nNot possible now. Amethyst can't reach this Unreal Editor: it wasn't opened from Amethyst." : 'Play\nNot possible now. Open the editor from Amethyst first, with the editor button.';
+  pb.title = st.ed.playing ? '' : st.ed.linked ? 'Play\nPlays the project in Unreal Editor (Play In Editor).' : st.ed.open ? "Play\nNot possible now. Amethyst can't reach this Unreal Editor: it wasn't opened from Amethyst." : 'Play\nNot possible now. Open the editor from Amethyst first, with the Editor button.';
   const nt = noteNow();
   W.note.hidden = !nt;
   put(W.note, nt ? `<i>!</i><div><b>${esc(nt.title)}</b>${nt.text ? `<p>${esc(nt.text)}</p>` : ''}${nt.btns ? `<div class="row">${nt.btns.map(([k, l, c]) => `<button${c ? ` class="${c}"` : ''} data-uesay="${k}">${esc(l)}</button>`).join('')}</div>` : ''}</div>` : '');
@@ -926,8 +957,7 @@ function paintWin() {
   W.foot.querySelector('.ue-fwhat')!.textContent = f.what;
   const p = st.run?.state === 'running' ? progress() : null;
   W.foot.querySelector<HTMLElement>('.ue-pbar')!.style.width = p && p.of ? `${Math.min(100, (100 * p.n) / p.of)}%` : '0';
-  W.el.querySelector('.ue-n')!.textContent = n || wn ? String(n + wn) : '';
-  W.el.querySelector('.ue-n')!.className = 'ue-n' + (n ? ' e' : wn ? ' w' : '');
+  W.el.querySelector('.ue-pdot')!.className = 'ue-pdot' + (n ? ' e' : wn ? ' w' : '');
   paintTabs();
 }
 
