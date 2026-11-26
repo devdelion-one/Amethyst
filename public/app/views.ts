@@ -164,43 +164,55 @@ function underIf(on: boolean) {
   app.classList.toggle('orch-under', want);
   placeFiles();
 }
-function fitOrch() {
-  const app = $('#app'), shell = $('#shell'), st = app.style;
+const ORCH_VARS = ['--side-l', '--side-mw', '--pins-r', '--pins-mw'];
+type OrchFit = { off: true } | { off: false; under: boolean | null; vars: Record<string, string | null> | null };
+function readOrch(): OrchFit {
+  const app = $('#app'), shell = $('#shell');
   const rail = [...document.querySelectorAll<HTMLElement>('#decks .oc:not([hidden]) > .oc-rail')].find((e) => e.offsetParent);
-  if (!app.classList.contains('orch') || (!rail && !app.classList.contains('orch-nolist'))) {
-    underIf(false);
-    for (const k of ['--side-l', '--side-mw', '--pins-r', '--pins-mw']) st.removeProperty(k);
-    return;
-  }
+  if (!app.classList.contains('orch') || (!rail && !app.classList.contains('orch-nolist'))) return { off: true };
   const gap = px(getComputedStyle(shell).columnGap), ac = getComputedStyle(app), ar = app.getBoundingClientRect();
   const end = ar.right - px(ac.paddingRight) - px(ac.borderRightWidth);
+  let under: boolean | null = false;
   if (app.classList.contains('orch-files')) {
     const main = $('#main'), ws = [...shell.children].filter((e) => e !== main).map(flowW).filter((w) => w >= 0);
     const need = ws.reduce((a, w) => a + w, 0) + (rail?.offsetWidth || 0) + px(ac.getPropertyValue('--oc-chat-min')) + px(ac.getPropertyValue('--oc-files-min')) + gap * (ws.length + 2);
-    underIf(need > end - shell.getBoundingClientRect().left + 0.5 || ar.height > ar.width);
-  } else underIf(false);
-  if (!rail) {
-    for (const k of ['--side-l', '--side-mw', '--pins-r', '--pins-mw']) st.removeProperty(k);
-    return;
+    under = need > end - shell.getBoundingClientRect().left + 0.5 || ar.height > ar.width;
   }
+  if (!rail) return { off: false, under, vars: null };
   const s = { left: shell.getBoundingClientRect().left, right: end }, r = rail.getBoundingClientRect(), a = $('#activity').getBoundingClientRect();
-  const left = (a.width ? a.right : s.left) - s.left;
+  const left = (a.width ? a.right : s.left) - s.left, vars: Record<string, string | null> = {};
   if (r.left - s.left - left <= gap * 2 + 1) {
-    st.setProperty('--side-l', `${r.right - s.left + gap}px`);
-    st.setProperty('--side-mw', `${s.right - r.right - gap * 2}px`);
+    vars['--side-l'] = `${r.right - s.left + gap}px`;
+    vars['--side-mw'] = `${s.right - r.right - gap * 2}px`;
   } else {
-    st.removeProperty('--side-l');
-    st.setProperty('--side-mw', `${r.left - s.left - left - gap * 2}px`);
+    vars['--side-l'] = null;
+    vars['--side-mw'] = `${r.left - s.left - left - gap * 2}px`;
   }
   if (s.right - r.right <= gap + 1) {
-    st.setProperty('--pins-r', `${s.right - r.left + gap}px`);
-    st.setProperty('--pins-mw', `${r.left - s.left - left - gap * 2}px`);
+    vars['--pins-r'] = `${s.right - r.left + gap}px`;
+    vars['--pins-mw'] = `${r.left - s.left - left - gap * 2}px`;
   } else {
-    st.removeProperty('--pins-r');
-    st.setProperty('--pins-mw', `${s.right - r.right - gap * 2}px`);
+    vars['--pins-r'] = null;
+    vars['--pins-mw'] = `${s.right - r.right - gap * 2}px`;
   }
+  return { off: false, under, vars };
 }
-onSize($('#shell'), { name: 'orch.fit', write: fitOrch });
+function writeOrch(f: OrchFit): boolean {
+  const app = $('#app'), st = app.style, was = app.classList.contains('orch-under');
+  underIf(!f.off && !!f.under);
+  const moved = app.classList.contains('orch-under') !== was;
+  const vars = f.off ? null : f.vars;
+  for (const k of ORCH_VARS) {
+    const v = vars ? vars[k] : null;
+    if (v == null) { if (st.getPropertyValue(k)) st.removeProperty(k); }
+    else if (st.getPropertyValue(k) !== v) st.setProperty(k, v);
+  }
+  return moved;
+}
+function fitOrch() {
+  if (writeOrch(readOrch())) writeOrch(readOrch());
+}
+onSize($('#shell'), { name: 'orch.fit', read: readOrch, write: (f: OrchFit) => writeOrch(f) && fitOrch() });
 narrowQ.addEventListener('change', () => layout());
 
 export function moved(from: string, to: string, tell = true) {

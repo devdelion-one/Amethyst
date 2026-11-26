@@ -79,7 +79,7 @@ export function stick(log: HTMLElement, inner: HTMLElement, jump: HTMLElement, {
       } else if (pinned || moved) {
         stopEase();
         if (!pinned) pin(true);
-        log.scrollTop = sh;
+        if (at < sh - ch - 1) log.scrollTop = sh;
         at = sh - ch;
       } else if (more) jump.classList.add('new');
       jump.hidden = pinned || sh - at - ch <= 2;

@@ -1,4 +1,4 @@
-import { span } from './hitch.ts';
+import { report, span } from './hitch.ts';
 
 type Seen = ResizeObserverEntry[];
 type SizeJob<T = unknown> = { name: string; read?: (seen: Seen) => T; write: (got: T, seen: Seen) => void; live?: boolean };
@@ -7,10 +7,13 @@ type Job = SizeJob<any> & { els: Set<Element>; held: Map<Element, ResizeObserver
 
 export const resizing = () => document.body.classList.contains('resizing-x') || document.body.classList.contains('resizing-y');
 
+const timed = (name: string, ms: number) => ms > 30 && report(`slow size job ${name}: ${ms.toFixed(0)} ms`);
 function run(batch: [{ name: string; read?: (seen: Seen) => unknown; write: (got: any, seen: Seen) => void }, Seen][]) {
   const got = batch.map(([j, seen]) => {
     try {
-      return { v: j.read ? span(j.name, () => j.read!(seen)) : undefined };
+      const t = performance.now(), v = j.read ? span(j.name, () => j.read!(seen)) : undefined;
+      timed(`${j.name} (measuring)`, performance.now() - t);
+      return { v };
     } catch (e) {
       reportError(e);
       return null;
@@ -20,7 +23,9 @@ function run(batch: [{ name: string; read?: (seen: Seen) => unknown; write: (got
     const g = got[i];
     if (!g) return;
     try {
+      const t = performance.now();
       span(j.name, () => j.write(g.v, seen));
+      timed(j.name, performance.now() - t);
     } catch (e) {
       reportError(e);
     }
