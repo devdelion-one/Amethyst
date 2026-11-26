@@ -439,7 +439,7 @@ function newMenu(e?: Event) {
   popMenu(page ? b.left : b.right + 6, page ? b.bottom + 6 : b.top, MENU[at()].map(row).join(''), (btn) => btn.dataset.mk && MAKE[btn.dataset.mk][4]());
 }
 const mb = $('#btn-more');
-mb.innerHTML = ICONS.newFile;
+mb.innerHTML = ICONS.newAny;
 mb.setAttribute('aria-label', 'new');
 menuButton(mb, newMenu);
 $('#start [data-newpjmenu]').addEventListener('click', newMenu);
