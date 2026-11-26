@@ -2656,15 +2656,15 @@ button[data-qk].ph > * { visibility: hidden; }
 .st-usage.on { color: var(--accent); }
 .st-usage.warn { color: var(--warn); }
 .st-usage.full { color: var(--danger); }
-#status .st-usage.meter { --nw: 0px; --tw: 0px; display: grid; grid-template-columns: 1fr; place-items: center stretch; column-gap: 6px; width: calc(92px + var(--nw) + var(--tw)); padding: 0 5px; box-shadow: inset 0 0 0 1px var(--line); border-radius: var(--r-sm); }
+#status .st-usage.meter { --nw: 0px; --tw: 0px; display: grid; grid-template-columns: 1fr; place-items: center stretch; column-gap: 6px; width: calc(92px + var(--nw) + var(--tw)); padding: 2px 6px; border: 1px solid var(--line); border-radius: var(--r-sm); }
 #status .st-usage.meter.named { --nw: 70px; grid-template-columns: 64px 1fr; }
 #status .st-usage.meter.timed { --tw: 32px; }
 .st-usage.meter.on { background: color-mix(in srgb, var(--accent) 16%, transparent); }
-.st-usage .um-rows { display: grid; grid-template-rows: 11px 11px; gap: 1px; align-content: center; min-width: 0; }
-.st-usage .um-n { overflow: hidden; font: var(--fs-2xs)/11px var(--mono); color: var(--text-dim); text-align: left; text-overflow: clip; }
+.st-usage .um-rows { display: grid; grid-template-rows: 10px 10px; gap: 0; align-content: center; min-width: 0; }
+.st-usage .um-n { overflow: hidden; font: var(--fs-2xs)/10px var(--mono); color: var(--text-dim); text-align: left; text-overflow: clip; }
 .st-usage.none .um-n { overflow: visible; }
-.st-usage .um-none { font: var(--fs-2xs)/11px var(--mono); color: var(--text-dim); opacity: .7; text-align: right; }
-.st-usage .um-r { --c: var(--text); display: grid; grid-template-columns: 1fr 30px; align-items: center; gap: 5px; font: var(--fs-2xs)/11px var(--mono); font-variant-numeric: tabular-nums; }
+.st-usage .um-none { font: var(--fs-2xs)/10px var(--mono); color: var(--text-dim); opacity: .7; text-align: right; }
+.st-usage .um-r { --c: var(--text); display: grid; grid-template-columns: 1fr 30px; align-items: center; gap: 5px; font: var(--fs-2xs)/10px var(--mono); font-variant-numeric: tabular-nums; }
 .st-usage.timed .um-r { grid-template-columns: 1fr 27px 30px; }
 .st-usage .um-r em { font-style: normal; text-align: right; color: var(--text-dim); }
 .st-usage .um-r em.full { color: var(--danger); }
