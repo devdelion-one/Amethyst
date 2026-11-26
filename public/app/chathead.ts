@@ -121,7 +121,7 @@ export function agentHead(a: Agent, c: HeadCan) {
   const orch = c.orch && chat ? offBtn(`<button data-dk-orch title="${esc(c.where === 'tab' ? ORCH_TIP.replace('this set', 'this tab') : ORCH_TIP)}" aria-label="move to Orchestration">${gem('orch')}</button>`, on('deck:orchBtn')) : '';
   const tab = c.tab ? offBtn(`<button data-dk-tab title="Move to the editor&#10;Makes this ${chat ? 'chat' : 'terminal'} a tab in the editor." aria-label="move to the Editor">⤢</button>`, on('deck:tabBtn')) : '';
   const xTip = c.closeTip || (chat ? 'Close\nEnds this chat. A busy one asks first.' : 'Close\nStops the terminal and what runs in it.');
-  const x = c.close === false ? '' : `<button data-dk-out title="${esc(xTip)}"${chat ? ' data-tip-keys="=shift+click:close without asking"' : ''} aria-label="close"${c.close === 'menu' ? ' hidden' : ''}>×</button>`;
+  const x = c.close === false ? '' : `<button data-dk-out title="${esc(xTip)}"${chat ? ' data-tip-keys="=shift+click:close without asking"' : ''} aria-label="close"${c.close === 'menu' ? ' hidden' : ''}>${ICONS.x}</button>`;
   const close = c.close === 'menu' ? x : offBtn(x, on(c.closeKey || 'deck:closeBtn'), chat ? 'close the chat' : 'close');
   return `${done}${idHead(a, o)}${c.info || ''}<span class="grow"></span>${chat ? toolsSlot(place, c.tools, c.all) : fmore()}${c.spot || ''}${mark}${report}${note}${pin}${bench}${set}${orch}${tab}${close}`;
 }

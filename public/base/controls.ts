@@ -1094,9 +1094,6 @@ document.addEventListener('contextmenu', (e) => {
   }
 });
 
-const frames = () => document.documentElement.classList.toggle('no-btn-frame', !pref('btnFrame'));
-frames();
-onPref('btnFrame', frames);
 const accents = () => {
   document.documentElement.classList.toggle('accent-newbtn', !!pref('accentNewBtn'));
   document.documentElement.classList.toggle('accent-lines', !!pref('accentTurnLines'));
