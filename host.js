@@ -260,58 +260,82 @@ function flush() {
 setInterval(flush, Number(process.env.STATS_FLUSH_MS) || 60000).unref();
 for (const sig of ['SIGTERM', 'SIGINT']) process.on(sig, () => (flush(), process.exit(0)));
 
+process.on('uncaughtException', (e) => console.error('uncaught:', e));
+process.on('unhandledRejection', (e) => console.error('unhandled rejection:', e));
+
+function failed(res, e) {
+  console.error(`request failed: ${e?.stack || e}`);
+  if (res.headersSent) return res.end();
+  res.writeHead(500, { ...HEADERS, 'content-type': 'text/plain' });
+  res.end('server error');
+}
+
+function serve(req, res) {
+  let url;
+  try {
+    url = new URL(req.url, 'http://x');
+  } catch {
+    res.writeHead(400, { ...HEADERS, 'content-type': 'text/plain' });
+    return res.end('bad request');
+  }
+  if (url.pathname === '/hit' && req.method === 'POST') {
+    req.resume();
+    const e = url.searchParams.get('e');
+    if (e === 'download' || e === 'join') count(req, e);
+    res.writeHead(204, HEADERS);
+    return res.end();
+  }
+  if (url.pathname === '/ping' && req.method === 'POST') {
+    req.resume();
+    ping(req, url);
+    res.writeHead(204, HEADERS);
+    return res.end();
+  }
+  if (url.pathname === '/latest') {
+    return void newest().then(({ version }) => {
+      res.writeHead(200, { ...HEADERS, 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-cache' });
+      res.end(JSON.stringify({ version }));
+    }).catch((e) => failed(res, e));
+  }
+  if (url.pathname === '/download/windows') {
+    return void newest().then(({ url: to }) => {
+      res.writeHead(302, { ...HEADERS, location: to || '/download', 'cache-control': 'no-cache' });
+      res.end();
+    }).catch((e) => failed(res, e));
+  }
+  if (SHORT[url.pathname]) {
+    res.writeHead(301, { ...HEADERS, location: SHORT[url.pathname] + url.search, 'cache-control': 'no-cache' });
+    return res.end();
+  }
+  if (url.pathname === '/') url.pathname = '/index.html';
+  if (url.pathname === '/privacy') url.pathname = '/privacy.html';
+  if (url.pathname === '/license') url.pathname = '/license.html';
+  if (url.pathname === '/download') url.pathname = '/download.html';
+  let file;
+  try {
+    file = path.resolve(PUBLIC, '.' + decodeURIComponent(url.pathname));
+  } catch {
+    file = '';
+  }
+  if (!file.startsWith(PUBLIC + path.sep) || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
+    res.writeHead(404, { ...HEADERS, 'content-type': 'text/plain' });
+    return res.end('not found');
+  }
+  if (req.method === 'GET' && PAGES[url.pathname]) count(req, PAGES[url.pathname]);
+  const type = TYPES[path.extname(file)] || 'application/octet-stream';
+  res.writeHead(200, { ...HEADERS, 'content-type': type.startsWith('image/') && type !== 'image/svg+xml' ? type : type + '; charset=utf-8', 'cache-control': 'no-cache' });
+  if (path.extname(file) === '.ts') return res.end(stripped(file));
+  if (url.pathname === '/index.html') return res.end(indexPage(file));
+  if (url.pathname === '/download.html') return void newest().then(() => res.end(downloadPage(file))).catch((e) => failed(res, e));
+  fs.createReadStream(file).on('error', (e) => failed(res, e)).pipe(res);
+}
+
 http
   .createServer((req, res) => {
-    const url = new URL(req.url, 'http://x');
-    if (url.pathname === '/hit' && req.method === 'POST') {
-      req.resume();
-      const e = url.searchParams.get('e');
-      if (e === 'download' || e === 'join') count(req, e);
-      res.writeHead(204, HEADERS);
-      return res.end();
-    }
-    if (url.pathname === '/ping' && req.method === 'POST') {
-      req.resume();
-      ping(req, url);
-      res.writeHead(204, HEADERS);
-      return res.end();
-    }
-    if (url.pathname === '/latest') {
-      return void newest().then(({ version }) => {
-        res.writeHead(200, { ...HEADERS, 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-cache' });
-        res.end(JSON.stringify({ version }));
-      });
-    }
-    if (url.pathname === '/download/windows') {
-      return void newest().then(({ url: to }) => {
-        res.writeHead(302, { ...HEADERS, location: to || '/download', 'cache-control': 'no-cache' });
-        res.end();
-      });
-    }
-    if (SHORT[url.pathname]) {
-      res.writeHead(301, { ...HEADERS, location: SHORT[url.pathname] + url.search, 'cache-control': 'no-cache' });
-      return res.end();
-    }
-    if (url.pathname === '/') url.pathname = '/index.html';
-    if (url.pathname === '/privacy') url.pathname = '/privacy.html';
-    if (url.pathname === '/license') url.pathname = '/license.html';
-    if (url.pathname === '/download') url.pathname = '/download.html';
-    let file;
     try {
-      file = path.resolve(PUBLIC, '.' + decodeURIComponent(url.pathname));
-    } catch {
-      file = '';
+      serve(req, res);
+    } catch (e) {
+      failed(res, e);
     }
-    if (!file.startsWith(PUBLIC + path.sep) || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
-      res.writeHead(404, { ...HEADERS, 'content-type': 'text/plain' });
-      return res.end('not found');
-    }
-    if (req.method === 'GET' && PAGES[url.pathname]) count(req, PAGES[url.pathname]);
-    const type = TYPES[path.extname(file)] || 'application/octet-stream';
-    res.writeHead(200, { ...HEADERS, 'content-type': type.startsWith('image/') && type !== 'image/svg+xml' ? type : type + '; charset=utf-8', 'cache-control': 'no-cache' });
-    if (path.extname(file) === '.ts') return res.end(stripped(file));
-    if (url.pathname === '/index.html') return res.end(indexPage(file));
-    if (url.pathname === '/download.html') return void newest().then(() => res.end(downloadPage(file)));
-    fs.createReadStream(file).pipe(res);
   })
   .listen(PORT, '0.0.0.0', () => console.log(`Amethyst (hosted) on :${PORT}`));
