@@ -1102,7 +1102,7 @@ button.ch-from:hover { color: var(--text-strong); }
 #app.ws #btn-pins { display: none; }
 #btn-scratch, #btn-sketch, #btn-inbox, #btn-qterm, #btn-qpwsh, #btn-qagent, #btn-newchat, .pn-qa, .pn-nc { flex: none; justify-content: center; width: 28px; min-height: 0; height: 28px; padding: 0; border-color: color-mix(in srgb, var(--accent) 45%, transparent); border-radius: var(--r-sm); background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); font-weight: 600; }
 #btn-scratch:hover, #btn-sketch:hover, #btn-inbox:hover, #btn-qterm:hover, #btn-qpwsh:hover, #btn-qagent:hover, #btn-newchat:hover, .pn-qa:hover, .pn-nc:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 26%, transparent); color: var(--accent); }
-#btn-scratch.on, #btn-sketch.on, #btn-inbox.on, #btn-qterm.on, #btn-qpwsh.on, #btn-qagent.on { border-color: var(--accent); background: var(--accent); color: var(--on-accent); }
+#btn-scratch.on, #btn-sketch.on, #btn-inbox.on, #btn-qterm.on, #btn-qpwsh.on, #btn-qagent.on { border-color: transparent; }
 #btn-scratch .gem, #btn-sketch .gem, #btn-inbox .gem, #btn-qterm .gem, #btn-qpwsh .gem, #btn-qagent .gem, #btn-newchat .gem, .pn-qa .gem, .pn-nc .gem { width: 15px; height: 15px; }
 #btn-scratch .gem .b, #btn-sketch .gem .b, #btn-inbox .gem .b, #btn-qterm .gem .b, #btn-qpwsh .gem .b, #btn-qagent .gem .b, #btn-newchat .gem .b, .pn-qa .gem .b, .pn-nc .gem .b { fill: var(--text-strong); }
 #btn-scratch .gem { color: var(--c-amber); }
@@ -1111,8 +1111,6 @@ button.ch-from:hover { color: var(--text-strong); }
 #btn-qpwsh .gem { color: var(--c-cyan); }
 #btn-qagent .gem, #btn-newchat .gem, .pn-qa .gem, .pn-nc .gem { color: var(--c-violet); }
 #btn-inbox .gem { color: var(--c-orange); }
-:is(#btn-scratch, #btn-sketch, #btn-inbox, #btn-qterm, #btn-qpwsh, #btn-qagent).on .gem { color: var(--flip-ink); }
-:is(#btn-scratch, #btn-sketch, #btn-inbox, #btn-qterm, #btn-qpwsh, #btn-qagent).on .gem .b { fill: var(--flip-ink); }
 #app.ws #btn-scratch, #app.ws #btn-sketch, #app.ws #btn-inbox, #app.ws #btn-qterm, #app.ws #btn-qpwsh, #app.ws #btn-qagent, #app.ws #btn-newchat { display: none; }
 #btn-qpwsh, #btn-qagent, #btn-newchat, .pn-qa, .pn-nc { position: relative; }
 #btn-qagent.ask::after { content: ''; position: absolute; top: 2px; right: 2px; width: 6px; height: 6px; border-radius: 50%; background: var(--ask); }
@@ -4545,15 +4543,12 @@ body:has(> .img-view) :is(#colormenu, #tip) { z-index: 110; }
 .ly-add::before { display: none; }
 .ly-add:hover { border-color: var(--text-dim); background: none; color: var(--text-strong); }
 .ly-add .ic { width: 16px; height: 16px; stroke-width: 1.5; stroke-linecap: butt; }
-.sets > button[data-mode].on, .ly.cur, #quick button.on, .pj-tab.on, #ws-go.on, #status > #ws-all.on,
-#btn-scratch.on, #btn-sketch.on, #btn-inbox.on, #btn-qterm.on, #btn-qpwsh.on, #btn-qagent.on { border-color: transparent; background: var(--flip); color: var(--flip-ink); box-shadow: none; }
-:root .sets > button[data-mode].on .gem:not(.ly-wk .gem), :root .ly.cur .gem:not(.ly-wk .gem), #quick button.on .gem, .pj-tab.on .gem:not(.pj-wk .gem), #btn-qagent.on .gem { color: var(--flip-ink) !important; }
-:root .sets > button[data-mode].on .gem:not(.ly-wk .gem) .b, :root .ly.cur .gem:not(.ly-wk .gem) .b, #quick button.on .gem .b, .pj-tab.on .gem:not(.pj-wk .gem) .b { fill: var(--flip-ink); }
-:root :is(.sets > button[data-mode].on, .ly.cur)[style*="--ly-c"] .gem:not(.ly-wk .gem) { color: color-mix(in srgb, var(--ly-c) 70%, var(--flip-ink)) !important; }
-:root :is(.sets > button[data-mode].on, .ly.cur)[style*="--ly-c"] .gem:not(.ly-wk .gem) .b { fill: color-mix(in srgb, var(--ly-c) 55%, var(--flip-ink)); }
-:root :is(.sets > button[data-mode].on, .ly.cur).pale[style*="--ly-c"] .gem:not(.ly-wk .gem) { color: var(--flip-ink) !important; }
-:root :is(.sets > button[data-mode].on, .ly.cur).pale[style*="--ly-c"] .gem:not(.ly-wk .gem) .b { fill: var(--flip-ink); }
-:root :is(.sets > button[data-mode].on, .ly.cur) .gem:not(.ly-wk .gem) .b:not([d="M0 0"]) + path, #quick button.on .gem .b:not([d="M0 0"]) + path, .pj-tab.on .gem:not(.pj-wk .gem) .b:not([d="M0 0"]) + path, :is(#btn-scratch, #btn-sketch, #btn-inbox, #btn-qterm, #btn-qpwsh).on .gem .b:not([d="M0 0"]) + path { fill: color-mix(in srgb, var(--flip-ink) 35%, var(--flip)); }
+.pj-tab.on, #ws-go.on, #status > #ws-all.on { border-color: transparent; background: var(--flip); color: var(--flip-ink); box-shadow: none; }
+.sets > button[data-mode].on, .ly.cur, #quick button.on, #btn-scratch.on, #btn-sketch.on, #btn-inbox.on, #btn-qterm.on, #btn-qpwsh.on, #btn-qagent.on { position: relative; border-color: transparent; background: color-mix(in srgb, var(--text) 24%, transparent); color: var(--text-strong); box-shadow: none; }
+:is(.sets > button[data-mode].on, .ly.cur, #quick button.on, #btn-scratch.on, #btn-sketch.on, #btn-inbox.on, #btn-qterm.on, #btn-qpwsh.on, #btn-qagent.on)::before { content: ""; position: absolute; left: -3px; top: 6px; bottom: 6px; width: 2px; border-radius: var(--r-mark); background: var(--ly-c, var(--accent)); }
+:root .pj-tab.on .gem:not(.pj-wk .gem) { color: var(--flip-ink) !important; }
+.pj-tab.on .gem:not(.pj-wk .gem) .b { fill: var(--flip-ink); }
+.pj-tab.on .gem:not(.pj-wk .gem) .b:not([d="M0 0"]) + path { fill: color-mix(in srgb, var(--flip-ink) 35%, var(--flip)); }
 #ws-btn:has(#ws-go.on) { border-color: transparent; background: var(--flip); }
 #btn-scratch, #btn-sketch, #btn-inbox, #btn-qterm, #btn-qpwsh, #btn-qagent, .pn-qa { border-color: transparent; background: color-mix(in srgb, var(--text) 10%, transparent); color: var(--text-dim); }
 #btn-scratch:hover, #btn-sketch:hover, #btn-inbox:hover, #btn-qterm:hover, #btn-qpwsh:hover, #btn-qagent:hover, .pn-qa:hover { border-color: transparent; background: color-mix(in srgb, var(--text) 16%, transparent); color: var(--text-strong); }
