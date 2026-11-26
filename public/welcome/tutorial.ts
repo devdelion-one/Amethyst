@@ -143,7 +143,7 @@ function draw() {
     const more = s.also && capsOf(s.also).length ? `<span class="tu-or">or</span>${caps(capsOf(s.also))}` : '';
     const need = s.need ? `<div class="tu-keys tu-need" hidden><span class="tu-or">Open a chat first:</span>${caps(capsOf(s.need))}</div>` : '';
     body = `<h3>${esc(s.title)}</h3><p>${esc(lineOf(s))}</p><div class="tu-keys tu-do">${caps(keysOf(s))}${more}<span class="tu-tick" hidden>✓ done</span></div>${need}`;
-    foot = `${dots}<div class="tu-btns"><button data-tu-back>back</button><button class="tu-go" data-tu-next>next</button></div>`;
+    foot = `${dots}<div class="tu-btns"><button class="tu-skip" data-tu-close title="Skip the tutorial&#10;Ends it here. You can always start it again from Settings." data-tip-keys="=esc:skip">skip tour</button><button data-tu-back>back</button><button class="tu-go" data-tu-next>next</button></div>`;
   }
   el.innerHTML = `${x}${at ? n : ''}${body}<div class="tu-f">${foot}</div>`;
   el.dataset.step = String(at);

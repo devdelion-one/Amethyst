@@ -88,7 +88,7 @@ function startSays() {
   for (const p of paths) by.set(placeOf(p), (by.get(placeOf(p)) || 0) + 1);
   const parts = drafts.map((d) => `makes ${d.name} (${plural(by.get(d.key) || 0, 'project')})`);
   for (const w of owned()) if (by.get(w.key)) parts.push(`adds ${plural(by.get(w.key)!, 'project')} to ${w.name}`);
-  if (by.get('')) return `${plural(by.get('')!, 'ticked project')} need${by.get('') === 1 ? 's' : ''} a workspace: make one in step 1.`;
+  if (by.get('')) parts.push(`brings in ${plural(by.get('')!, 'project')} without a workspace`);
   return parts.length ? `Start ${andList(parts)}.` : 'Start brings in no projects. You can add them later inside a workspace.';
 }
 
@@ -397,12 +397,6 @@ async function leave(start: boolean) {
       if (showCount()) await setCount({ on: pick });
       setPref('ue:on', ueOn);
       const paths = tickedPaths(), groups = new Map<string, string[]>(), used = new Set<string>();
-      if (paths.some((p) => !placeOf(p))) {
-        busy = false;
-        draw();
-        tell(el?.querySelector('[data-wl-start]') || el, { title: 'Your ticked projects need a workspace', line: 'make one in set up workspaces and projects, or untick them', ms: 4000 });
-        return;
-      }
       for (const d of [...drafts]) {
         let w;
         try {
