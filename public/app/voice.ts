@@ -244,7 +244,7 @@ async function finish(btn: HTMLElement, box: Box, at: number, r: Rec) {
   }
 }
 
-type Live = { btn: HTMLElement; box: Box; at: number; ins: string; text: string; id: string; r: Rec | null; queue: Int16Array[]; busy: boolean; stopping: boolean; t0: number; changed: number; loud: number; floor: number; off: () => void };
+type Live = { btn: HTMLElement; box: Box; at: number; ins: string; own: string; text: string; id: string; r: Rec | null; queue: Int16Array[]; busy: boolean; stopping: boolean; t0: number; changed: number; loud: number; floor: number; off: () => void };
 let live: Live | null = null;
 const QUIET_MS = 2000, QUIET_NOISY_MS = 4000, NOTHING_MS = 8000;
 
@@ -273,6 +273,7 @@ function show(L: Live, sentences: { text: string }[]) {
   L.ins = ins;
   L.text = t;
   L.changed = Date.now();
+  L.own = v.slice(0, a) + ins + v.slice(b);
   box.setRangeText(ins, a, b);
   if (focused) (box as unknown as HTMLTextAreaElement).setSelectionRange?.(a + before.length + t.length, a + before.length + t.length);
   box.dispatchEvent(new Event('input', { bubbles: true }));
@@ -339,7 +340,7 @@ async function endLive(L: Live, keep: boolean) {
 
 async function startLive(btn: HTMLElement, box: Box) {
   const at = box.selectionStart ?? box.value.length, now = Date.now();
-  const L: Live = { btn, box, at, ins: '', text: '', id: '', r: null, queue: [], busy: false, stopping: false, t0: now, changed: now, loud: 0, floor: 1, off: () => {} };
+  const L: Live = { btn, box, at, ins: '', own: box.value, text: '', id: '', r: null, queue: [], busy: false, stopping: false, t0: now, changed: now, loud: 0, floor: 1, off: () => {} };
   try {
     L.r = await record((f) => hear(L, f));
   } catch (e) {
@@ -348,7 +349,11 @@ async function startLive(btn: HTMLElement, box: Box) {
   live = L;
   lit(btn, true);
   const typed = (e: Event) => {
-    if (e.isTrusted) endLive(L, true);
+    const v = L.box.value;
+    if (v === L.own) return;
+    const d = v.length - L.own.length, end = L.at + L.ins.length;
+    if (d > 0 && v.slice(L.at + d, end + d) === L.ins && v.slice(end + d) === L.own.slice(end)) L.at += d;
+    endLive(L, true);
   };
   box.addEventListener('input', typed);
   L.off = () => box.removeEventListener('input', typed);
