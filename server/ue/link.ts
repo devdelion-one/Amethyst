@@ -1,180 +1,168 @@
 import crypto from 'crypto';
-import dgram from 'dgram';
 import fs from 'fs';
 import net from 'net';
 import path from 'path';
 
 interface Node {
-  id: string;
+  id: number;
   root: string;
   name: string;
   engine: string;
+  pid: number;
   seen: number;
+  sock: net.Socket;
 }
 interface Result {
   success: boolean;
   result: string;
   output: { type: string; output: string }[];
 }
-interface Conn {
+interface Wait {
+  res: (r: Result) => void;
+  rej: (e: Error) => void;
   sock: net.Socket;
-  busy: Promise<unknown>;
+  timer: ReturnType<typeof setTimeout>;
 }
 
-const GROUP = '239.0.0.1';
 const BIND = '127.0.0.1';
-const PORT = () => Number(process.env.MIND_UE_LINK_PORT) || 6766;
-const MAGIC = 'ue_py';
-const PING_MS = 1000;
-const LOST_MS = 5000;
-const IDLE_MS = 60e3;
 const MAX_MSG = 4 * 1024 * 1024;
+const HELLO_MS = 5000;
+const SCRIPT = path.join(import.meta.dirname, 'link.py');
 
-const me = crypto.randomUUID();
-const nodes = new Map<string, Node>();
-const conns = new Map<string, Conn>();
-let udp: dgram.Socket | null = null;
-let pinger: ReturnType<typeof setInterval> | null = null;
-let used = 0;
+const nodes = new Map<number, Node>();
+const waits = new Map<number, Wait>();
+let srv: net.Server | null = null;
+let key = Buffer.alloc(0);
+let file = '';
+let written = '';
+let ids = 0;
 
 const norm = (p: string) => path.normalize(String(p || '')).replace(/[\\/]+$/, '').toLowerCase();
-const msg = (type: string, dest?: string, data?: unknown) => Buffer.from(JSON.stringify({ version: 1, magic: MAGIC, type, source: me, ...(dest ? { dest } : {}), ...(data ? { data } : {}) }), 'utf8');
+const proof = (role: string, nonce: string) => crypto.createHmac('sha256', key).update(`${role}|${nonce}`).digest('hex');
+const same = (a: unknown, b: string) => typeof a === 'string' && a.length === b.length && crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+const line = (sock: net.Socket, m: unknown) => sock.write(JSON.stringify(m) + '\n');
 
-function read(buf: Buffer) {
-  try {
-    const m = JSON.parse(buf.toString('utf8'));
-    if (m?.version !== 1 || m.magic !== MAGIC || m.source === me || (m.dest && m.dest !== me)) return null;
-    return m;
-  } catch {
-    return null;
-  }
-}
-
-function send(type: string, dest?: string, data?: unknown) {
-  if (udp) udp.send(msg(type, dest, data), PORT(), GROUP, () => {});
-}
-
-function open() {
-  used = Date.now();
-  if (udp) return;
-  const s = dgram.createSocket({ type: 'udp4', reuseAddr: true });
-  udp = s;
-  s.on('error', () => shut());
-  s.on('message', (buf) => {
-    const m = read(buf);
-    if (m?.type !== 'pong' || !m.data) return;
-    nodes.set(m.source, { id: m.source, root: norm(m.data.project_root), name: String(m.data.project_name || ''), engine: String(m.data.engine_version || ''), seen: Date.now() });
+function onConn(sock: net.Socket) {
+  const nonce = crypto.randomBytes(32).toString('hex');
+  let stage: 'hello' | 'info' | 'ready' = 'hello', buf = '', id = 0, theirs = '';
+  const timer = setTimeout(() => sock.destroy(), HELLO_MS);
+  sock.setNoDelay(true);
+  sock.on('error', () => {});
+  sock.on('close', () => {
+    clearTimeout(timer);
+    if (id && nodes.get(id)?.sock === sock) nodes.delete(id);
   });
-  s.bind(PORT(), BIND, () => {
+  const handle = (m: any) => {
+    if (stage === 'hello') {
+      if (m?.t !== 'hello' || typeof m.nonce !== 'string' || m.nonce.length < 32 || !same(m.proof, proof('editor', nonce))) return sock.destroy();
+      theirs = m.nonce;
+      stage = 'info';
+      return line(sock, { t: 'proof', proof: proof('server', theirs) });
+    }
+    if (stage === 'info') {
+      const pid = Number(m?.pid);
+      if (m?.t !== 'info' || !Number.isInteger(pid) || pid <= 0) return sock.destroy();
+      clearTimeout(timer);
+      stage = 'ready';
+      id = ++ids;
+      nodes.set(id, { id, root: norm(m.project_root), name: String(m.project_name || ''), engine: String(m.engine_version || ''), pid, seen: Date.now(), sock });
+      return;
+    }
+    if (m?.t !== 'result') return;
+    const w = waits.get(Number(m.id));
+    if (!w) return;
+    waits.delete(Number(m.id));
+    clearTimeout(w.timer);
+    w.res({ success: !!m.success, result: String(m.result ?? ''), output: Array.isArray(m.output) ? m.output : [] });
+  };
+  sock.on('data', (d) => {
+    buf += d.toString('utf8');
+    if (buf.length > MAX_MSG) {
+      for (const w of [...waits.values()]) if (w.sock === sock) w.rej(new Error('the editor returned more than 4 MB of output'));
+      return sock.destroy();
+    }
+    for (let i = buf.indexOf('\n'); i >= 0 && !sock.destroyed; i = buf.indexOf('\n')) {
+      const raw = buf.slice(0, i);
+      buf = buf.slice(i + 1);
+      let m: unknown;
+      try {
+        m = JSON.parse(raw);
+      } catch {
+        return sock.destroy();
+      }
+      handle(m);
+    }
+  });
+  line(sock, { t: 'hello', nonce });
+}
+
+function init(dir: string) {
+  file = path.join(dir, 'ue-link.json');
+  if (srv) return;
+  key = crypto.randomBytes(32);
+  const s = net.createServer(onConn);
+  srv = s;
+  s.on('error', () => {});
+  s.listen(0, BIND, () => {
+    const body = JSON.stringify({ port: (s.address() as net.AddressInfo).port, key: key.toString('hex') });
     try {
-      s.setMulticastLoopback(true);
-      s.setMulticastTTL(0);
-      s.setMulticastInterface(BIND);
-      s.addMembership(GROUP, BIND);
+      fs.mkdirSync(dir, { recursive: true });
+      const tmp = `${file}.${process.pid}.tmp`;
+      fs.writeFileSync(tmp, body, { mode: 0o600 });
+      fs.renameSync(tmp, file);
+      written = body;
     } catch {}
-    send('ping');
   });
-  pinger = setInterval(() => {
-    const now = Date.now();
-    for (const [id, n] of nodes) if (now - n.seen > LOST_MS) drop(id);
-    if (now - used > IDLE_MS && !conns.size) return shut();
-    send('ping');
-  }, PING_MS);
-  pinger.unref?.();
+  s.unref();
 }
 
-function drop(id: string) {
-  nodes.delete(id);
-  conns.get(id)?.sock.destroy();
-  conns.delete(id);
-}
+const linkFile = () => file;
+const launch = () => ({ script: SCRIPT, file });
 
 function shut() {
-  if (pinger) clearInterval(pinger);
-  pinger = null;
-  for (const id of [...conns.keys()]) drop(id);
+  for (const n of nodes.values()) n.sock.destroy();
   nodes.clear();
+  for (const w of [...waits.values()]) w.rej(new Error('Amethyst closed the link'));
+  srv?.close();
+  srv = null;
   try {
-    udp?.close();
+    if (written && fs.readFileSync(file, 'utf8') === written) fs.rmSync(file, { force: true });
   } catch {}
-  udp = null;
+  written = '';
 }
 
-const nodeOf = (dir: string) => [...nodes.values()].filter((n) => n.root === norm(dir)).sort((a, b) => b.seen - a.seen)[0] || null;
+const nodeOf = (dir: string, pid?: number) => [...nodes.values()].filter((n) => n.root === norm(dir) && (pid === undefined || n.pid === pid)).sort((a, b) => b.seen - a.seen)[0] || null;
 
-async function find(dir: string, wait = 2500) {
-  open();
+async function find(dir: string, wait = 2500, pid?: number) {
   for (const end = Date.now() + wait; ; ) {
-    const n = nodeOf(dir);
+    const n = nodeOf(dir, pid);
     if (n || Date.now() >= end) return n;
     await new Promise((r) => setTimeout(r, 100));
   }
 }
 
-function connect(n: Node) {
-  const was = conns.get(n.id);
-  if (was && !was.sock.destroyed) return Promise.resolve(was);
-  return new Promise<Conn>((res, rej) => {
-    const srv = net.createServer();
-    let tries = 0, timer: ReturnType<typeof setInterval> | null = null;
-    const end = (e: Error | null, sock?: net.Socket) => {
-      if (timer) clearInterval(timer);
-      srv.close();
-      if (e || !sock) return rej(e || new Error('the editor did not connect'));
-      const c: Conn = { sock, busy: Promise.resolve() };
-      sock.on('close', () => conns.get(n.id) === c && conns.delete(n.id));
-      sock.on('error', () => {});
-      conns.set(n.id, c);
-      res(c);
-    };
-    srv.on('connection', (sock) => end(null, sock));
-    srv.on('error', (e) => end(e));
-    srv.listen(0, BIND, () => {
-      const port = (srv.address() as net.AddressInfo).port;
-      const ask = () => {
-        if (++tries > 10) return end(new Error('the editor did not open the command connection'));
-        send('open_connection', n.id, { command_ip: BIND, command_port: port });
-      };
-      ask();
-      timer = setInterval(ask, 1000);
-    });
-  });
-}
-
-function exchange(c: Conn, n: Node, command: string, mode: string, ms: number) {
+function exchange(n: Node, command: string, mode: string, ms: number) {
   return new Promise<Result>((res, rej) => {
-    let buf = Buffer.alloc(0);
-    const done = (e: Error | null, r?: Result) => {
+    if (n.sock.destroyed) return rej(new Error('the editor closed the connection'));
+    const id = ++ids;
+    const fail = (e: Error) => {
+      if (!waits.delete(id)) return;
       clearTimeout(timer);
-      c.sock.off('data', onData);
-      c.sock.off('close', onClose);
-      if (e) {
-        c.sock.destroy();
-        return rej(e);
-      }
-      res(r!);
+      n.sock.off('close', onClose);
+      rej(e);
     };
-    const onData = (d: Buffer) => {
-      if (buf.length + d.length > MAX_MSG) return done(new Error('the editor returned more than 4 MB of output'));
-      buf = Buffer.concat([buf, d]);
-      const m = read(buf);
-      if (m?.type === 'command_result') done(null, { success: !!m.data?.success, result: String(m.data?.result ?? ''), output: Array.isArray(m.data?.output) ? m.data.output : [] });
-    };
-    const onClose = () => done(new Error('the editor closed the connection'));
-    const timer = setTimeout(() => done(new Error(`the editor did not answer in ${Math.round(ms / 1000)} s (busy, or a dialog is open in it)`)), ms);
-    c.sock.on('data', onData);
-    c.sock.on('close', onClose);
-    c.sock.write(msg('command', n.id, { command, unattended: true, exec_mode: mode }));
+    const onClose = () => fail(new Error('the editor closed the connection'));
+    const timer = setTimeout(() => fail(new Error(`the editor did not answer in ${Math.round(ms / 1000)} s (busy, or a dialog is open in it)`)), ms);
+    waits.set(id, { res: (r) => (n.sock.off('close', onClose), res(r)), rej: fail, sock: n.sock, timer });
+    n.sock.once('close', onClose);
+    line(n.sock, { t: 'command', id, command, exec_mode: mode });
   });
 }
 
 async function py(dir: string, command: string, { mode = 'ExecuteStatement', ms = 15e3 } = {}) {
   const n = await find(dir);
   if (!n) throw new Error('no linked Unreal Editor for this project');
-  const c = await connect(n);
-  const run = c.busy.then(() => exchange(c, n, command, mode, ms));
-  c.busy = run.catch(() => {});
-  return run;
+  return exchange(n, command, mode, ms);
 }
 
 const evalPy = async (dir: string, expr: string, ms?: number) => (await py(dir, expr, { mode: 'EvaluateStatement', ms })).result;
@@ -196,9 +184,7 @@ const quit = (dir: string) => py(dir, 'unreal.SystemLibrary.quit_editor()');
 
 async function verifyNode(dir: string, expectedPid?: number, wait = 2500) {
   if (expectedPid !== undefined && (!Number.isInteger(expectedPid) || expectedPid <= 0)) return null;
-  const n = await find(dir, wait);
-  if (!n || n.root !== norm(dir)) return null;
-  return n;
+  return find(dir, wait, expectedPid);
 }
 
 type ExecMode = 'ExecuteFile' | 'ExecuteStatement' | 'EvaluateStatement';
@@ -273,5 +259,5 @@ async function execConsole(dir: string, logPath: string, cmd: string, { ms = 15e
   return { success: r.success, lines: out, raw: out.join('\n'), output: r.output, result: r.result };
 }
 
-export { state, py, verifyNode, execPython, execPythonJson, execConsole, liveCompile, liveCancel, play, stop, isPlaying, save, quit, shut };
+export { init, linkFile, launch, state, py, verifyNode, execPython, execPythonJson, execConsole, liveCompile, liveCancel, play, stop, isPlaying, save, quit, shut };
 export type { Result, ExecMode };

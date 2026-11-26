@@ -277,7 +277,7 @@ async function runAssetOp(
   opts: { write: boolean; timeoutSec: number | null },
 ): Promise<{ mode: 'live' | 'headless'; data: Record<string, any> }> {
   const open = await editor.editorOpen(uprojectPath);
-  const linked = (await link.state(projDir, open || process.env.MIND_UE_LINK_PORT ? 1500 : 300)).linked;
+  const linked = (await link.state(projDir, open ? 1500 : 300)).linked;
   if (!linked && open && opts.write) {
     throw new HttpError(409, `Unreal Editor is open on ${projName} without a Python link: close the editor or reopen it via amethyst ue editor before modifying assets`);
   }
@@ -326,7 +326,7 @@ async function runMigrate(f: FoundLike, req: ParsedRequest) {
   if (!destUproject) throw new HttpError(400, `destination project "${dest.name}" has no .uproject file`);
 
   const destOpen = await editor.editorOpen(destUproject);
-  const destLinked = (await link.state(destProjDir, destOpen || process.env.MIND_UE_LINK_PORT ? 1500 : 300)).linked;
+  const destLinked = (await link.state(destProjDir, destOpen ? 1500 : 300)).linked;
   if (destOpen && !destLinked) {
     throw new HttpError(409, `Unreal Editor is open on ${dest.name} without a Python link: close the editor or reopen it via amethyst ue editor before migrating assets into it`);
   }

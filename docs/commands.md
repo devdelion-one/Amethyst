@@ -1091,7 +1091,7 @@ Example: `amethyst ue log --category LogModuleManager --lines 40`
 
 **Surface:** CLI and MCP tool `ue_console`
 
-Run a console command inside this project's open Unreal Editor and return the log output written by that command. Requires the editor to be linked (opened via amethyst ue editor or with PythonScriptPlugin Remote Execution enabled). While the user has "chats answer other chats' permission asks" off, each run first waits for their OK in Amethyst's window.
+Run a console command inside this project's open Unreal Editor and return the log output written by that command. Requires the editor to be opened from Amethyst (amethyst ue editor); an editor opened any other way can't be reached. While the user has "chats answer other chats' permission asks" off, each run first waits for their OK in Amethyst's window.
 
 ```powershell
 amethyst ue console <command...> [--timeout <timeout>]
@@ -1106,7 +1106,7 @@ Example: `amethyst ue console stat fps`
 
 **Surface:** CLI and MCP tool `ue_python`
 
-Run Python code or a project .py script inside this project's open Unreal Editor and return its stdout, log output, and expression result. Requires the editor to be linked (opened via amethyst ue editor or with PythonScriptPlugin Remote Execution enabled). While the user has "chats answer other chats' permission asks" off, each run first waits for their OK in Amethyst's window.
+Run Python code or a project .py script inside this project's open Unreal Editor and return its stdout, log output, and expression result. Requires the editor to be opened from Amethyst (amethyst ue editor); an editor opened any other way can't be reached. While the user has "chats answer other chats' permission asks" off, each run first waits for their OK in Amethyst's window.
 
 ```powershell
 amethyst ue python [code...] [--file <file>] [--eval] [--timeout <timeout>]

@@ -134,7 +134,7 @@ export const ACTIONS: Act[] = [
   {
     name: 'ue console',
     tool: 'ue_console',
-    about: "Run a console command inside this project's open Unreal Editor and return the log output written by that command. Requires the editor to be linked (opened via amethyst ue editor or with PythonScriptPlugin Remote Execution enabled). While the user has \"chats answer other chats' permission asks\" off, each run first waits for their OK in Amethyst's window.",
+    about: "Run a console command inside this project's open Unreal Editor and return the log output written by that command. Requires the editor to be opened from Amethyst (amethyst ue editor); an editor opened any other way can't be reached. While the user has \"chats answer other chats' permission asks\" off, each run first waits for their OK in Amethyst's window.",
     args: [
       { name: 'command', type: 'string', pos: true, rest: true, required: true, about: 'The Unreal console command to run' },
       { name: 'timeout', type: 'number', about: 'Seconds to wait at most, 30 by default' },
@@ -145,7 +145,7 @@ export const ACTIONS: Act[] = [
   {
     name: 'ue python',
     tool: 'ue_python',
-    about: "Run Python code or a project .py script inside this project's open Unreal Editor and return its stdout, log output, and expression result. Requires the editor to be linked (opened via amethyst ue editor or with PythonScriptPlugin Remote Execution enabled). While the user has \"chats answer other chats' permission asks\" off, each run first waits for their OK in Amethyst's window.",
+    about: "Run Python code or a project .py script inside this project's open Unreal Editor and return its stdout, log output, and expression result. Requires the editor to be opened from Amethyst (amethyst ue editor); an editor opened any other way can't be reached. While the user has \"chats answer other chats' permission asks\" off, each run first waits for their OK in Amethyst's window.",
     args: [
       { name: 'code', type: 'string', pos: true, rest: true, about: 'Python code to execute (omit when passing --file)' },
       { name: 'file', type: 'string', about: 'Path to a .py script inside the project root' },

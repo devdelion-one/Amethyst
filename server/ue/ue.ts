@@ -20,6 +20,7 @@ import * as assets from './assets.ts';
 import * as gate from '../base/runs.ts';
 import { isUser } from '../base/user.ts';
 import { keepOutDir } from '../base/agentfiles.ts';
+import { dataBase } from '../base/datadir.ts';
 import type { ChildProcessWithoutNullStreams } from 'child_process';
 import type { Routes } from '../../public/base/types.ts';
 import type { Config } from './debug.ts';
@@ -124,6 +125,7 @@ const init = ({ dataDir, debugger: d, projects: p, findProject: fp }: { dataDir:
   uhtLog = path.join(dataDir, 'ue-uht-missed.log');
   names.init({ dataDir });
   lcGuard.init(dataDir);
+  link.init(path.dirname(dataBase()));
 };
 async function readAdded(): Promise<string[]> {
   try {
@@ -675,28 +677,24 @@ function follow(root: string | null, out: Out) {
   };
 }
 
-const LINK_ARGS = [
-  '-EnablePlugins=PythonScriptPlugin',
-  '-ini:Engine:[/Script/PythonScriptPlugin.PythonScriptPluginSettings]:bRemoteExecution=True',
-  '-ini:Engine:[/Script/PythonScriptPlugin.PythonScriptPluginSettings]:RemoteExecutionMulticastBindAddress=127.0.0.1',
-  '-ini:Engine:[/Script/PythonScriptPlugin.PythonScriptPluginSettings]:RemoteExecutionMulticastTtl=0',
-];
+const linkArgs = () => ['-EnablePlugins=PythonScriptPlugin', `-ini:Engine:[/Script/PythonScriptPlugin.PythonScriptPluginSettings]:+StartupScripts=${link.launch().script}`];
 
 async function openEditor(root: string | null, body: { uproject?: string; engine?: string; plain?: boolean }) {
   const f = await findToRun(root, body);
   if (f.why && f.why !== 'no-targets') return { why: f.why };
   if (await editorOpen(f.path)) return { open: true };
   const exe = path.join(f.engine!.dir, 'Engine', 'Binaries', 'Win64', 'UnrealEditor.exe');
-  const args = [f.path, ...(body.plain ? [] : LINK_ARGS)];
+  const args = [f.path, ...(body.plain ? [] : linkArgs())];
+  const env = body.plain ? process.env : { ...process.env, AMETHYST_UE_LINK: link.launch().file };
   const k = keyOf(root!);
   const ready = (pid: number) => lcGuard.rebase(k, path.dirname(f.path), pid).then(() => (editor.opened(k, pid), editor.recheck(k))).catch(() => {});
   if (process.env.MIND_FAKE_EXPLORER) {
-    await fs.promises.appendFile(process.env.MIND_FAKE_EXPLORER, `ue-editor:${f.path}\n${JSON.stringify({ exe, args })}\n`);
+    await fs.promises.appendFile(process.env.MIND_FAKE_EXPLORER, `ue-editor:${f.path}\n${JSON.stringify({ exe, args, link: body.plain ? '' : env.AMETHYST_UE_LINK })}\n`);
     await ready(editor.fakePid());
     return { ok: true, linked: !body.plain };
   }
   if (!fs.existsSync(exe)) throw new HttpError(404, `no UnrealEditor.exe in ${path.dirname(exe)}`);
-  const p = spawn(exe, args, { detached: true, stdio: 'ignore', windowsHide: false });
+  const p = spawn(exe, args, { detached: true, stdio: 'ignore', windowsHide: false, env });
   p.on('error', () => {});
   p.unref();
   await ready(p.pid || 0);
@@ -935,7 +933,7 @@ async function requireLinkedEditor(f: Found, hintWindow = false) {
     const extra = hintWindow ? ', or pass --window to capture the editor window directly' : '';
     throw new HttpError(
       409,
-      `Unreal Editor on ${f.name} is not linked for remote execution: open it via amethyst ue editor, or enable Remote Execution in PythonScriptPlugin settings${extra}`,
+      `Unreal Editor on ${f.name} wasn't opened from Amethyst, so Amethyst can't reach it: close it and open it with amethyst ue editor${extra}`,
     );
   }
   return { dir, proc, node };
