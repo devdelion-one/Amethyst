@@ -658,8 +658,8 @@ function voiceRow() {
   if (!v.os) return row('Downloaded', '<span class="dim">not on this system yet</span>');
   const m = pref('voice:model') === 'base' ? 'base' : 'small', have = Object.entries(v.models).filter(([, x]) => x.have);
   const what = v.installing ? `downloading, ${Math.round(v.got / 1e6)} of ${Math.round(v.total / 1e6) || v.models[m].mb} MB` : have.length ? `${have.map(([k]) => MODEL_NAME[k]).join(' and ')}, ${Math.round(v.bytes / 1e6)} MB` : 'nothing yet';
-  const btn = v.installing ? '' : v.bytes ? `<button class="chip" data-voice-remove title="Remove&#10;Deletes the speech models and Whisper. The mic asks to download again.">remove</button>` : `<button class="chip" data-voice-get title="Download&#10;Gets Whisper and the ${esc(MODEL_NAME[m].toLowerCase())} model, about ${v.models[m].mb + (v.program ? 0 : 10)} MB, from GitHub and Hugging Face.">download</button>`;
-  return row('Downloaded', `<span class="dim">${esc(what)}</span>${btn}`, { desc: "Whisper and its speech model, in Amethyst's own folder. The mic asks before the first download." });
+  const btn = v.installing ? '' : v.bytes ? `<button class="chip" data-voice-remove title="Remove&#10;Deletes the speech models, Whisper and the live text program. The mic asks to download again.">remove</button>` : `<button class="chip" data-voice-get title="Download&#10;Gets Whisper and the ${esc(MODEL_NAME[m].toLowerCase())} model${pref('voice:live') && v.live?.os ? ', and the live text model' : ''}, about ${v.models[m].mb + (v.program ? 0 : 10) + (pref('voice:live') && v.live?.os ? v.live.mb - (v.program ? 0 : 10) : 0)} MB, from GitHub and Hugging Face.">download</button>`;
+  return row('Downloaded', `<span class="dim">${esc(what)}</span>${btn}`, { desc: "Whisper, its speech model and the live text model, in Amethyst's own folder. The mic asks before the first download." });
 }
 
 function debuggerCard() {

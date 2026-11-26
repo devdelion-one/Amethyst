@@ -17,6 +17,7 @@ import * as setup from './server/setup/setup.ts';
 import * as ue from './server/ue/ue.ts';
 import * as debug from './server/debug/debug.ts';
 import * as voice from './server/voice/voice.ts';
+import * as dictate from './server/voice/dictate.ts';
 import * as clips from './server/clips/clips.ts';
 import * as welcome from './server/welcome/welcome.ts';
 import * as usage from './server/usage/routes.ts';
@@ -1156,7 +1157,7 @@ function readBody(req: IncomingMessage) {
 }
 
 const APP_TABLES = [APP_ROUTES, clips.ROUTES, welcome.ROUTES, runs.ROUTES];
-const PART_TABLES = [agents.ROUTES, drive.ROUTES, workers.ROUTES, terms.ROUTES, live.ROUTES, git.ROUTES, github.ROUTES, setup.ROUTES, ue.ROUTES, debug.ROUTES, voice.ROUTES, usage.ROUTES];
+const PART_TABLES = [agents.ROUTES, drive.ROUTES, workers.ROUTES, terms.ROUTES, live.ROUTES, git.ROUTES, github.ROUTES, setup.ROUTES, ue.ROUTES, debug.ROUTES, voice.ROUTES, dictate.ROUTES, usage.ROUTES];
 const routeIn = (tables: Routes[], key: string): RouteHandler | undefined => tables.find((t) => t[key])?.[key];
 if (args.includes('--routes')) {
   const routes = [...new Set([...[...APP_TABLES, WS_ROUTES, ...PART_TABLES, HOME_ROOT.ROUTES as Routes].flatMap((t) => Object.keys(t)), 'GET /api/stream', 'POST /api/stream'])];

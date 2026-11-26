@@ -6,16 +6,20 @@ import { page } from '../base/page.ts';
 import { onPref, pref } from '../base/prefs.ts';
 import { esc, quietly } from '../base/util.ts';
 
-export type VoiceState = { os: boolean; ready: boolean; program: boolean; models: Record<string, { have: boolean; mb: number }>; installing: boolean; got: number; total: number; error: string; bytes: number };
+export type VoiceState = { os: boolean; ready: boolean; program: boolean; models: Record<string, { have: boolean; mb: number }>; live: { os: boolean; have: boolean; mb: number }; installing: boolean; got: number; total: number; error: string; bytes: number };
 type Box = HTMLElement & { setRangeText(t: string, a: number, b: number): void; readonly selectionStart: number; readonly selectionEnd: number; value: string; focus(): void };
 
 const MIC_TIP = 'Speak your message\nClick to start, click again to stop. Whisper turns it into text on this computer, so nothing you say leaves it.';
-export const micHtml = () => `<button type="button" class="ch-chip ch-mic" data-ch="mic" aria-label="speak your message" aria-pressed="false" title="${esc(MIC_TIP)}" data-tip-keys="micKey:start or stop"${pref('chat:mic') ? '' : ' hidden'}>${icon('mic')}</button>`;
+const LIVE_TIP = 'Speak your message\nClick and talk. Your words show up as you speak, and it stops by itself when you go quiet. Whisper then tidies each sentence, all on this computer, so nothing you say leaves it.';
+const micTip = () => (pref('voice:live') ? LIVE_TIP : MIC_TIP);
+export const micHtml = () => `<button type="button" class="ch-chip ch-mic" data-ch="mic" aria-label="speak your message" aria-pressed="false" title="${esc(micTip())}" data-tip-keys="micKey:start or stop"${pref('chat:mic') ? '' : ' hidden'}>${icon('mic')}</button>`;
 export const MODEL_NAME: Record<string, string> = { base: 'Smaller and faster', small: 'More accurate' };
 
 let state: VoiceState | null = null;
 let poll = 0;
 const model = () => (pref('voice:model') === 'base' ? 'base' : 'small');
+const liveOn = () => !!pref('voice:live') && !!state?.live?.os;
+const needLive = (s: VoiceState) => liveOn() && !s.live.have;
 const mb = (n: number) => Math.round(n / 1e6);
 export const voiceNow = () => state;
 
@@ -41,7 +45,7 @@ function watch() {
   }, 500) as unknown as number;
 }
 export async function voiceGet() {
-  state = await api('POST', '/api/voice/install', { model: model() });
+  state = await api('POST', '/api/voice/install', { model: model(), live: liveOn() });
   paint();
   watch();
 }
@@ -54,11 +58,16 @@ export async function voiceRemove() {
   await loadVoice();
 }
 onPref('voice:model', () => loadVoice());
+onPref('voice:live', () => {
+  for (const b of document.querySelectorAll<HTMLElement>('.ch-mic')) b.title = micTip();
+  loadVoice();
+});
 
 let askEl: HTMLElement | null = null, askAt: HTMLElement | null = null, askBox: Box | null = null, askMode: 'ask' | 'failed' = 'ask', offAsk = () => {};
 const sizeMb = () => {
   const s = state, m = s?.models[model()];
-  return (m && !m.have ? m.mb : 0) + (s && !s.program ? 10 : 0) || m?.mb || 490;
+  if (s && s.ready && needLive(s)) return s.live.mb;
+  return (m && !m.have ? m.mb : 0) + (s && !s.program ? 10 : 0) + (s && needLive(s) ? s.live.mb - (s.program ? 0 : 10) : 0) || m?.mb || 490;
 };
 function askHtml() {
   const s = state;
@@ -67,13 +76,15 @@ function askHtml() {
     return `<b>Downloading the speech model</b><span class="dim">${mb(s.got)} MB of ${s.total ? mb(s.total) + ' MB' : 'about ' + sizeMb() + ' MB'}. You can close this, it carries on.</span><div class="vk-bar"><i style="width:${pct.toFixed(1)}%"></i></div><div class="vk-btns"><button type="button" class="vk-b" data-vk="close">Close</button></div>`;
   }
   if (askMode === 'failed') return `<b>The download didn't finish</b><span class="dim">${esc(s?.error || 'Nothing was installed.')} Nothing was installed.</span><div class="vk-btns"><button type="button" class="vk-b" data-vk="close">Not now</button><button type="button" class="vk-b on" data-vk="get">Try again</button></div>`;
-  return `<b>Download the speech model?</b><span class="dim">About ${sizeMb()} MB, once.</span><span class="vk-safe">${icon('sandbox')}<span>Runs on this computer. Works offline, and nothing you say leaves it.</span></span>` +
+  const addLive = !!s?.ready && needLive(s);
+  return `<b>${addLive ? 'Download live text?' : 'Download the speech model?'}</b><span class="dim">${addLive ? `About ${sizeMb()} MB, once, so your words show up as you speak. Or turn off Show words as you speak in Settings, speech to text.` : `About ${sizeMb()} MB, once.`}</span><span class="vk-safe">${icon('sandbox')}<span>Runs on this computer. Works offline, and nothing you say leaves it.</span></span>` +
     `<button type="button" class="vk-tog" data-vk="more" aria-expanded="${askMore}">details<span aria-hidden="true">${askMore ? '▾' : '▸'}</span></button>${askMore ? MORE : ''}` +
     `<div class="vk-btns"><button type="button" class="vk-b" data-vk="close">Not now</button><button type="button" class="vk-b on" data-vk="get">Download</button></div>`;
 }
 let askMore = false;
 const MORE = `<div class="vk-more"><span class="k">What</span><span>Whisper, free open speech recognition made by OpenAI, run by whisper.cpp, a free open source program.</span>` +
   `<span class="k">From</span><span>The model from <a href="https://huggingface.co/ggerganov/whisper.cpp" target="_blank">Hugging Face</a>, the biggest public library of open AI models. The program from <a href="https://github.com/ggml-org/whisper.cpp" target="_blank">GitHub</a>.</span>` +
+  `<span class="k">Live text</span><span>sherpa-onnx, a free open source program from <a href="https://github.com/k2-fsa/sherpa-onnx" target="_blank">GitHub</a>, with NVIDIA's NeMo streaming English model (CC-BY-4.0). It writes words as you say them, and Whisper tidies each sentence.</span>` +
   `<span class="k">Checked</span><span>Amethyst knows each file's fingerprint in advance. A download that doesn't match is thrown away and nothing is installed.</span>` +
   `<span class="k">Kept in</span><span>Amethyst's own folder. Remove it any time in Settings, speech to text.</span></div>`;
 function paintAsk() {
@@ -137,11 +148,15 @@ type Rec = { stop: () => Promise<Blob | null>; drop: () => void };
 let rec: { btn: HTMLElement; r: Rec; box: Box; at: number } | null = null;
 let working: HTMLElement | null = null;
 
-async function record(): Promise<Rec> {
+async function record(onChunk?: (f: Float32Array) => void): Promise<Rec> {
   const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
   const ctx = new AudioContext({ sampleRate: 16000 });
-  const src = ctx.createMediaStreamSource(stream), node = ctx.createScriptProcessor(4096, 1, 1), parts: Float32Array[] = [];
-  node.onaudioprocess = (e) => parts.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+  const src = ctx.createMediaStreamSource(stream), node = ctx.createScriptProcessor(onChunk ? 1024 : 4096, 1, 1), parts: Float32Array[] = [];
+  node.onaudioprocess = (e) => {
+    const f = new Float32Array(e.inputBuffer.getChannelData(0));
+    if (onChunk) onChunk(f);
+    else parts.push(f);
+  };
   src.connect(node);
   node.connect(ctx.destination);
   const end = () => {
@@ -229,8 +244,134 @@ async function finish(btn: HTMLElement, box: Box, at: number, r: Rec) {
   }
 }
 
+type Live = { btn: HTMLElement; box: Box; at: number; ins: string; text: string; id: string; r: Rec | null; queue: Int16Array[]; busy: boolean; stopping: boolean; t0: number; changed: number; loud: number; floor: number; off: () => void };
+let live: Live | null = null;
+const QUIET_MS = 2000, QUIET_NOISY_MS = 4000, NOTHING_MS = 8000;
+
+const pcmOf = (f: Float32Array) => Int16Array.from(f, (x) => {
+  const c = Math.max(-1, Math.min(1, x));
+  return c < 0 ? c * 0x8000 : c * 0x7fff;
+});
+function b64pcm(parts: Int16Array[]) {
+  const n = parts.reduce((a, p) => a + p.length, 0), all = new Int16Array(n);
+  let o = 0;
+  for (const p of parts) all.set(p, (o += p.length) - p.length);
+  const u = new Uint8Array(all.buffer);
+  let s = '';
+  for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+
+const ours = (L: Live) => L.box.value.slice(L.at, L.at + L.ins.length) === L.ins;
+function show(L: Live, sentences: { text: string }[]) {
+  const t = sentences.map((x) => x.text.trim()).filter(Boolean).join(' ');
+  if (t === L.text || !ours(L)) return;
+  const box = L.box, v = box.value, a = L.at, b = L.at + L.ins.length;
+  const before = t && a > 0 && !/\s/.test(v[a - 1]) ? ' ' : '', after = t && b < v.length && !/\s/.test(v[b]) ? ' ' : '';
+  const ins = t ? before + t + after : '';
+  const focused = document.activeElement === box;
+  L.ins = ins;
+  L.text = t;
+  L.changed = Date.now();
+  box.setRangeText(ins, a, b);
+  if (focused) (box as unknown as HTMLTextAreaElement).setSelectionRange?.(a + before.length + t.length, a + before.length + t.length);
+  box.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+async function pump(L: Live) {
+  if (L.busy || !L.id) return;
+  L.busy = true;
+  try {
+    while (L.queue.length && live === L && !L.stopping) {
+      const r = await api('POST', '/api/voice/live/feed', { id: L.id, pcm: b64pcm(L.queue.splice(0)) });
+      if (live === L && !L.stopping) show(L, r.sentences || []);
+    }
+  } catch (e) {
+    if (live === L && !L.stopping) {
+      tell(L.btn, { title: "Can't turn it into text", line: String((e as Error).message || e), ms: 3500 });
+      endLive(L, false);
+    }
+  } finally {
+    L.busy = false;
+  }
+}
+
+function hear(L: Live, f: Float32Array) {
+  if (L.stopping) return;
+  let sum = 0;
+  for (const x of f) sum += x * x;
+  const rms = Math.sqrt(sum / f.length), now = Date.now();
+  L.floor = rms < L.floor ? rms : L.floor * 0.995 + rms * 0.005;
+  if (rms > Math.max(0.012, L.floor * 2.5)) L.loud = now;
+  L.queue.push(pcmOf(f));
+  pump(L);
+  if (!L.text && now - L.t0 > NOTHING_MS) return endLive(L, true);
+  if (L.text && now - L.changed > QUIET_MS && (now - L.loud > QUIET_MS * 0.6 || now - L.changed > QUIET_NOISY_MS)) endLive(L, true);
+}
+
+async function endLive(L: Live, keep: boolean) {
+  if (L.stopping) return;
+  L.stopping = true;
+  L.r?.drop();
+  L.off();
+  lit(L.btn, false);
+  if (!keep || !L.id) {
+    if (live === L) live = null;
+    if (L.id) quietly(api('POST', '/api/voice/live/stop', { id: L.id }), null);
+    return;
+  }
+  L.btn.classList.add('busy');
+  working = L.btn;
+  try {
+    while (L.busy) await new Promise((r) => setTimeout(r, 20));
+    if (L.queue.length) await quietly(api('POST', '/api/voice/live/feed', { id: L.id, pcm: b64pcm(L.queue.splice(0)) }), null);
+    const r = await api('POST', '/api/voice/live/stop', { id: L.id });
+    if (L.btn.isConnected) show(L, r.sentences || []);
+    if (!L.text) tell(L.btn, { title: "Didn't hear any words", line: 'Click the mic and speak', ms: 2500 });
+  } catch (e) {
+    tell(L.btn, { title: "Can't turn it into text", line: String((e as Error).message || e), ms: 3500 });
+  } finally {
+    L.btn.classList.remove('busy');
+    working = null;
+    if (live === L) live = null;
+  }
+}
+
+async function startLive(btn: HTMLElement, box: Box) {
+  const at = box.selectionStart ?? box.value.length, now = Date.now();
+  const L: Live = { btn, box, at, ins: '', text: '', id: '', r: null, queue: [], busy: false, stopping: false, t0: now, changed: now, loud: 0, floor: 1, off: () => {} };
+  try {
+    L.r = await record((f) => hear(L, f));
+  } catch (e) {
+    return micError(btn, e);
+  }
+  live = L;
+  lit(btn, true);
+  const typed = (e: Event) => {
+    if (e.isTrusted) endLive(L, true);
+  };
+  box.addEventListener('input', typed);
+  L.off = () => box.removeEventListener('input', typed);
+  try {
+    const { id } = await api('POST', '/api/voice/live/start', { model: model() });
+    L.id = id;
+    if (L.stopping) return void quietly(api('POST', '/api/voice/live/stop', { id }), null);
+    L.t0 = L.changed = Date.now();
+    pump(L);
+  } catch (e) {
+    if (live !== L) return;
+    tell(btn, { title: "Can't start live text", line: String((e as Error).message || e), ms: 4000 });
+    endLive(L, false);
+  }
+}
+
 export async function micClick(btn: HTMLElement, box: Box) {
   if (working) return;
+  if (live) {
+    const L = live;
+    if (L.btn === btn) return endLive(L, true);
+    endLive(L, false);
+  }
   if (rec) {
     const { r, btn: was, box: bx, at } = rec;
     rec = null;
@@ -243,10 +384,11 @@ export async function micClick(btn: HTMLElement, box: Box) {
   const s = state && !state.installing ? state : await loadVoice();
   if (!s) return tell(btn, { title: "Can't reach speech to text", line: 'Try again in a moment', ms: 2500 });
   if (!s.os) return tell(btn, { title: 'Speech to text is not on this system yet', line: 'It works on Windows and Linux', ms: 3000 });
-  if (s.installing || !s.ready) {
+  if (s.installing || !s.ready || needLive(s)) {
     askBox = box;
     return showAsk(btn);
   }
+  if (liveOn()) return startLive(btn, box);
   const at = box.selectionStart ?? box.value.length;
   try {
     const r = await record();
@@ -258,6 +400,7 @@ export async function micClick(btn: HTMLElement, box: Box) {
 }
 
 function dropRec() {
+  if (live) endLive(live, false);
   if (!rec) return;
   rec.r.drop();
   lit(rec.btn, false);
