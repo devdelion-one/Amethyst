@@ -746,14 +746,14 @@ ipcMain.on('forget-toast-act', (e, what) => {
   t.focus();
 });
 
-type Ring = { id: string; code: string; title: string; line: string; text: string; why: 'done' | 'error' | 'asks' | 'cold'; am: number; ask: { q: string; options: string[] } | null };
+type Ring = { id: string; code: string; title: string; line: string; text: string; why: 'done' | 'error' | 'asks' | 'cold'; am: number; ask: { q: string; options: string[] } | null; until?: number };
 const RING_ID = /^[a-z0-9]{1,24}$/;
 const cut = (v: unknown, n: number) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, n);
 function ringOf(r: any): Ring | null {
   if (!r || !RING_ID.test(String(r.id))) return null;
   const why = r.why === 'asks' || r.why === 'error' || r.why === 'cold' ? r.why : 'done';
   const ask = r.ask && typeof r.ask === 'object' ? { q: cut(r.ask.q, 300), options: (Array.isArray(r.ask.options) ? r.ask.options : []).slice(0, 8).map((o: unknown) => cut(o, 40)).filter(Boolean) } : null;
-  return { id: String(r.id), code: cut(r.code, 12), title: cut(r.title, 80), line: cut(r.line, 300), text: String(r.text ?? '').slice(0, 1200), why, am: Math.max(1, Math.floor(+r.am) || 1), ask };
+  return { id: String(r.id), code: cut(r.code, 12), title: cut(r.title, 80), line: cut(r.line, 300), text: String(r.text ?? '').slice(0, 1200), why, am: Math.max(1, Math.floor(+r.am) || 1), ask, ...(r.why === 'cold' && Number.isFinite(+r.until) && +r.until > 0 ? { until: +r.until } : {}) };
 }
 const RING_WORD = { done: 'is ready', error: 'failed', asks: 'asks you', cold: 'runs out of cache' };
 let cacheNotice = true;
@@ -812,7 +812,7 @@ function ringReport(raw: unknown) {
   hushed().then(send);
 }
 function ringToast(r: Ring, n: number, disp: number) {
-  const q = new URLSearchParams({ id: r.id, w: r.why, l: r.line, c: r.code, t: r.title, am: String(n) });
+  const q = new URLSearchParams({ id: r.id, w: r.why, l: r.line, c: r.code, t: r.title, am: String(n), ...(r.until ? { u: String(r.until) } : {}) });
   const w = toast(null, r.why === 'asks' || r.why === 'cold' || r.text ? NOTICE.h : 80, 0, q.toString(), `${r.code} ${RING_WORD[r.why]} · Amethyst`, { page: '/notice.html', width: NOTICE.w, focusable: true, sized: true, disp, force: true });
   if (!w) return false;
   const set = ringWins.get(r.id) || ringWins.set(r.id, new Set()).get(r.id)!;
@@ -875,6 +875,7 @@ function ringNative(r: Ring) {
   n.on('close', (d: any) => d?.reason !== 'timedOut' && done());
   n.on('failed', () => (done(), inApp(r, null)));
   n.show();
+  if (r.until) setTimeout(() => rings.get(r.id) === n && (n.close(), done()), Math.max(0, r.until - Date.now())).unref?.();
 }
 const someMain = (am = 1) => mainOf(am) || (lastMain && !lastMain.isDestroyed() ? lastMain : [...wins].find(([x, a]) => !isExtra(a) && !x.isDestroyed())?.[0]) || null;
 function inApp(r: Ring, w: BrowserWindow | null) {

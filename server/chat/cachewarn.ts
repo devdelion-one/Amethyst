@@ -26,7 +26,7 @@ const parentPort = () => (process as unknown as { parentPort?: { postMessage(m: 
 function tick() {
   for (const a of dueNow(live.all())) {
     const left = Math.max(1, Math.round((a.at + GONE - Date.now()) / 60e3));
-    parentPort()?.postMessage({ report: { id: a.id, code: crystalOf(a.id).code, title: a.title || '', line: `Its cache runs out in ${left} min. A message after that costs more.`, text: '', why: 'cold', am: a.am || 1, pid: a.pid || '', ask: null } });
+    parentPort()?.postMessage({ report: { id: a.id, code: crystalOf(a.id).code, title: a.title || '', line: `Its cache runs out in ${left} min. A message after that costs more.`, text: '', why: 'cold', am: a.am || 1, pid: a.pid || '', ask: null, until: a.at + GONE } });
   }
 }
 setInterval(tick, 60e3).unref?.();

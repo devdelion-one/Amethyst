@@ -362,7 +362,7 @@ interface UsageBridge {
   set(o: { on?: boolean | null; asked?: boolean }): Promise<UsageNow>;
 }
 
-export type ReportRing = { id: string; code: string; title: string; line: string; text?: string; why: 'done' | 'error' | 'asks' | 'cold'; am: number; ask: { q: string; options: string[] } | null };
+export type ReportRing = { id: string; code: string; title: string; line: string; text?: string; why: 'done' | 'error' | 'asks' | 'cold'; am: number; ask: { q: string; options: string[] } | null; until?: number };
 interface ReportBridge {
   onRing(fn: (r: ReportRing) => void): void;
   onGo(fn: (id: string) => void): void;

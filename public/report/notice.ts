@@ -9,6 +9,7 @@ const id = q.get('id') || '';
 const why = (['done', 'error', 'asks', 'cold'].includes(q.get('w') || '') ? q.get('w') : 'done') as Why;
 const line = q.get('l') || '';
 const am = Math.max(1, Number(q.get('am')) || 1);
+const until = Number(q.get('u')) || 0;
 
 const act = (what: 'size' | 'close' | 'go', n = 0) => {
   document.body.dataset.act = what === 'size' ? document.body.dataset.act || '' : what;
@@ -29,7 +30,7 @@ async function load(): Promise<Got> {
 }
 
 const g = await load();
-const card = noticeCard(g, why, line, { close: () => act('close'), go: () => act('go', g.am || am) });
+const card = noticeCard(g, why, line, { close: () => act('close'), go: () => act('go', g.am || am) }, until);
 document.body.append(card);
 document.title = `${g.chat} · notice · Amethyst`;
 const fit = () => act('size', Math.ceil(card.getBoundingClientRect().height));

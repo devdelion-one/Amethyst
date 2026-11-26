@@ -49,7 +49,7 @@ export function ringCard(r: ReportRing) {
       const card = noticeCard(g, r.why, r.line, {
         close: () => n.close?.(),
         go: () => (n.close?.(), desk ? desk.open(r.id, r.am) : void go(r.id).catch(showErr)),
-      });
+      }, r.until);
       n.querySelector('.nt')!.replaceChildren(card);
     });
   return n;

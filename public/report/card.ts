@@ -15,6 +15,7 @@ const askLine = (k: Ask) => (k.kind === 'form' ? k.message || '' : [k.q, k.what]
 const fence = (t: string) => (/^\s*`{3}/.test(t) ? '' : t);
 const plain = (t: string) => t.replace(/```[^\n]*\n?([\s\S]*?)```/g, ' $1 ').replace(/^\s*(?:[-*+]|\d+[.)])\s+/gm, '').replace(/[`*_#>|]/g, '').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/\s+/g, ' ').trim();
 const coldTip = (code: string, on: boolean) => (on ? `Cache notices from ${code}: on\nA notice like this one before ${code}'s cache runs out. Click to stop them for this chat.` : `Cache notices from ${code}: off\nNo cache notices come from ${code}. Click to turn them on again.`);
+export const coldLine = (until: number, now = Date.now()) => `Its cache runs out in ${Math.max(1, Math.ceil((until - now) / 60e3))} min. A message after that costs more.`;
 const bellTip = (code: string, on: boolean) => (on ? `Notices from ${code}: on\nYou get notices like this one from ${code}. Click to stop them.` : `Notices from ${code}: off\nNo notices come from ${code}. Click to turn them on again.`);
 
 async function call(method: string, url: string, g: Got, body?: unknown) {
@@ -26,9 +27,10 @@ async function call(method: string, url: string, g: Got, body?: unknown) {
   return j;
 }
 
-export function noticeCard(g: Got, why: Why, line: string, hooks: NoticeHooks): HTMLElement {
+export function noticeCard(g: Got, why: Why, line: string, hooks: NoticeHooks, until = 0): HTMLElement {
   const k = g.asks[0];
   if (k) why = 'asks';
+  if (why === 'cold' && until) line = coldLine(until);
   const peek = why === 'asks' ? (k ? askLine(k) : '') || fence(line) : why === 'error' ? fence(line) || 'something went wrong' : why === 'cold' ? line : plain(g.text) || fence(line) || 'finished';
   const ended = g.status === 'ended';
   const cold = why === 'cold';
@@ -43,6 +45,17 @@ export function noticeCard(g: Got, why: Why, line: string, hooks: NoticeHooks): 
     + `<p class="nc-peek"><span>${esc(peek)}</span></p>`
     + `<div class="nc-foot">${ended ? '' : `<button type="button" class="nc-bell" data-nc-bell aria-label="notices from ${esc(g.chat)}">${ICONS.bell}<svg class="ic nc-off" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 2.5l11 11"/></svg></button>`}<button type="button" class="primary nc-go" data-nc-go title="Go to&#10;Opens the chat in Amethyst." data-tip-keys="=enter:go to the chat"><span>go to</span>${ARROW}</button></div>`;
 
+  if (why === 'cold' && until) {
+    const text = el.querySelector<HTMLElement>('.nc-peek span')!;
+    let seen = false;
+    const stop = () => (clearInterval(redraw), clearTimeout(end));
+    const redraw = setInterval(() => {
+      if (el.isConnected) seen = true;
+      else if (seen) return stop();
+      text.textContent = coldLine(until);
+    }, 5000);
+    const end = setTimeout(() => (stop(), hooks.close()), Math.max(0, until - Date.now()));
+  }
   const bell = el.querySelector<HTMLButtonElement>('[data-nc-bell]');
   const paint = () => {
     if (!bell) return;
