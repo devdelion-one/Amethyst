@@ -84,11 +84,12 @@ const CHIP_WORDS: Record<string, Words> = {
   ultracode: { label: 'Ultracode switch', on: 'The switch is shown.', off: 'The switch is hidden. Hiding it does not turn Ultracode off: a chat that has it on keeps it, and its box stays red.' },
 };
 
-const PILLS: [string, string][] = [['history', 'earlier chats'], ['signin', 'sign-in'], ['clear', 'clear'], ['swap', 'continue with']];
+const OPT_IN = ['grok'];
+const PILLS: [string, string][] =[['history', 'earlier chats'], ['signin', 'sign-in'], ['clear', 'clear'], ['swap', 'continue with']];
 const PILL_HEAD = "A button in every chat's header.";
 const PILL_MENU = "A row in the chat's ⋯ menu.";
 export const PREFS: Record<string, Pref> = {
-  'agents:off': { card: 'agents', desc: 'dashed = off: no new chats of it in any menu, tile or picker; the chats you have stay', def: [], box: 'agents', items: CHATS.map(([k, label]) => [k, label] as [string, string]), label: 'agents in use', on: 'in every new agent menu, tile and picker', off: 'turned off: no new chats of it; chats you have stay', pill: (l, off) => (off ? `${l}: off\nNo new ${l.replace(/ Agent$/, '')} chats in any menu, tile or picker. The chats you have stay. Click to bring it back.` : `${l}: in use\n${l.replace(/ Agent$/, '')} shows in every new agent menu, tile and picker. Click to hide it from all of them.`), redraw: 'render' },
+  'agents:off': { card: 'agents', desc: 'dashed = off: no new chats of it in any menu, tile or picker; the chats you have stay', def: [...OPT_IN], box: 'agents', items: CHATS.map(([k, label]) => [k, label] as [string, string]), label: 'agents in use', on: 'in every new agent menu, tile and picker', off: 'turned off: no new chats of it; chats you have stay', pill: (l, off) => (off ? `${l}: off\nNo new ${l.replace(/ Agent$/, '')} chats in any menu, tile or picker. The chats you have stay. Click to bring it back.` : `${l}: in use\n${l.replace(/ Agent$/, '')} shows in every new agent menu, tile and picker. Click to hide it from all of them.`), redraw: 'render' },
   'writer:use': { def: { agent: 'claude', models: {} }, quiet: true, label: 'Writing helper' },
   'agent:pin': { def: { same: true, all: '', at: {} }, quiet: true },
   'clear:ask': { card: 'agents', def: true, box: 'agents', label: 'Ask before clearing a chat', on: 'Clearing a chat, by its key, the clear button or its menu, asks first.', off: 'Clearing a chat happens at once. Ctrl z brings it back.', desc: "Clearing empties the chat and starts it over. The question has a don't ask again tick; this switch turns asking back on. Typing /clear never asks." },
@@ -605,6 +606,11 @@ export const chatsOn = (): string[][] => {
   const off = pref('agents:off'), on = CHATS.filter(([k]) => !off.includes(k));
   return on.length ? on : CHATS.slice(0, 1);
 };
+{
+  const met: string[] = store.get('agents:optin', []), fresh = OPT_IN.filter((k) => !met.includes(k)), was = store.get('agents:off', null);
+  if (fresh.length && Array.isArray(was)) store.set('agents:off', [...new Set([...was, ...fresh])]);
+  if (fresh.length) store.set('agents:optin', [...met, ...fresh]);
+}
 export const termOn = (id: string): boolean => id === 'claude' || !CHATS.some(([k]) => k === id) || chatOn(id);
 export const savedOff = (key: string, id: string): boolean => saved(key).includes(id);
 export const setOff = (key: string, id: string, off: boolean) => setPref(key, saved(key).filter((x: string) => x !== id).concat(off ? [id] : []));
