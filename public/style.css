@@ -1340,7 +1340,7 @@ body.fg-toast { margin: 0; overflow: hidden; background: var(--raised); user-sel
 .fg-every { flex: none; width: 10px; text-align: center; color: var(--text-dim); font-size: var(--fs-2xs); }
 :is(#switch, #dash > .slots) > .sv.lift { opacity: 0; }
 #dash .sl-box { top: 3px; left: auto; }
-.sl-box { position: absolute; left: 2px; width: 26px; height: 26px; border: 1px dashed color-mix(in srgb, var(--text-faint) 85%, transparent); border-radius: var(--r-sm); opacity: 0; pointer-events: none; transition: opacity var(--t-fast); }
+.sl-box { position: absolute; left: calc((var(--act-w) - 26px) / 2); width: 26px; height: 26px; border: 1px dashed color-mix(in srgb, var(--text-faint) 85%, transparent); border-radius: var(--r-sm); opacity: 0; pointer-events: none; transition: opacity var(--t-fast); }
 :is(#switch, #dash > .slots).dragging .sl-box { opacity: 1; }
 :is(#switch, #dash) .sl-box.hot { border: 1px solid var(--accent); background: color-mix(in srgb, var(--accent) 18%, transparent); }
 .sv.sl-ghost { position: fixed; z-index: 1000; display: grid; place-items: center; pointer-events: none; margin: 0; padding: 0; border-radius: var(--r-sm); outline: none; background: none; box-shadow: none; }
