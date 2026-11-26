@@ -35,7 +35,6 @@ import { installCli, removeCli } from './server/cli/install.ts';
 import { inFlight, startHitch } from './server/base/hitch.ts';
 import { Raw, raw, serveStatic } from './server/base/page.ts';
 import { dataDir, initDataDir, sweepUnused } from './server/base/datadir.ts';
-import { moveOldData, moveOne } from './server/base/olddata.ts';
 import { DOT, HttpError, HEX, ID, MAX_TEXT, cleanName, guard, knownBinary, newId, openRoot } from './server/base/routes.ts';
 import { MAX_PATHS, TEXT_EXT, BOARD_EXT } from './public/base/files.ts';
 import type { IncomingMessage, ServerResponse } from 'http';
@@ -248,7 +247,6 @@ function dropCached(p: string) {
 function rootAt(dir: string): Root {
   const key = WIN ? dir.toLowerCase() : dir;
   if (!roots.has(key)) {
-    moveOne(dir, WS_DIR);
     const data = dataDir(dir);
     let saved: string | null = null;
     try {
@@ -264,7 +262,6 @@ function rootAt(dir: string): Root {
 
 fs.mkdirSync(WS_DIR, { recursive: true });
 const HOME = 'main';
-moveOldData(WS_DIR);
 const HOME_ROOT = rootAt(WS_DIR);
 setTimeout(() => sweepUnused().catch(() => {}), 10000).unref();
 agents.init({ dataDir: path.join(WS_DIR, DOT), claudeTerms: (account, am) => terms.claudeOff(account, am), claudeTermsOn: (account) => terms.claudeOn(account), archive: (from, label) => moveAcross(from, path.join(archiveAt('claude accounts'), label)), checkpoints: CHECKPOINTS });
@@ -836,7 +833,7 @@ const APP_ROUTES: Routes = {
     if (!R.meta.projects.length) {
       for (const d of await fsp.readdir(p, { withFileTypes: true }).catch(() => [])) {
         const sub = path.join(p, d.name);
-        if (d.isDirectory() && !d.name.startsWith('.') && !wsList().some((x) => same(x.path, sub)) && ((await isDir(dataDir(sub))) || (await isDir(path.join(sub, DOT))))) R.meta.projects.push({ id: newId(), name: d.name, path: sub, desc: '', color: null });
+        if (d.isDirectory() && !d.name.startsWith('.') && !wsList().some((x) => same(x.path, sub)) && (await isDir(dataDir(sub)))) R.meta.projects.push({ id: newId(), name: d.name, path: sub, desc: '', color: null });
       }
       R.meta.projects = cleanProjects(R.meta.projects);
       if (R.meta.projects.length) await R.saveMeta();
