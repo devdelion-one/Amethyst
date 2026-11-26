@@ -6,6 +6,7 @@ import secrets
 import socket
 import sys
 import time
+import traceback
 
 MAX_MSG = 4 * 1024 * 1024
 RETRY_S = 2.0
@@ -121,6 +122,34 @@ class Link:
             self.drop()
 
 
+def runner(execute):
+    state = {'cmd': '', 'mode': '', 'err': ''}
+
+    def call():
+        scope = dict(sys.modules['__main__'].__dict__)
+        if 'unreal' in sys.modules:
+            scope.setdefault('unreal', sys.modules['unreal'])
+        try:
+            if state['mode'] == 'EvaluateStatement':
+                return eval(compile(state['cmd'], '<string>', 'eval'), scope)
+            exec(compile(state['cmd'], '<string>', 'exec'), scope)
+        except BaseException:
+            t, v, tb = sys.exc_info()
+            state['err'] = ''.join(traceback.format_exception(t, v, tb.tb_next)).rstrip()
+            raise
+
+    sys._amethyst_link_call = call
+
+    def run(command, mode):
+        state.update(cmd=command, mode=mode, err='')
+        ok, result, output = execute("__import__('sys')._amethyst_link_call()", 'EvaluateStatement' if mode == 'EvaluateStatement' else 'ExecuteStatement')
+        if not ok:
+            result = state['err'] or result
+        return ok, result, output
+
+    return run
+
+
 def editor():
     import unreal
 
@@ -134,8 +163,8 @@ def editor():
         name = str(getattr(entry.type, 'name', entry.type)).split('.')[-1].lower()
         return {'warning': 'Warning', 'error': 'Error'}.get(name, 'Info')
 
-    def run(command, mode):
-        r = unreal.PythonScriptLibrary.execute_python_command_ex(command, modes.get(mode, modes['ExecuteStatement']), unreal.PythonFileExecutionScope.PRIVATE)
+    def execute(command, mode):
+        r = unreal.PythonScriptLibrary.execute_python_command_ex(command, modes[mode], unreal.PythonFileExecutionScope.PRIVATE)
         if isinstance(r, tuple) and len(r) == 3:
             ok, result, log = r
         elif isinstance(r, tuple) and len(r) == 2:
@@ -153,17 +182,30 @@ def editor():
         }
 
     file = os.environ.get('AMETHYST_UE_LINK', '')
-    if not file:
+    if not file or getattr(sys, '_amethyst_link', None):
         return
-    link = Link(file, info, run)
+    link = Link(file, info, runner(execute))
+    sys._amethyst_link = link
     unreal.register_slate_post_tick_callback(link.tick)
-    globals()['_amethyst_link'] = link
 
 
 def plain(file):
+    def execute(command, mode):
+        main = sys.modules['__main__'].__dict__
+        try:
+            if mode == 'EvaluateStatement':
+                return True, repr(eval(command, main)), []
+            exec(command, main)
+            return True, 'None', []
+        except BaseException:
+            return False, '', []
+
+    inner = runner(execute)
+
     def run(command, mode):
-        print('RAN ' + command, flush=True)
-        return True, 'None', []
+        ok, result, output = inner(command, mode)
+        print('RAN ' + json.dumps({'command': command, 'ok': ok, 'result': result}), flush=True)
+        return ok, result, output
 
     link = Link(file, lambda: {'pid': os.getpid(), 'project_root': '', 'project_name': '', 'engine_version': ''}, run)
     end = time.monotonic() + float(os.environ.get('AMETHYST_LINK_TEST_S', '3'))
