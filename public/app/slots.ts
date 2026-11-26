@@ -9,7 +9,8 @@ type Spots = Record<string, number>;
 export const PITCH = 32;
 const viewKey = () => `switch:rail:${levelKey()}${amKey}`;
 const BTN_KEY = `switch:rail${amKey}`;
-const isBtn = (ref: string) => ref.startsWith('btn:');
+const isBtn = (ref: string) => ref.startsWith('btn:') || ref.startsWith('pin:');
+const isPin = (ref: string) => ref.startsWith('pin:');
 const spots = (): Spots => ({ ...store.get(BTN_KEY, {}), ...store.get(viewKey(), {}) });
 function save(at: Spots) {
   const part = (b: boolean) => Object.fromEntries(Object.entries(at).filter(([r]) => isBtn(r) === b));
@@ -34,27 +35,32 @@ const RAIL: [string, string, 't' | 'b', string][] = [
   ['btn:qterm', '#btn-qterm', 'b', 'quick'],
   ['btn:sketch', '#btn-sketch', 'b', 'quick'],
   ['btn:scratch', '#btn-scratch', 'b', 'quick'],
-  ['btn:quick', '#quick', 'b', 'make'],
   ['btn:more', '#btn-more', 'b', 'make'],
   ['btn:newchat', '#btn-newchat', 'b', 'agent'],
 ];
 const WS_BTNS = ['btn:index', 'btn:site', 'btn:win', 'btn:ue', 'btn:uewin'];
 export const railSel = (ref: string) => RAIL.find((x) => x[0] === ref)?.[1] || '';
 const elOf = (ref: string) => $<HTMLElement>(railSel(ref));
-const quickN = () => $('#quick').querySelectorAll(':scope > .q-pj > button').length;
+type Pins = { views: () => SlotView[]; groups: () => string[][] };
+let pins: Pins = { views: () => [], groups: () => [] };
+export const usePins = (p: Pins) => (pins = p);
 export function btnShown(ref: string) {
+  if (isPin(ref)) return !!pins.views().find((v) => v.ref === ref)?.shown;
   if (atWs() && !WS_BTNS.includes(ref)) return false;
-  if (ref === 'btn:quick') return quickN() > 0;
   const el = elOf(ref);
   return !el.hidden && !el.classList.contains('off');
 }
 const railViews = (end: 't' | 'b'): SlotView[] => RAIL.filter((x) => x[2] === end).map(([ref, , , g]) => ({ kind: 'btn', ref, html: '', shown: btnShown(ref), g }));
 export const topBtns = () => railViews('t');
-export const bottomBtns = () => railViews('b');
-const endOf = (ref: string) => (RAIL.find((x) => x[0] === ref)?.[2] || 't');
+export function bottomBtns() {
+  const b = railViews('b'), at = b.findIndex((v) => v.ref === 'btn:more');
+  b.splice(at < 0 ? b.length : at, 0, ...pins.views());
+  return b;
+}
+const endOf = (ref: string) => (isPin(ref) ? 'b' : RAIL.find((x) => x[0] === ref)?.[2] || 't');
 
 const spans: Record<string, number> = {};
-const spanOf = (ref: string) => (ref === 'btn:quick' ? Math.max(1, quickN()) : spans[ref] || 1);
+const spanOf = (ref: string) => spans[ref] || 1;
 const local = (s: number) => (s < 0 ? -s - 1 : s);
 const spotOf = (e: string, i: number) => (e === 'b' ? -i - 1 : i);
 const cellKeys = (r: string, s: number) => Array.from({ length: spanOf(r) }, (_, k) => (s < 0 ? 'b' : 't') + (local(s) + k));
@@ -65,9 +71,9 @@ function occupied(at: Spots, refs: string[]) {
   return m;
 }
 const overlap = (a: string, sa: number, b: string, sb: number) => cellKeys(a, sa).some((c) => cellKeys(b, sb).includes(c));
-function freeFrom(taken: Map<string, string>, r: string, e: string, from: number) {
+function freeFrom(taken: Map<string, string>, r: string, e: string, from: number, ok = (s: number) => fits(taken, r, s)) {
   let i = Math.max(0, from);
-  while (!fits(taken, r, spotOf(e, i))) i++;
+  while (!ok(spotOf(e, i))) i++;
   return spotOf(e, i);
 }
 export const absCells = (r: string, s: number, n: number) => Array.from({ length: spanOf(r) }, (_, k) => (s < 0 ? n - 1 - local(s) - k : s + k));
@@ -75,14 +81,68 @@ export const absCells = (r: string, s: number, n: number) => Array.from({ length
 let aimed: { kind: string; slot: number | null } | null = null;
 export const aim = (kind: string, slot: number | null) => (aimed = { kind, slot });
 
+const railN = () => cells || Math.max(1, Math.floor($('#switch').clientHeight / PITCH));
+const onRail = (r: string, s: number, n: number) => absCells(r, s, n).filter((c) => c >= 0 && c < n);
+function board(n: number) {
+  const keys = new Map<string, string>(), abs = new Set<number>();
+  const keyFree = (r: string, s: number) => fits(keys, r, s);
+  return {
+    keys,
+    keyFree,
+    free: (r: string, s: number) => keyFree(r, s) && onRail(r, s, n).every((c) => !abs.has(c)),
+    take(r: string, s: number) {
+      for (const c of cellKeys(r, s)) keys.set(c, r);
+      for (const c of onRail(r, s, n)) abs.add(c);
+    },
+  };
+}
+type Board = ReturnType<typeof board>;
+const spotOfCell = (c: number, span: number, n: number) => (c < n / 2 ? c : -(n - c - span) - 1);
+function nearestFree(bd: Board, r: string, s: number, n: number) {
+  const span = spanOf(r), c0 = Math.min(n - span, Math.max(0, Math.min(...absCells(r, s, n))));
+  for (let d = 0; d < n; d++) for (const c of d ? [c0 - d, c0 + d] : [c0]) {
+    if (c < 0 || c > n - span) continue;
+    const t = spotOfCell(c, span, n);
+    if (bd.free(r, t)) return t;
+  }
+  return null;
+}
+function migrate(at: Spots) {
+  if (!('btn:quick' in at)) return false;
+  const s = at['btn:quick'];
+  delete at['btn:quick'];
+  if (!Number.isInteger(s) || Object.keys(at).some(isPin)) return true;
+  for (const g of pins.groups()) g.forEach((k, i) => (at[`pin:${k}`] = s < 0 ? -(local(s) + g.length - 1 - i) - 1 : s + i));
+  return true;
+}
+
+let seen = new Set<string>(), seenAt = '';
 export function placeAll(views: SlotView[], dry = false): { at: Spots; first: boolean; fresh: string[] } {
-  const first = store.get(viewKey(), null) == null, had = spots(), at: Spots = { ...had }, refs = views.map((v) => v.ref), known = new Set(refs);
-  const taken = new Map<string, string>();
-  for (const r of [...refs.filter(isBtn), ...refs.filter((r) => !isBtn(r))]) {
-    if (fits(taken, r, at[r])) for (const c of cellKeys(r, at[r])) taken.set(c, r);
+  const first = store.get(viewKey(), null) == null, had = spots(), at: Spots = { ...had }, refs = views.map((v) => v.ref), known = new Set(refs), n = railN();
+  const was = migrate(at);
+  if (!dry && seenAt !== viewKey()) (seen = new Set()), (seenAt = viewKey());
+  const boot = dry || !seen.size, shown = views.filter((v) => v.shown).map((v) => v.ref);
+  const pri = (rs: string[]) => [...rs.filter(isBtn), ...rs.filter((r) => !isBtn(r))];
+  const bd = board(n), fresh: string[] = [];
+  const keep = (r: string) => !first || !isBtn(r);
+  for (const r of pri(shown.filter((r) => boot || seen.has(r)))) {
+    if (bd.keyFree(r, at[r])) bd.take(r, at[r]);
     else delete at[r];
   }
-  const fresh: string[] = [];
+  for (const r of pri(shown.filter((r) => !boot && !seen.has(r)))) {
+    if (!Number.isInteger(at[r])) continue;
+    if (bd.free(r, at[r])) {
+      bd.take(r, at[r]);
+      continue;
+    }
+    const s = nearestFree(bd, r, at[r], n);
+    if (s == null) delete at[r];
+    else {
+      at[r] = s;
+      bd.take(r, s);
+      if (keep(r)) fresh.push(r);
+    }
+  }
   views.forEach((v, p) => {
     const r = v.ref;
     if (r in at || !v.shown) return;
@@ -95,17 +155,18 @@ export function placeAll(views: SlotView[], dry = false): { at: Spots; first: bo
         break;
       }
     }
-    let s = freeFrom(taken, r, e, from);
+    let s = freeFrom(bd.keys, r, e, from, (t) => bd.free(r, t));
     if (!dry && aimed && aimed.kind === kindOf(r)) {
-      if (aimed.slot != null && fits(taken, r, aimed.slot)) s = aimed.slot;
+      if (aimed.slot != null && bd.free(r, aimed.slot)) s = aimed.slot;
       aimed = null;
     }
     for (const [o, q] of Object.entries(at)) if (!known.has(o) && overlap(o, q, r, s)) delete at[o];
     at[r] = s;
-    for (const c of cellKeys(r, s)) taken.set(c, r);
-    if (!first || !isBtn(r)) fresh.push(r);
+    bd.take(r, s);
+    if (keep(r)) fresh.push(r);
   });
-  if (!dry && (first || fresh.length || refs.some((r) => had[r] !== at[r]))) save(at);
+  if (!dry) seen = new Set(shown);
+  if (!dry && (first || was || fresh.length || refs.some((r) => had[r] !== at[r]))) save(at);
   return { at, first, fresh };
 }
 
@@ -122,21 +183,26 @@ export function picHtml(views: SlotView[], fill: (v: SlotView) => string) {
   return `<nav id="activity" class="hr-rail" style="height:${n * PITCH}px"><div id="switch" class="slots">${all.filter((v) => Number.isInteger(at[v.ref])).map((v) => navOf(v, posOf(at[v.ref]))).join('')}</div></nav>`;
 }
 
-export function moveRef(ref: string, slot: number, refs: string[]) {
-  const at = spots(), was = at[ref];
+export function moveRef(ref: string, slot: number, refs: string[], shown = refs) {
+  const at = spots(), n = railN();
+  migrate(at);
+  const was = at[ref];
   if (was === slot) return false;
   for (const [o, q] of Object.entries(at)) if (!refs.includes(o) && overlap(o, q, ref, slot)) delete at[o];
-  const hit = refs.filter((r) => r !== ref && Number.isInteger(at[r]) && overlap(r, at[r], ref, slot));
+  const mine = onRail(ref, slot, n);
+  const hit = shown.filter((r) => r !== ref && Number.isInteger(at[r]) && (overlap(r, at[r], ref, slot) || onRail(r, at[r], n).some((c) => mine.includes(c))));
   const from: Spots = Object.fromEntries(hit.map((r) => [r, at[r]]));
-  for (const r of hit) delete at[r];
   at[ref] = slot;
-  const taken = occupied(at, refs);
+  const bd = board(n);
+  bd.take(ref, slot);
+  for (const r of shown) if (r !== ref && !hit.includes(r) && Number.isInteger(at[r])) bd.take(r, at[r]);
   for (const r of hit) {
-    const p = from[r], e = p < 0 ? 'b' : 't';
-    let s = Number.isInteger(was) && fits(taken, r, was) ? was : null;
-    for (let d = 0; s == null; d++) s = fits(taken, r, spotOf(e, local(p) - d)) && local(p) - d >= 0 ? spotOf(e, local(p) - d) : fits(taken, r, spotOf(e, local(p) + d)) ? spotOf(e, local(p) + d) : null;
-    at[r] = s;
-    for (const c of cellKeys(r, s)) taken.set(c, r);
+    const s = Number.isInteger(was) && bd.free(r, was) ? was : nearestFree(bd, r, from[r], n);
+    if (s == null) delete at[r];
+    else {
+      at[r] = s;
+      bd.take(r, s);
+    }
   }
   save(at);
   return true;
@@ -166,7 +232,7 @@ function nearest(y: number) {
 const FOLD = ['btn:pins', 'btn:win', 'btn:scratch', 'btn:sketch', 'btn:qterm', 'btn:qpwsh', 'btn:qagent', 'btn:inbox', 'btn:quick', 'btn:more', 'btn:uewin', 'btn:ue', 'research', 'orch', 'btn:newchat', 'term', 'chat', 'editor', 'btn:setup', 'btn:github', 'btn:git', 'btn:index', 'btn:site'];
 function fit(views: SlotView[], at: Spots, n: number) {
   const rank = new Map(views.map((v, p) => {
-    const i = FOLD.indexOf(isBtn(v.ref) ? v.ref : v.kind);
+    const i = FOLD.indexOf(isPin(v.ref) ? 'btn:quick' : isBtn(v.ref) ? v.ref : v.kind);
     return [v.ref, (i < 0 ? FOLD.length : i) * 1000 + (999 - (p % 1000))];
   }));
   const live = new Map(views.map((v) => [v.ref, absCells(v.ref, at[v.ref], n)]));
@@ -269,16 +335,18 @@ export function watchSlots(sw: HTMLElement, repaint: () => void) {
     },
   });
   let sig = '';
-  const now = () => RAIL.map(([r]) => +btnShown(r)).join('') + quickN();
+  again = () => requestAnimationFrame(repaint);
+  const now = () => RAIL.map(([r]) => +btnShown(r)).join('');
   const look = new MutationObserver(() => {
     const s = now();
     if (s !== sig) (sig = s), requestAnimationFrame(repaint);
   });
   for (const [, sel] of RAIL) look.observe($(sel), { attributes: true, attributeFilter: ['class', 'hidden'] });
-  look.observe($('#quick'), { childList: true, subtree: true });
   sig = now();
 }
 export const railCells = () => cells;
+let again = () => {};
+export const railChanged = () => again();
 
 let eat = false;
 addEventListener('click', (e) => {
@@ -341,7 +409,7 @@ function drag(e: PointerEvent, sw: HTMLElement, src: HTMLElement, span: number, 
 export function slotDrag(sw: HTMLElement, drop: (ref: string, slot: number) => void) {
   sw.addEventListener('pointerdown', (e) => {
     const nav = (e.target as Element).closest<HTMLElement>('#switch > .sv'), b = (e.target as Element).closest<HTMLElement>('button, a');
-    if (!nav || !b || e.button !== 0 || nav.dataset.ref === 'btn:quick' || nav.dataset.ref === 'btn:fold') return;
+    if (!nav || !b || e.button !== 0 || isPin(nav.dataset.ref!) || nav.dataset.ref === 'btn:fold') return;
     const ref = nav.dataset.ref!, span = Number(nav.dataset.span) || 1;
     drag(e, sw, nav, span, (c) => {
       const other = lastAt.get(c);
@@ -353,24 +421,17 @@ export function slotDrag(sw: HTMLElement, drop: (ref: string, slot: number) => v
 }
 export const railSpots = () => spots();
 
-let pinDrag = false;
-export const setPinDrag = (on: boolean) => (pinDrag = on);
+let pinDrag = '';
+export const setPinDrag = (ref: string) => (pinDrag = ref);
 export function pinDropIn(sw: HTMLElement, drop: (ref: string, slot: number) => void) {
-  const ref = 'btn:quick';
   const cellOf = (e: DragEvent) => {
-    if (!pinDrag || (e.target as Element).closest('#switch > .sv, .rf-box')) return -1;
-    const span = spanOf(ref), c = nearest(e.clientY);
-    if (c == null) return -1;
-    const top = Math.min(cells - span, Math.max(0, c));
-    for (let k = 0; k < span; k++) {
-      const o = lastAt.get(top + k);
-      if (o && o !== ref) return -1;
-    }
-    return top;
+    if (!pinDrag || (e.target as Element).closest('.rf-box')) return -1;
+    const c = nearest(e.clientY);
+    return c == null ? -1 : c;
   };
   const light = (c: number) => {
     sw.querySelectorAll('.sl-box.hot').forEach((x) => x.classList.remove('hot'));
-    for (let k = 0; c >= 0 && k < spanOf(ref); k++) sw.querySelector(`.sl-box[data-i="${c + k}"]`)?.classList.add('hot');
+    if (c >= 0) sw.querySelector(`.sl-box[data-i="${c}"]`)?.classList.add('hot');
   };
   const end = () => {
     sw.classList.remove('dragging');
@@ -389,13 +450,13 @@ export function pinDropIn(sw: HTMLElement, drop: (ref: string, slot: number) => 
     if (!sw.contains(e.relatedTarget as Node | null)) end();
   });
   sw.addEventListener('drop', (e) => {
-    const c = cellOf(e);
+    const c = cellOf(e), ref = pinDrag;
     end();
     if (c < 0) return;
     e.preventDefault();
     e.stopPropagation();
-    const span = spanOf(ref), s = spotAt(c);
-    drop(ref, s < 0 && span > 1 ? s + (span - 1) : s);
+    const other = lastAt.get(c);
+    drop(ref, other && other !== ref && other !== 'btn:fold' ? spots()[other] : spotAt(c));
   });
   document.addEventListener('dragend', end);
 }

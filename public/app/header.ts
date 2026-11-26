@@ -12,7 +12,7 @@ import { openWindow } from './groups.ts';
 import { newProject } from './levels.ts';
 import { web } from '../minds/minds.ts';
 import { addAgent, MODES, openSettings, setMode } from './modes.ts';
-import { setPinDrag } from './slots.ts';
+import { railChanged, setPinDrag, usePins } from './slots.ts';
 import { api, atLaunch, atWs, mode, S } from '../base/model.ts';
 import { newQuickAgent, toggleQuickAgent } from '../chat/qagent.ts';
 import { agentRight, pinOf } from '../base/agentmenu.ts';
@@ -289,45 +289,27 @@ const qBtn = (k: string) => `<button data-qk="${k}" draggable="true" ${MAKE[k][5
 export const pinsHtml = (all = false) => `<span class="q-${at()}">${(all ? quickOrder() : shownQuick()).map(qBtn).join('')}</span>`;
 export const pinDefault = (k: string) => QUICK[at()].includes(k);
 function paintQuick() {
-  if (qDrag) return;
-  $('#quick').innerHTML = `<span class="q-pj">${shownQuick('pj').map(qBtn).join('')}</span><span class="q-ws">${shownQuick('ws').map(qBtn).join('')}</span>`;
+  railChanged();
 }
-const qbox = $<HTMLElement>('#quick');
-qbox.addEventListener('click', (e) => {
+usePins({
+  views: () => (['pj', 'ws'] as const).flatMap((a) => quickOrder(a).map((k) => ({ kind: 'btn', ref: `pin:${k}`, html: qBtn(k), shown: a === 'pj' && !atWs() && pinned(a).includes(k), g: 'make' }))),
+  groups: () => [shownQuick('pj')],
+});
+const rail = $<HTMLElement>('#switch');
+rail.addEventListener('click', (e) => {
   const b = (e.target as HTMLElement).closest<HTMLElement>('[data-qk]');
   if (b) MAKE[b.dataset.qk!][4]();
 });
-qbox.addEventListener('dragstart', (e) => {
+rail.addEventListener('dragstart', (e) => {
   const b = (e.target as HTMLElement).closest<HTMLElement>('[data-qk]');
   if (!b) return;
   qDrag = b;
-  setPinDrag(true);
+  setPinDrag(`pin:${b.dataset.qk}`);
   if (!b.dataset.drag) e.dataTransfer!.setData('text/plain', '');
   requestAnimationFrame(() => qDrag?.classList.add('ph'));
 });
-qbox.addEventListener('dragover', (e) => {
-  if (!qDrag) return;
-  e.preventDefault();
-  e.dataTransfer!.dropEffect = 'move';
-  const b = (e.target as HTMLElement).closest<HTMLElement>('[data-qk]');
-  if (!b || b === qDrag || b.parentNode !== qDrag.parentNode) return;
-  const r = b.getBoundingClientRect(), col = getComputedStyle(b.parentNode as Element).flexDirection === 'column';
-  if (col ? e.clientY > r.top + r.height / 2 : e.clientX > r.left + r.width / 2) b.after(qDrag);
-  else b.before(qDrag);
-});
-qbox.addEventListener('drop', (e) => {
-  if (!qDrag) return;
-  e.preventDefault();
-  e.stopPropagation();
-  const now = [...qDrag.parentNode!.children].map((x) => (x as HTMLElement).dataset.qk!);
-  const rest = quickOrder().filter((k) => !now.includes(k));
-  qDrag.classList.remove('ph');
-  qDrag = null;
-  setPinDrag(false);
-  setQuickOrder([...now, ...rest]);
-});
 document.addEventListener('dragend', () => {
-  setPinDrag(false);
+  setPinDrag('');
   if (!qDrag) return;
   qDrag.classList.remove('ph');
   qDrag = null;

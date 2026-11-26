@@ -57,7 +57,7 @@ const dbgRows = (): Row[] => (pref('ue:on') && pref('debug:on') ? items('debug:o
 const WK_SEL: Record<string, string> = { edWork: '.sets[data-kind=editor] .ly-wk', 'switch:wkOn': '.sets[data-kind=chat] .ly-wk' };
 const rowOf = (a: At) => TOPBAR.flatMap((g) => g.rows).find((r) => r.k === a.key && (r.id || '') === (a.id || ''));
 const topSel = (a: At) => (a.key === 'modesHidden' ? `#switch .sets[data-kind=${a.id}] > button` : rowOf(a)?.sel || '');
-const sel = (a: At) => WK_SEL[a.key] || (a.place === 'top' ? topSel(a) : a.key === 'quick:pins' ? `#quick [data-qk="${a.id}"]` : BTN_OF[`${a.key}:${a.id}`] || '');
+const sel = (a: At) => WK_SEL[a.key] || (a.place === 'top' ? topSel(a) : a.key === 'quick:pins' ? `[data-qk="${a.id}"]` : BTN_OF[`${a.key}:${a.id}`] || '');
 
 const frag = (html: string) => {
   const t = document.createElement('template');
@@ -70,12 +70,13 @@ const liveModes = () => liveRows(TOPBAR.find((g) => g.g === 'modes')!).map((r) =
 const rowOfBtn = (ref: string) => TOPBAR.flatMap((g) => g.rows).find((r) => r.sel === railSel(ref));
 const inPic = (v: SlotView) => {
   if (v.kind !== 'btn') return liveModes().includes(v.kind);
+  if (v.ref.startsWith('pin:')) return v.shown;
   if (btnShown(v.ref)) return true;
   const r = rowOfBtn(v.ref);
   return !!r && (!r.when || r.when()) && !shownNow(r);
 };
 const fill = (v: SlotView) => {
-  if (v.kind !== 'btn') return v.html;
+  if (v.kind !== 'btn' || v.html) return v.html;
   const el = document.querySelector<HTMLElement>(`#app ${railSel(v.ref)}`)?.cloneNode(true) as HTMLElement | undefined;
   if (!el) return '';
   el.hidden = false;

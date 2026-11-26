@@ -101,13 +101,12 @@ body.resizing-y, body.resizing-y * { cursor: row-resize !important; user-select:
 #activity { position: relative; flex: none; width: var(--act-w); border-radius: var(--r-panel); background: var(--chrome); }
 #switch { position: absolute; inset: 0; }
 #switch > .sv { position: absolute; left: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; width: var(--act-w); height: calc(var(--span, 1) * 32px); margin: 0; padding: 0; border-radius: 0; }
-#switch .sv > :is(button, a), #switch #quick button { position: relative; display: grid; place-items: center; flex: none; width: 26px; min-height: 26px; height: 26px; padding: 0; border-radius: var(--r-sm); text-decoration: none; }
+#switch .sv > :is(button, a), #switch button[data-qk] { position: relative; display: grid; place-items: center; flex: none; width: 26px; min-height: 26px; height: 26px; padding: 0; border-radius: var(--r-sm); text-decoration: none; }
 #switch .sb > :is(#btn-index, #btn-git, #btn-github, #btn-setup, #btn-site, #btn-pins, #btn-win, #btn-fold, #btn-uewin) { border-color: transparent; background: none; color: var(--text-dim); }
 #switch .sb > :is(#btn-index, #btn-git, #btn-github, #btn-setup, #btn-site, #btn-pins, #btn-win, #btn-fold, #btn-uewin):hover { background: var(--hover); color: var(--text-strong); }
 #switch .sb > :is(#btn-index, #btn-git, #btn-github, #btn-setup).on { color: var(--text-strong); }
 #switch .sb > :is(#btn-index, #btn-git, #btn-github, #btn-setup).on::before { content: ""; position: absolute; left: -2px; top: 6px; bottom: 6px; width: 2px; border-radius: var(--r-mark); background: var(--accent); }
 #switch .ic { width: 16px; height: 16px; stroke-width: 1.5; }
-#switch #quick, #switch #quick > span { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 #switch .sv :is(.md-n, .act-n) { position: absolute; top: 0; right: 0; z-index: 1; min-width: 12px; height: 12px; padding: 0 2px; font-size: var(--fs-mark); line-height: 12px; box-shadow: none; }
 #switch .sv .ly-wk { right: 0; bottom: 0; width: 11px; height: 11px; box-shadow: none; }
 #switch .sv .ly-wk .gem { width: 8px; height: 8px; }
@@ -123,7 +122,6 @@ body.resizing-y, body.resizing-y * { cursor: row-resize !important; user-select:
 #switch .rf-box { position: fixed; z-index: 54; display: flex; flex-wrap: wrap; width: max-content; max-width: calc(6 * 32px + 12px); padding: 6px; border-radius: var(--r-panel); background: var(--raised); box-shadow: var(--float); }
 #switch .rf-box > .sv { position: static; width: 32px; }
 #switch .rf-box > .sv[data-span] { width: auto; height: 32px; padding: 0 3px; }
-#switch .rf-box #quick > span { flex-direction: row; }
 .site-ic { background: currentColor; -webkit-mask: url(amethyst.svg) center / contain no-repeat; mask: url(amethyst.svg) center / contain no-repeat; }
 
 #side { position: relative; flex: none; width: var(--side-w, 240px); margin: 0; border: 0; border-radius: var(--r-panel); background: var(--chrome); }
@@ -1085,9 +1083,8 @@ button.ch-from:hover { color: var(--text-strong); }
 #editor.docked #ed-body { max-height: none; min-height: 14em; }
 #editor.docked:not(.board-mode) > * { flex-shrink: 0; }
 
-#app.ws #quick .q-pj, #app:not(.ws) #quick .q-ws { display: none; }
-#quick button { position: relative; justify-content: center; width: 28px; min-height: 28px; padding: 0; border-radius: var(--r-sm); color: var(--text-dim); }
-#quick button:hover { background: var(--hover); }
+button[data-qk] { position: relative; justify-content: center; width: 28px; min-height: 28px; padding: 0; border-radius: var(--r-sm); color: var(--text-dim); }
+button[data-qk]:hover { background: var(--hover); }
 #btn-win, #btn-pins { flex: none; }
 #btn-pins { justify-content: center; width: 28px; min-height: 28px; padding: 0; border-radius: var(--r-sm); color: var(--text-dim); }
 #btn-pins:hover { background: var(--hover); color: var(--text-strong); }
@@ -1114,10 +1111,10 @@ button.ch-from:hover { color: var(--text-strong); }
 #btn-more:hover { border-color: var(--text-dim); background: var(--raised); }
 #btn-win:hover { color: var(--text-strong); }
 #btn-win .ic { width: 14px; height: 14px; }
-#quick .gem { width: 15px; height: 15px; color: var(--accent); }
-#quick .gem .b { fill: var(--text-strong); }
-#quick button:hover .gem .b, #quick button.on .gem .b { fill: var(--text-strong); }
-#quick button.on { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+button[data-qk] .gem { width: 15px; height: 15px; color: var(--accent); }
+button[data-qk] .gem .b { fill: var(--text-strong); }
+button[data-qk]:hover .gem .b, button[data-qk].on .gem .b { fill: var(--text-strong); }
+button[data-qk].on { background: color-mix(in srgb, var(--accent) 18%, transparent); }
 .qk-tag { position: absolute; right: 2px; bottom: 3px; font-size: var(--fs-2xs); font-weight: 700; line-height: 1; color: var(--text-dim); pointer-events: none; font-family: var(--mono); }
 #colormenu:has(.qk-row) { max-width: 440px; }
 #colormenu .qk-row { display: flex; align-items: center; border-radius: var(--r-sm); }
@@ -2368,8 +2365,8 @@ button:is(.sw-ic, .sw-pj):hover { background: none; }
 #colormenu .pk-cfg { gap: var(--s2); color: var(--text-dim); }
 #colormenu .pk-cfg .ic { width: 14px; height: 14px; }
 .set-grp.flash { animation: st-flash 1.6s ease-out; }
-#quick button.ph { background: color-mix(in srgb, var(--accent) 12%, transparent); outline: 1px dashed var(--accent); outline-offset: -1px; }
-#quick button.ph > * { visibility: hidden; }
+button[data-qk].ph { background: color-mix(in srgb, var(--accent) 12%, transparent); outline: 1px dashed var(--accent); outline-offset: -1px; }
+button[data-qk].ph > * { visibility: hidden; }
 .sorting { user-select: none; }
 .sorting, .sorting * { cursor: grabbing; }
 .pj-ghost { position: fixed !important; z-index: 1000; margin: 0 !important; pointer-events: none; background: var(--raised) !important; color: var(--text-strong); box-shadow: var(--float) !important; outline: 1px solid var(--accent) !important; outline-offset: 0 !important; opacity: 1; scale: none; }
@@ -4542,8 +4539,8 @@ body:has(> .img-view) :is(#colormenu, #tip) { z-index: 110; }
 .ly-add:hover { border-color: var(--text-dim); background: none; color: var(--text-strong); }
 .ly-add .ic { width: 16px; height: 16px; stroke-width: 1.5; stroke-linecap: butt; }
 .pj-tab.on, #ws-go.on, #status > #ws-all.on { border-color: transparent; background: var(--flip); color: var(--flip-ink); box-shadow: none; }
-.sets > button[data-mode].on, .ly.cur, #quick button.on, #btn-scratch.on, #btn-sketch.on, #btn-inbox.on, #btn-qterm.on, #btn-qpwsh.on, #btn-qagent.on { position: relative; border-color: transparent; background: color-mix(in srgb, var(--text) 24%, transparent); color: var(--text-strong); box-shadow: none; }
-:is(.sets > button[data-mode].on, .ly.cur, #quick button.on, #btn-scratch.on, #btn-sketch.on, #btn-inbox.on, #btn-qterm.on, #btn-qpwsh.on, #btn-qagent.on)::before { content: ""; position: absolute; left: -3px; top: 6px; bottom: 6px; width: 2px; border-radius: var(--r-mark); background: var(--ly-c, var(--accent)); }
+.sets > button[data-mode].on, .ly.cur, button[data-qk].on, #btn-scratch.on, #btn-sketch.on, #btn-inbox.on, #btn-qterm.on, #btn-qpwsh.on, #btn-qagent.on { position: relative; border-color: transparent; background: color-mix(in srgb, var(--text) 24%, transparent); color: var(--text-strong); box-shadow: none; }
+:is(.sets > button[data-mode].on, .ly.cur, button[data-qk].on, #btn-scratch.on, #btn-sketch.on, #btn-inbox.on, #btn-qterm.on, #btn-qpwsh.on, #btn-qagent.on)::before { content: ""; position: absolute; left: -3px; top: 6px; bottom: 6px; width: 2px; border-radius: var(--r-mark); background: var(--ly-c, var(--accent)); }
 :root .pj-tab.on .gem:not(.pj-wk .gem) { color: var(--flip-ink) !important; }
 .pj-tab.on .gem:not(.pj-wk .gem) .b { fill: var(--flip-ink); }
 .pj-tab.on .gem:not(.pj-wk .gem) .b:not([d="M0 0"]) + path { fill: color-mix(in srgb, var(--flip-ink) 35%, var(--flip)); }

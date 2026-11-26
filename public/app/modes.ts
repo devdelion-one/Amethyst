@@ -320,7 +320,7 @@ function landSlot(ref: string) {
   b?.addEventListener('animationend', () => b.classList.remove('landed'), { once: true });
 }
 function dropRef(ref: string, slot: number) {
-  if (!moveRef(ref, slot, allRefs())) return;
+  if (!moveRef(ref, slot, allRefs(), lastAll.filter((v) => v.shown).map((v) => v.ref))) return;
   drawn = '';
   paintSwitch();
   if (!atWs()) syncOrders(railSpots());
