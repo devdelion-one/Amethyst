@@ -12,6 +12,7 @@ import * as make from './make.ts';
 import * as link from './link.ts';
 import * as lcGuard from './guard.ts';
 import * as editor from './editor.ts';
+import * as screenshot from './screenshot.ts';
 import { stopUht, uht } from './uht.ts';
 import { debugConfig, exeOf } from './debug.ts';
 import * as asks from './ask.ts';
@@ -671,7 +672,12 @@ function follow(root: string | null, out: Out) {
   };
 }
 
-const LINK_ARGS = ['-EnablePlugins=PythonScriptPlugin', '-ini:Engine:[/Script/PythonScriptPlugin.PythonScriptPluginSettings]:bRemoteExecution=True'];
+const LINK_ARGS = [
+  '-EnablePlugins=PythonScriptPlugin',
+  '-ini:Engine:[/Script/PythonScriptPlugin.PythonScriptPluginSettings]:bRemoteExecution=True',
+  '-ini:Engine:[/Script/PythonScriptPlugin.PythonScriptPluginSettings]:RemoteExecutionMulticastBindAddress=127.0.0.1',
+  '-ini:Engine:[/Script/PythonScriptPlugin.PythonScriptPluginSettings]:RemoteExecutionMulticastTtl=0',
+];
 
 async function openEditor(root: string | null, body: { uproject?: string; engine?: string; plain?: boolean }) {
   const f = await findToRun(root, body);
@@ -915,6 +921,70 @@ function sayMade(r: any) {
   return out;
 }
 
+const previewSnippet = (s: string, max = 200) => {
+  const clean = s.trim();
+  return clean.length > max ? clean.slice(0, max) + '...' : clean;
+};
+
+async function requireLinkedEditor(f: Found, hintWindow = false) {
+  const dir = path.dirname(f.path);
+  const proc = await editor.editorProc(f.path);
+  if (!proc.open || proc.pid <= 0) {
+    throw new HttpError(409, `Unreal Editor is not open on ${f.name}: open it with amethyst ue editor first`);
+  }
+  const node = await link.verifyNode(dir, proc.pid);
+  if (!node) {
+    const extra = hintWindow ? ', or pass --window to capture the editor window directly' : '';
+    throw new HttpError(
+      409,
+      `Unreal Editor on ${f.name} is not linked for remote execution: open it via amethyst ue editor, or enable Remote Execution in PythonScriptPlugin settings${extra}`,
+    );
+  }
+  return { dir, proc, node };
+}
+
+function formatPyOutput(r: link.Result, evalMode: boolean) {
+  const lines: string[] = [];
+  for (const o of r.output || []) {
+    const txt = String(o?.output ?? '').replace(/\r?\n$/, '');
+    if (!txt) continue;
+    const kind = String(o?.type || '');
+    lines.push(kind === 'Warning' || kind === 'Error' ? `${kind}: ${txt}` : txt);
+  }
+  const res = String(r.result ?? '').trim();
+  if (res && res !== 'None' && (evalMode || !lines.length)) lines.push(res);
+  return lines.join('\n') || (r.success ? '(no output)' : 'Python execution failed');
+}
+
+interface ModuleEntry {
+  name: string;
+  file: string;
+  loaded: boolean;
+  scope: 'project' | 'plugin' | 'engine';
+}
+
+const MODULE_LINE = /(?:^|:\s+)\s*([^\s\[\]:]+)\s+\[File:\s*(.*?)\]\s+\[Loaded:\s*(Yes|No)\]/i;
+
+function parseModuleList(lines: string[], projDir: string): ModuleEntry[] {
+  const normProj = path.resolve(projDir).replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
+  const out: ModuleEntry[] = [];
+  for (const line of lines) {
+    const m = MODULE_LINE.exec(line);
+    if (!m) continue;
+    const name = m[1];
+    const file = m[2].trim();
+    const loaded = /^yes$/i.test(m[3]);
+    const normFile = file.replace(/\\/g, '/').toLowerCase();
+    const scope: 'project' | 'plugin' | 'engine' = normFile.startsWith(normProj + '/plugins/')
+      ? 'plugin'
+      : normFile.startsWith(normProj + '/')
+        ? 'project'
+        : 'engine';
+    out.push({ name, file, loaded, scope });
+  }
+  return out;
+}
+
 const CMD_ROUTES: Routes = {
   'POST /api/ue/cmd/build': async (body, _, root: string | null) => cmdRun(root, body || {}, body?.clean ? 'clean' : body?.rebuild ? 'rebuild' : 'build'),
   'POST /api/ue/cmd/generate': async (body, _, root: string | null) => cmdRun(root, body || {}, 'generate'),
@@ -1066,6 +1136,97 @@ const CMD_ROUTES: Routes = {
       'Next: amethyst ue new plugin <Name> adds a plugin; amethyst ue generate, amethyst ue build, then amethyst ue editor.',
     ];
     return { ...r, path: targetDir, ...(proj && { project: proj, workspace: ws!.name }), text: lines.join('\n') };
+  },
+  'POST /api/ue/cmd/python': async (body, _, root: string | null) => {
+    const f = await find(root, body || {});
+    if (!f.path || f.why === 'os') refuse(f);
+    const hasCode = body?.code != null && String(body.code).trim() !== '';
+    const hasFile = body?.file != null && String(body.file).trim() !== '';
+    if (hasCode === hasFile) throw new HttpError(400, 'pass either Python code or --file <path>, not both');
+    let script = '';
+    let label = '';
+    if (hasFile) {
+      const rel = guard(String(body.file).trim());
+      if (!rel) throw new HttpError(400, 'file path required');
+      const abs = path.join(root!, rel);
+      try {
+        script = await fs.promises.readFile(abs, 'utf8');
+      } catch {
+        throw new HttpError(404, `Python file not found: ${rel}`);
+      }
+      label = `${rel}\n${script}`;
+    } else {
+      script = String(body.code);
+      label = script;
+    }
+    const evalMode = !!body?.eval;
+    const mode: link.ExecMode = evalMode ? 'EvaluateStatement' : 'ExecuteFile';
+    const ms = Math.max(1000, Math.min((Number(body?.timeout) || 30) * 1000, 300000));
+    await gate.mayRun(
+      body,
+      (who) => ({
+        title: `Allow running Python in Unreal Editor on ${f.name}?`,
+        text: `${who} asks to run Python in Unreal Editor on ${f.name}:\n${previewSnippet(label)}`,
+        warn: 'This runs arbitrary Python inside the open Unreal Editor process with full access to your project and PC.',
+      }),
+      300,
+    );
+    const { dir } = await requireLinkedEditor(f);
+    const r = await link.execPython(dir, script, { mode, ms });
+    return { ok: r.success, success: r.success, result: r.result, output: r.output, text: formatPyOutput(r, evalMode) };
+  },
+  'POST /api/ue/cmd/console': async (body, _, root: string | null) => {
+    const f = await find(root, body || {});
+    if (!f.path || f.why === 'os') refuse(f);
+    const command = String(body?.command || '').trim();
+    if (!command) throw new HttpError(400, 'console command required');
+    const ms = Math.max(1000, Math.min((Number(body?.timeout) || 30) * 1000, 300000));
+    await gate.mayRun(
+      body,
+      (who) => ({
+        title: `Allow running a console command in Unreal Editor on ${f.name}?`,
+        text: `${who} asks to run a console command in Unreal Editor on ${f.name}:\n${previewSnippet(command)}`,
+        warn: 'Console commands run inside the open Unreal Editor process and can change editor or project state.',
+      }),
+      300,
+    );
+    const { dir } = await requireLinkedEditor(f);
+    const r = await link.execConsole(dir, editor.logFile(f), command, { ms });
+    return { ok: r.success, command, lines: r.lines, text: r.lines.length ? r.lines.join('\n') : '(no log output)' };
+  },
+  'POST /api/ue/cmd/modules': async (body, _, root: string | null) => {
+    const f = await find(root, body || {});
+    if (!f.path || f.why === 'os') refuse(f);
+    const { dir } = await requireLinkedEditor(f);
+    const r = await link.execConsole(dir, editor.logFile(f), 'Module List', { ms: 15e3 });
+    let modules = parseModuleList(r.lines, dir);
+    if (!body?.all) modules = modules.filter((m) => m.scope === 'project' || m.scope === 'plugin');
+    if (body?.loaded) modules = modules.filter((m) => m.loaded);
+    const filt = String(body?.filter || '').trim().toLowerCase();
+    if (filt) modules = modules.filter((m) => m.name.toLowerCase().includes(filt));
+    const lines = modules.map((m) => `${m.name} (${m.scope}, ${m.loaded ? 'loaded' : 'not loaded'}) ${relTo(root!, m.file)}`);
+    return { ok: true, modules, count: modules.length, text: [`${plural(modules.length, 'module')}:`, ...lines].join('\n') };
+  },
+  'POST /api/ue/cmd/screenshot': async (body, _, root: string | null) => {
+    const f = await find(root, body || {});
+    if (!f.path || f.why === 'os') refuse(f);
+    const dir = path.dirname(f.path);
+    const wantWindow = !!body?.window;
+    const outFile = screenshot.resolveOutPath(root!, dir, body?.out, wantWindow ? 'window' : 'viewport');
+    if (wantWindow) {
+      const r = await screenshot.captureWindow(f.path, outFile);
+      const rel = relTo(root!, r.path);
+      return { ok: true, ...r, text: `Saved window screenshot (${r.width}x${r.height}) to ${rel}\n${r.path}` };
+    }
+    await requireLinkedEditor(f, true);
+    const r = await screenshot.captureViewport(dir, outFile, {
+      width: body?.width != null ? Number(body.width) : undefined,
+      height: body?.height != null ? Number(body.height) : undefined,
+      gameView: !!(body?.gameView ?? body?.['game-view']),
+      timeoutMs: body?.timeout != null ? Number(body.timeout) * 1000 : undefined,
+    });
+    const rel = relTo(root!, r.path);
+    return { ok: true, ...r, text: `Saved viewport screenshot (${r.width}x${r.height}) to ${rel}\n${r.path}` };
   },
 };
 

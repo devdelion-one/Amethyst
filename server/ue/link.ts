@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import dgram from 'dgram';
+import fs from 'fs';
 import net from 'net';
 import path from 'path';
 
@@ -27,6 +28,7 @@ const MAGIC = 'ue_py';
 const PING_MS = 1000;
 const LOST_MS = 5000;
 const IDLE_MS = 60e3;
+const MAX_MSG = 4 * 1024 * 1024;
 
 const me = crypto.randomUUID();
 const nodes = new Map<string, Node>();
@@ -153,6 +155,7 @@ function exchange(c: Conn, n: Node, command: string, mode: string, ms: number) {
       res(r!);
     };
     const onData = (d: Buffer) => {
+      if (buf.length + d.length > MAX_MSG) return done(new Error('the editor returned more than 4 MB of output'));
       buf = Buffer.concat([buf, d]);
       const m = read(buf);
       if (m?.type === 'command_result') done(null, { success: !!m.data?.success, result: String(m.data?.result ?? ''), output: Array.isArray(m.data?.output) ? m.data.output : [] });
@@ -191,4 +194,84 @@ const isPlaying = async (dir: string) => yes(await evalPy(dir, `${LES}.is_in_pla
 const save = async (dir: string) => yes(await evalPy(dir, 'unreal.EditorLoadingAndSavingUtils.save_dirty_packages_with_dialog(True, True)', 30 * 60e3));
 const quit = (dir: string) => py(dir, 'unreal.SystemLibrary.quit_editor()');
 
-export { state, py, liveCompile, liveCancel, play, stop, isPlaying, save, quit, shut };
+async function verifyNode(dir: string, expectedPid?: number, wait = 2500) {
+  if (expectedPid !== undefined && (!Number.isInteger(expectedPid) || expectedPid <= 0)) return null;
+  const n = await find(dir, wait);
+  if (!n || n.root !== norm(dir)) return null;
+  return n;
+}
+
+type ExecMode = 'ExecuteFile' | 'ExecuteStatement' | 'EvaluateStatement';
+
+async function execPython(dir: string, code: string, { mode = 'ExecuteFile', ms = 15e3 }: { mode?: ExecMode; ms?: number } = {}) {
+  return py(dir, code, { mode, ms });
+}
+
+async function execPythonJson<T = unknown>(dir: string, script: string, ms = 15e3): Promise<T> {
+  const r = await execPython(dir, script, { mode: 'ExecuteFile', ms });
+  if (!r.success) {
+    const detail = r.output.map((o) => o.output).filter(Boolean).join('\n') || r.result || 'Python execution failed';
+    throw new Error(detail);
+  }
+  const lines = r.output.map((o) => String(o.output || '').trim()).filter(Boolean);
+  const raw = lines.length ? lines[lines.length - 1] : String(r.result || '').trim();
+  return JSON.parse(raw) as T;
+}
+
+async function readFromOffset(file: string, offset: number) {
+  let fh: fs.promises.FileHandle;
+  try {
+    fh = await fs.promises.open(file, 'r');
+  } catch {
+    return '';
+  }
+  try {
+    const st = await fh.stat();
+    const from = st.size < offset ? 0 : offset;
+    const len = Math.min(st.size - from, MAX_MSG);
+    if (len <= 0) return '';
+    const buf = Buffer.alloc(len);
+    await fh.read(buf, 0, len, from);
+    return buf.toString('utf8');
+  } finally {
+    await fh.close();
+  }
+}
+
+function sliceSentinels(chunk: string, start: string, end: string) {
+  const rawLines = chunk.split(/\r?\n/);
+  const sIdx = rawLines.findIndex((l) => l.includes(start));
+  if (sIdx < 0) return null;
+  const eIdx = rawLines.findIndex((l, i) => i > sIdx && l.includes(end));
+  if (eIdx < 0) return null;
+  return rawLines.slice(sIdx + 1, eIdx).map((l) => l.replace(/\r+$/, ''));
+}
+
+async function execConsole(dir: string, logPath: string, cmd: string, { ms = 15e3 }: { ms?: number } = {}) {
+  const offset = await fs.promises.stat(logPath).then((s) => s.size).catch(() => 0);
+  const token = crypto.randomBytes(6).toString('hex');
+  const start = `__AMETHYST_CMD_START_${token}__`;
+  const end = `__AMETHYST_CMD_END_${token}__`;
+  const script = [
+    'import unreal',
+    `unreal.log(${JSON.stringify(start)})`,
+    'try:',
+    `    unreal.SystemLibrary.execute_console_command(None, ${JSON.stringify(cmd)})`,
+    'finally:',
+    `    unreal.log(${JSON.stringify(end)})`,
+  ].join('\n');
+  const r = await execPython(dir, script, { mode: 'ExecuteFile', ms });
+  const deadline = Date.now() + 2000;
+  let lines: string[] | null = null;
+  while (Date.now() < deadline) {
+    const chunk = await readFromOffset(logPath, offset);
+    lines = sliceSentinels(chunk, start, end);
+    if (lines !== null) break;
+    await new Promise((res) => setTimeout(res, 50));
+  }
+  const out = lines || [];
+  return { success: r.success, lines: out, raw: out.join('\n'), output: r.output, result: r.result };
+}
+
+export { state, py, verifyNode, execPython, execPythonJson, execConsole, liveCompile, liveCancel, play, stop, isPlaying, save, quit, shut };
+export type { Result, ExecMode };
