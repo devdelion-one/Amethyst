@@ -1,5 +1,5 @@
 import { nextFrame } from '../base/measure.ts';
-const PANELS = '#status, #activity, #side, #wsx, #pins, #start, #launch, .grp, .deck, .dk-rail, .oc-rail, .oc-main, .rs-rail, .rs-grp';
+const PANELS = '#dash, #status, #activity, #side, #wsx, #pins, #start, #launch, .grp, .deck, .dk-rail, .oc-rail, .oc-main, .rs-rail, .rs-grp';
 
 let seen = new Set<Element>();
 

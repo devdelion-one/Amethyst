@@ -756,7 +756,7 @@ export function offClasses(key: string, prefix: string) {
 
 type TopRow = { k: string; id: string; label: string; sel: string; icon: () => string; fixed?: boolean; when?: () => boolean; d?: string; tip?: string; why?: () => string };
 type TopPre = { rows: (grip?: boolean) => string; pick: (b: HTMLElement) => boolean; move: [string, (keys: string[]) => unknown] };
-type TopOpts = { tray?: string; head?: string; acts?: string; opts?: string; buttons?: string; pick?: [string, string]; onPick?: (b: HTMLElement) => unknown };
+type TopOpts = { tray?: string; head?: string; acts?: string; opts?: string; buttons?: string; pick?: [string, string]; onPick?: (b: HTMLElement) => unknown; onShow?: (r: { k?: string; id?: string; sel?: string; pin?: string }) => unknown };
 const shownBtn = (sel: string) => () => !atWs() && !document.querySelector(sel)?.hasAttribute('hidden');
 const rowIc = (k: string) => () => ROW_IC[k]?.() || '';
 export const TOPBAR: { g: string; name: string; sel: string; icon?: () => string; rows: TopRow[]; acts?: () => string; onAct?: (b: HTMLElement) => unknown; move?: (keys: string[]) => unknown; pre?: TopPre }[] = [
@@ -827,10 +827,13 @@ export function topBarMenu(x: number, y: number, o: TopOpts = {}) {
     const d = b.dataset;
     if (d.tk) {
       const r = TOPBAR.flatMap((t) => t.rows).find((t) => t.k === d.tk && t.id === d.ti)!;
-      return r.id ? setOff(r.k, r.id, rowOn(r)) : setPref(r.k, !saved(r.k));
+      const wasOn = rowOn(r);
+      if (!wasOn) o.onShow?.(r);
+      return r.id ? setOff(r.k, r.id, wasOn) : setPref(r.k, !saved(r.k));
     }
     if ('use' in d) return useBtn(b, null);
     if (!o.tray && dashPick(b)) return;
+    if (!o.tray && d.qpin && !b.classList.contains('on')) o.onShow?.({ pin: d.qpin });
     if (!o.tray && TOPBAR.some((g) => g.pre?.pick(b))) return;
     if (d.tbact) return TOPBAR.find((g) => g.g === d.tbact)?.onAct?.(b);
     if ('tball' in d) return topBarMenu(x, y);

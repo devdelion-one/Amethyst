@@ -274,6 +274,23 @@ export function moveRef(ref: string, slot: number, refs: string[], shown = refs,
   return true;
 }
 
+export function placeAt(ref: string, slot: number, refs: string[], shown: string[], side: Side) {
+  const R = spots(), D = dashSpots();
+  migrate(R);
+  const dst = surf(side), sAt = dst === DASH_S ? R : D, at = dst === DASH_S ? D : R;
+  const n = dst.n(), mine = shown.filter((r) => r !== ref && Number.isInteger(D[r]) === (dst === DASH_S));
+  const bd = board(n);
+  for (const r of mine) if (Number.isInteger(at[r])) bd.take(r, at[r]);
+  const target = bd.free(ref, slot) ? slot : nearestFree(bd, ref, slot, n);
+  if (target == null) return false;
+  delete sAt[ref];
+  for (const [o, q] of Object.entries(at)) if (!refs.includes(o) && overlap(o, q, ref, target)) delete at[o];
+  at[ref] = target;
+  save(R);
+  saveDash(D);
+  return true;
+}
+
 const spotAt = (c: number, n: number) => (c < n / 2 ? c : -(n - 1 - c) - 1);
 export function freeNear(ref: string, refs: string[]): Spot | null {
   const sf = inDash(ref) ? DASH_S : RAIL_S, at = sf.get(), s = at[ref];

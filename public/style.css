@@ -96,9 +96,12 @@ select option { background: var(--raised); color: var(--text); }
 
 #app { height: 100vh; height: 100dvh; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: var(--gap); padding: 0; background: var(--ground); overflow-x: clip; }
 #shell { position: relative; display: flex; gap: var(--gap); min-height: 0; }
-#dash { position: relative; height: 32px; min-width: 0; border-radius: var(--r-panel); background: var(--bar); }
+#dash { position: relative; height: var(--act-w); min-width: 0; border-radius: var(--r-panel); background: var(--bar); }
 #dash[hidden], #app.nodash > #dash { display: none; }
-#dash > .slots { position: absolute; inset: 0; }
+#dash > .slots { position: absolute; inset: 2px; }
+#app:not(.nodash) > #dash { border-radius: 0; }
+#app:not(.nodash) > #shell > #activity { border-top-left-radius: 0; border-top-right-radius: 0; }
+#app:not(.nodash) > #shell > #activity::before { content: ""; position: absolute; left: 0; right: 0; top: calc(-1 * var(--gap)); height: var(--gap); background: var(--chrome); pointer-events: none; }
 #dash .sv { position: absolute; top: 0; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; margin: 0; padding: 0; border-radius: 0; }
 #dash .sv > :is(button, a) { position: relative; display: grid; place-items: center; flex: none; width: 28px; min-height: 28px; height: 28px; padding: 0; border-radius: var(--r-sm); text-decoration: none; }
 .hr-pic #dash.hr-dash { width: 224px; }

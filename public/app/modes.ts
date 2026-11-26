@@ -1,9 +1,9 @@
 import { filesChanged, setMark, togglePin } from './actions.ts';
 import { markMenu } from '../base/agentrow.ts';
 import { agentMenu, launchAgent, pinOf } from '../base/agentmenu.ts';
-import { ask, barMenu, flyFocus, ICONS, keepMenu, keyChip, menuHead, modeOrder, popMenu, railActions, setSwatches, sortable, sorting, subLabel, TOPBAR, topBarMenu, topRow } from '../base/controls.ts';
+import { ask, barMenu, flyFocus, ICONS, keepMenu, keyChip, menuHead, modeOrder, popMenu, railActions, setSwatches, sortable, sorting, topBarMenu, topRow } from '../base/controls.ts';
 import { addSet, freeCell, setsHolding, agentLine, createDeck, dropSet, inCells, markSet, moveAway, moveSet, moveSetChats, cellsOf, chatsFromOrch, setChatsToOrch, nextColor, nextSet, orderHex, putInSet, restoreSet, swapInSet, setAgents, setAway, setColor, setInfo, setInfos, setOf, setOn, sets, setsMenu, setTurn, shareDeck, showSet, takeHere, toOrch } from '../decks/deck.ts';
-import { aim, bottomBtns, btnShown, dragging, freeAt, freeNear, homeBtns, inDash, moveRef, orderAt, pinDropIn, placeBoth, pullBtns, railSel, slotDrag, slotHtml, topBtns, watchFold, watchSlots } from './slots.ts';
+import { aim, bottomBtns, btnShown, dragging, freeAt, freeNear, homeBtns, inDash, moveRef, orderAt, pinDropIn, placeAt, placeBoth, pullBtns, railSel, slotDrag, slotHtml, topBtns, watchFold, watchSlots } from './slots.ts';
 import type { Side, SlotView, Spot } from './slots.ts';
 import { drawDash, showDash } from './topdash.ts';
 import type { MoveHow } from '../decks/deck.ts';
@@ -728,46 +728,22 @@ for (const q of SURFS) $(q).addEventListener('contextmenu', (e: MouseEvent) => {
 });
 const newPick = (b: HTMLElement, at: Spot | null) => b.dataset.newv && newView(b.dataset.newv, at);
 railActions(() => newRowsAt(null), (b) => newPick(b, null));
-const btnRow = (ref: string) => TOPBAR.flatMap((g) => g.rows).find((r) => r.sel === railSel(ref));
-const svgOf = (html: string) => html.match(/<svg[\s\S]*?<\/svg>/)?.[0] || '';
-const setWord = (v: SlotView) => {
-  const n = v.html.match(/data-n="(\d+)"/)?.[1], label = v.kind === 'editor' ? 'editor' : MODES[v.kind]?.label || v.kind;
-  return n ? `${label} ${v.kind === 'editor' ? 'layout' : 'set'} ${n}` : label;
+const refsOfShow = (r: { k?: string; id?: string; sel?: string; pin?: string }) => {
+  if (r.pin) return [`pin:${r.pin}`];
+  if (r.k === 'modesHidden') return lastAll.filter((v) => v.kind === r.id).map((v) => v.ref);
+  return lastAll.filter((v) => v.kind === 'btn' && railSel(v.ref) === r.sel).map((v) => v.ref);
 };
-function putList(side: Side) {
-  const rows: { ref: string; name: string; icon: string; hidden: boolean; unhide: () => unknown }[] = [];
-  for (const v of lastAll) {
-    if (v.shown && inDash(v.ref) === (side === 'dash')) continue;
-    if (v.ref.startsWith('pin:')) {
-      if (v.shown) rows.push({ ref: v.ref, name: `new ${v.html.match(/aria-label="([^"]*)"/)?.[1] || v.ref.slice(4)}`, icon: svgOf(v.html), hidden: false, unhide: () => {} });
-      continue;
-    }
-    if (v.kind === 'btn') {
-      const r = btnRow(v.ref);
-      if (!r || (r.when && !r.when())) continue;
-      const hidden = !btnShown(v.ref);
-      rows.push({ ref: v.ref, name: r.label, icon: r.icon(), hidden, unhide: () => (r.id ? setOff(r.k, r.id, false) : setPref(r.k, true)) });
-      continue;
-    }
-    if (atWs()) continue;
-    rows.push({ ref: v.ref, name: setWord(v), icon: svgOf(v.html), hidden: !v.shown, unhide: () => setOff('modesHidden', v.kind, false) });
-  }
-  return rows;
-}
-const putRows = (at: Spot) => putList(at.side).map((r) => `<button class="mi" data-put="${esc(r.ref)}" title="${esc(`${r.name.charAt(0).toUpperCase() + r.name.slice(1)}
-${r.hidden ? 'Hidden now. It shows again, in this cell.' : `Moves it from the ${at.side === 'dash' ? 'rail' : 'dashboard'} to this cell.`}`)}"><i class="tb-ic">${r.icon}</i><span class="mi-n">${esc(r.name)}${r.hidden ? ' (hidden)' : ''}</span></button>`).join('');
-function putHere(ref: string, at: Spot) {
-  const row = putList(at.side).find((r) => r.ref === ref);
-  if (!row) return;
-  dropRef(ref, at.s, at.side);
-  if (row.hidden) row.unhide();
-}
+const shownRefs = () => lastAll.filter((v) => (v.kind === 'btn' ? btnShown(v.ref) : !isOff('modesHidden', v.kind))).map((v) => v.ref);
 function slotMenu(e: MouseEvent, side: Side) {
-  const at = freeAt(side === 'dash' ? e.clientX : e.clientY, side), put = at && side === 'dash' ? putRows(at) : '';
+  const at = freeAt(side === 'dash' ? e.clientX : e.clientY, side);
   topBarMenu(e.clientX, e.clientY, {
     head: side === 'dash' ? menuHead(ICONS.topDash, 'dashboard') : undefined,
-    acts: newRowsAt(at) + (put ? subLabel('put here') + put : ''),
-    onPick: (b) => (b.dataset.put && at ? putHere(b.dataset.put, at) : newPick(b, at)),
+    acts: newRowsAt(at),
+    onPick: (b) => newPick(b, at),
+    onShow: at ? (r) => {
+      const refs = allRefs(), shown = shownRefs();
+      for (const ref of refsOfShow(r)) if (placeAt(ref, at.s, refs, shown, at.side)) shown.push(ref);
+    } : undefined,
   });
 }
 barMenu('#switch', '', { open: (_el, e) => slotMenu(e, 'rail') });
