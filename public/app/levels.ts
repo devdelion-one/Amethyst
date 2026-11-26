@@ -13,7 +13,7 @@ import { dropExt, openExternal, openInTab, shows, sync } from './tabs.ts';
 import { $, amKey, esc, setSave, showErr, store } from '../base/util.ts';
 import { page } from '../base/page.ts';
 import { refuse } from '../base/notify.ts';
-import { clearSearch, lastWorkspace, ordered, reload, sideNow } from './views.ts';
+import { clearSearch, lastWorkspace, ordered, reload } from './views.ts';
 import { announce, WIN } from '../base/windows.ts';
 import type { Project, Tab, WorkspaceEntry } from '../base/types.ts';
 
@@ -31,11 +31,11 @@ function arrive() {
   showPid();
   announce();
   tabsLevel();
-  sideNow();
   setCtx('');
   setSolo(null);
   clearSearch();
   web.level(levelKey());
+  page.render();
 }
 
 export async function switchLevel(pid: string, over?: Element) {

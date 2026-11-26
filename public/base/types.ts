@@ -71,8 +71,6 @@ export interface Project {
   desc: string;
   color: string | null;
   missing?: boolean;
-  count?: number;
-  touched?: number;
 }
 
 export interface Workspace {

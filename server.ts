@@ -36,7 +36,7 @@ import { inFlight, startHitch } from './server/base/hitch.ts';
 import { Raw, raw, serveStatic } from './server/base/page.ts';
 import { dataDir, initDataDir, sweepUnused } from './server/base/datadir.ts';
 import { DOT, HttpError, HEX, ID, MAX_TEXT, cleanName, guard, knownBinary, newId, openRoot } from './server/base/routes.ts';
-import { MAX_PATHS, TEXT_EXT, BOARD_EXT } from './public/base/files.ts';
+import { MAX_PATHS } from './public/base/files.ts';
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { Disk, ArchiveStore } from './server/base/routes.ts';
 import type { Project, RouteHandler, Routes } from './public/base/types.ts';
@@ -574,20 +574,6 @@ function watchFiles(R: Root, out: Out) {
   };
 }
 
-async function statsOf(p: Project) {
-  if (!(await isDir(p.path))) return { missing: true, count: 0, touched: 0 };
-  const R = rootAt(p.path);
-  let count = 0, touched = 0;
-  try {
-    for await (const rel of R.walkFiles('')) {
-      if (!TEXT_EXT.test(rel) && !BOARD_EXT.test(rel)) continue;
-      count++;
-      touched = Math.max(touched, (await R.disk.stat(rel))!.mtime, R.meta.files[rel]?.seen || 0);
-    }
-  } catch {}
-  return { count, touched };
-}
-
 async function makeFolder(p: string) {
   if ((await exists(p)) && !(await isDir(p))) throw new HttpError(400, 'that is a file, not a folder');
   try {
@@ -1050,7 +1036,7 @@ const WS_ROUTES: Routes = {
     loose: W.loose,
     dir: W.path,
     suggest: !W.home ? W.path : W.root.meta.projects[0]?.path || FIRST ? path.dirname(W.root.meta.projects[0]?.path || FIRST) : os.homedir(),
-    projects: await Promise.all(W.root.meta.projects.map(async (p: Project) => ({ ...p, ...(await statsOf(p)) }))),
+    projects: await Promise.all(W.root.meta.projects.map(async (p: Project) => ((await isDir(p.path)) ? p : { ...p, missing: true }))),
     desc: W.desc || '',
   }),
 
