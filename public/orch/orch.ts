@@ -690,7 +690,7 @@ export function createOrch({ head, makeChat, makeTerm, filesChanged, openFile, c
     document.body.classList.add('resizing-y');
     track(e, {
       move: (ev) => {
-        const h = Math.min(total - MIN_CHAT, Math.max(MIN_FILES_H, h0 + y0 - ev.clientY));
+        const h = Math.min(total - Math.max(MIN_CHAT, parseFloat(getComputedStyle(main).minHeight) || 0), Math.max(MIN_FILES_H, h0 + y0 - ev.clientY));
         app.style.setProperty('--oc-fh', (Math.max(0.1, Math.min(0.9, h / total)) * 100).toFixed(2) + '%');
       },
       end: (ok) => {
