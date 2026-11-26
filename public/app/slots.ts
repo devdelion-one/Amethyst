@@ -52,7 +52,12 @@ export function btnShown(ref: string) {
   const el = elOf(ref);
   return !el.hidden && !el.classList.contains('off');
 }
-const railViews = (end: 't' | 'b'): SlotView[] => RAIL.filter((x) => x[2] === end).map(([ref, , , g]) => ({ kind: 'btn', ref, html: '', shown: btnShown(ref), g }));
+const DASH_AT: Spots = { 'btn:newchat': -1 };
+export const inDash = (ref: string) => ref in DASH_AT;
+const btnView = ([ref, , , g]: (typeof RAIL)[number]): SlotView => ({ kind: 'btn', ref, html: '', shown: btnShown(ref), g });
+const railViews = (end: 't' | 'b'): SlotView[] => RAIL.filter((x) => x[2] === end && !inDash(x[0])).map(btnView);
+export const dashViews = (): SlotView[] => RAIL.filter((x) => inDash(x[0])).map(btnView);
+const dashPos = (s: number) => (s < 0 ? `right:${local(s) * PITCH}px` : `left:${s * PITCH}px`);
 export const topBtns = () => railViews('t');
 export function bottomBtns() {
   const b = railViews('b'), at = b.findIndex((v) => v.ref === 'btn:more');
@@ -262,6 +267,9 @@ const navOf = (v: SlotView, style: string) => {
   const span = spanOf(v.ref), cls = v.kind === 'btn' ? 'sv sb' : 'sets sv';
   return `<nav class="${cls}" data-kind="${v.kind}" data-ref="${v.ref}"${v.g ? ` data-g="${v.g}"` : ''}${span > 1 ? ` data-span="${span}"` : ''} style="${style}${span > 1 ? `;--span:${span}` : ''}" aria-label="${v.kind === 'btn' ? v.ref.slice(4) : v.kind}">${v.html}</nav>`;
 };
+export const dashHtml = (views: SlotView[]) => views.filter((v) => v.shown).map((v) => navOf(v, dashPos(DASH_AT[v.ref]))).join('');
+export const dashPicHtml = (fill: (v: SlotView) => string) => `<header id="dash" class="hr-dash"><div class="slots">${dashHtml(dashViews().map((v) => ({ ...v, shown: true, html: fill(v) })).filter((v) => v.html))}</div></header>`;
+
 export function slotHtml(views: SlotView[], at: Spots) {
   if (!cells) cells = Math.floor($('#switch').clientHeight / PITCH);
   const shown = views.filter((v) => v.shown && Number.isInteger(at[v.ref])), n = Math.max(cells, 1);
@@ -295,7 +303,7 @@ export function pullBtns(sw: HTMLElement) {
 }
 export function homeBtns(sw: HTMLElement) {
   for (const [ref, sel] of RAIL) {
-    const el = $<HTMLElement>(sel), at = sw.querySelector<HTMLElement>(`.sv[data-ref="${ref}"]`) || home();
+    const el = $<HTMLElement>(sel), at = sw.querySelector<HTMLElement>(`.sv[data-ref="${ref}"]`) || $<HTMLElement>('#dash').querySelector<HTMLElement>(`.sv[data-ref="${ref}"]`) || home();
     if (el.parentNode !== at) at.append(el);
   }
   placeFold(sw);

@@ -15,6 +15,7 @@ import { chatOn, pref } from '../base/prefs.ts';
 import { QAKEY, toggleQuickAgent } from '../chat/qagent.ts';
 import { PROG, QKEYS, toggleQuick } from '../terminal/qterm.ts';
 import { toggleBottomBar } from '../base/bottombar.ts';
+import { toggleDash } from './topdash.ts';
 import { toggleUe, UEKEY, UEWINKEY, ueKey } from '../ue/ue.ts';
 import { breakpointKey, debugKey } from '../debug/debug.ts';
 import { toggleEvery } from './every.ts';
@@ -106,7 +107,7 @@ function topGroups(all = false): any[][] {
     bk('noteKey', 'a chat: its note, show / hide'),
     bk('clearKey', 'a chat: clear it (asks first)'),
     bk('find', 'a chat: find in its box or in the whole chat (again: the other); settings: find a setting'),
-    bk('newAgentKey', "a new chat like the rail's new agent button"), bk('newChatN', `agents, orchestration and the editor: a new chat (${CHATS.map(([k, name], i) => [k, `${i + 1} ${name}`]).filter(([k]) => chatOn(k)).map(([, t]) => t).join(', ')})`),
+    bk('newAgentKey', "a new chat like the dashboard's new agent button"), bk('newChatN', `agents, orchestration and the editor: a new chat (${CHATS.map(([k, name], i) => [k, `${i + 1} ${name}`]).filter(([k]) => chatOn(k)).map(([, t]) => t).join(', ')})`),
     bk('fireGo', "research's box: send it and go with it"),
   ]];
   return [modes, deck];
@@ -123,7 +124,7 @@ function editorGroups(all = false): any[][] {
     ['organize', [bk('up', 'up: the projects of this workspace', goUp)]],
     ['tabs', [bk('split', 'split: a new group on the right', () => split()), bk('closeTab', 'close the tab', closeActive), bk('headerSwitch', 'C and C++: open the other half (Foo.h ↔ Foo.cpp)', openCounterpart), bk('reopen', 'bring the closed tab back', reopen), bk('refreshBrowser', 'refresh the browser tab', () => browserInView()?.reload()), bk('tabN', 'tab 1 to 9 of the group'), bk('tabPrev', 'the tab before'), bk('tabNext', 'the tab after'), bk('grpPrev', 'the group before'), bk('grpNext', 'the group after')]],
     ['explorer, list and tabs', [['tab', 'onto the explorer, the list or a tab strip'], ['↑ ↓', 'the row before / after'], ['→ ←', 'unfold / fold a folder, or into it / up to its parent'], ['← →', 'on a tab strip: show the tab before / after'], ['home end', 'the first / last'], ['enter', 'open the row'], ['f2', 'a file or folder: rename it'], ['del', 'a row: archive it, once asked (tick it: delete for good); a tab: close it'], ['shift f10', 'its right-click menu']]],
-    ['more', [...palKeys(), open, bk('search', 'search', search), bk('explorerKey', 'the explorer: show / hide', () => toggleIndex()), bk('gitKey', 'source control: show / hide', () => toggleGit()), bk('pinsKey', 'the Pinned list: show / hide', pinsKey), foot, sett, win, bk('winEvery', 'keep this window when you switch projects, on / off', toggleEvery), bk('undo', 'undo the last thing you did (first it takes you there)', undo), bk('redo', 'redo (also ctrl y)', redo), bk('archive', 'archive what is open', del), bk('save', 'save now', flushNow), bk('sheet', 'this sheet'), ['esc', 'one step back']]],
+    ['more', [...palKeys(), open, bk('search', 'search', search), bk('explorerKey', 'the explorer: show / hide', () => toggleIndex()), bk('gitKey', 'source control: show / hide', () => toggleGit()), bk('pinsKey', 'the Pinned list: show / hide', pinsKey), foot, bk('dashKey', 'the dashboard: hide / show', () => toggleDash()), sett, win, bk('winEvery', 'keep this window when you switch projects, on / off', toggleEvery), bk('undo', 'undo the last thing you did (first it takes you there)', undo), bk('redo', 'redo (also ctrl y)', redo), bk('archive', 'archive what is open', del), bk('save', 'save now', flushNow), bk('sheet', 'this sheet'), ['esc', 'one step back']]],
   ];
 }
 const SUBS: [string, string, string[]][] = [['modes', 'Modes', ['modes']], ['agents', 'Agents and terminals', ['in agents and terminals']], ['write', 'Write and quick', ['write', 'quick terminals']], ['tabs', 'Tabs', ['tabs', 'explorer, list and tabs']], ['more', 'More', ['organize', 'more']]];
@@ -241,6 +242,10 @@ document.addEventListener('keydown', (e) => {
   if (is(e, 'bottomBarKey') && !e.defaultPrevented && !document.activeElement?.closest?.('.xterm')) {
     e.preventDefault();
     return e.repeat || toggleBottomBar();
+  }
+  if (is(e, 'dashKey') && !e.defaultPrevented && !document.activeElement?.closest?.('.xterm')) {
+    e.preventDefault();
+    return e.repeat || toggleDash();
   }
   if (is(e, 'pinsKey') && !document.activeElement?.closest?.('.xterm')) {
     e.preventDefault();

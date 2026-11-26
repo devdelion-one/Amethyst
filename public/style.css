@@ -94,8 +94,14 @@ select option { background: var(--raised); color: var(--text); }
 .box > .x:hover { color: var(--text-strong); background: var(--hover); }
 .float { background: var(--raised); box-shadow: var(--float); border: 0; }
 
-#app { height: 100vh; height: 100dvh; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: var(--gap); padding: 0; background: var(--ground); overflow-x: clip; }
+#app { height: 100vh; height: 100dvh; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: var(--gap); padding: 0; background: var(--ground); overflow-x: clip; }
 #shell { position: relative; display: flex; gap: var(--gap); min-height: 0; }
+#dash { position: relative; height: 32px; min-width: 0; border-radius: var(--r-panel); background: var(--bar); }
+#dash[hidden], #app.nodash > #dash { display: none; }
+#dash > .slots { position: absolute; inset: 0; }
+#dash .sv { position: absolute; top: 0; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; margin: 0; padding: 0; border-radius: 0; }
+#dash .sv > :is(button, a) { position: relative; display: grid; place-items: center; flex: none; width: 28px; min-height: 28px; height: 28px; padding: 0; border-radius: var(--r-sm); text-decoration: none; }
+.hr-pic #dash.hr-dash { width: 224px; }
 #main { position: relative; display: flex; flex: 1; min-width: 0; min-height: 0; }
 body.resizing-x, body.resizing-x * { cursor: col-resize !important; user-select: none; }
 body.resizing-y, body.resizing-y * { cursor: row-resize !important; user-select: none; }
@@ -1155,7 +1161,9 @@ button[data-qk].on { background: color-mix(in srgb, var(--accent) 18%, transpare
 .am-t { display: flex; flex: 1; flex-direction: column; align-items: flex-start; min-width: 0; line-height: 1.3; text-align: left; }
 .am-d { overflow: hidden; color: var(--text-dim); font-size: var(--fs-xs); text-overflow: ellipsis; }
 .tray { display: flex; align-items: center; gap: 4px; }
-#app.nostatus { grid-template-rows: minmax(0, 1fr); }
+#app.nostatus { grid-template-rows: auto minmax(0, 1fr); }
+#app.nodash { grid-template-rows: minmax(0, 1fr) auto; }
+#app.nodash.nostatus { grid-template-rows: minmax(0, 1fr); }
 #app.nostatus > #status { display: none; }
 #app.nostatus > #shell { border-bottom: 1px solid var(--line); }
 #notices { position: fixed; z-index: 50; right: 16px; bottom: 56px; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
@@ -4444,7 +4452,7 @@ body.qt-pop { overflow: hidden; background: var(--raised); }
 #pagewin [data-rs="nw"], .qtwin [data-rs="nw"] { top: 0; left: 0; cursor: nwse-resize; }
 #pagewin [data-rs="se"], .qtwin [data-rs="se"] { bottom: 0; right: 0; cursor: nwse-resize; }
 
-.xwin #activity, .xwin #side, .xwin #status, .xwin #decks, .xwin #pins, .xwin #launch, .xwin #app #start, .xwin #wsx { display: none !important; }
+.xwin #dash, .xwin #activity, .xwin #side, .xwin #status, .xwin #decks, .xwin #pins, .xwin #launch, .xwin #app #start, .xwin #wsx { display: none !important; }
 .xwin #app.ws #shell, .xwin #app.ws #main { display: flex; }
 .xwin #app.ws #main::before { content: 'no project open: Window 1 shows its tabs here once it goes into a project'; margin: auto; color: var(--text-faint); font-size: var(--fs-sm); }
 .xsolo .grp > :first-child { display: none !important; }

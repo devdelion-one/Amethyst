@@ -62,7 +62,7 @@ function listPrefs(list: string): Record<string, Pref> {
   const { menu } = LISTS[list], k = (x: string) => listKey(list, x), at = { box: 'show', part: 'list', redraw: 'render' as const };
   return {
     [k('folders')]: { ...at, def: true, quiet: true, menu: [menu], label: 'Your folders', on: 'Your folders show in the list, with the chats you put in them.', off: 'No folders. Every chat shows under Live or All. Your folders are kept, and come back as they were.', desc: "A folder holds the chats you put in it, and folds shut. You make one with new folder in the list's right-click menu, and drag chats into it." },
-    [k('newBtn')]: { ...at, def: true, quiet: true, menu: [menu], label: 'New agent button at the top of the list', on: 'The button sits at the top of the list, where the first count was.', off: "The top of the list shows its count. The rail's new agent button still starts a chat.", desc: 'It starts a new chat with an agent, like the new agent button in the rail.' },
+    [k('newBtn')]: { ...at, def: true, quiet: true, menu: [menu], label: 'New agent button at the top of the list', on: 'The button sits at the top of the list, where the first count was.', off: "The top of the list shows its count. The dashboard's new agent button still starts a chat.", desc: 'It starts a new chat with an agent, like the new agent button in the dashboard.' },
     [k('look')]: { ...at, def: 'detailed', label: 'Look of the list', desc: "How much each chat shows in the list. The list's right-click menu has the same two picks.", choices: [
       ['calm', 'Calm', 'One line per chat: its state, its title, small subagent bars and your mark.'],
       ['detailed', 'Detailed', 'Each chat is a card with a top meta row, full-width title, fixed icon columns and a subagent tray underneath.'],
@@ -381,6 +381,7 @@ export const PREFS: Record<string, Pref> = {
     term: { label: 'Terminals button', on: 'The button is shown.', off: 'The button is hidden, except while you are in terminals.{modeTerm: Its key, %, still opens it.}' },
     research: { label: 'Research button', on: 'The button is shown.', off: 'The button is hidden, except while you are in research.{modeResearch: Its key, %, still opens it.}' },
   } },
+  'dash:on': { def: true, box: 'show', part: 'top', label: 'Dashboard at the top', on: 'The dashboard is shown above the windows.', off: 'The dashboard is hidden with the buttons in it.{dashKey: % shows it.}', desc: 'A row above the windows with the buttons you keep near the top, such as start agent.' },
   'switch:wkOn': { def: true, box: 'show', part: 'top', menu: 'modes', label: 'Working mark on the other mode buttons', item: 'working mark on the other mode buttons', on: 'The other mode buttons show the working mark in their corner while a chat or terminal in them works.', off: 'No working mark on the other mode buttons. The counts still show.', desc: 'The working mark in the corner of orchestration, agents, terminals and research, and of each of their set buttons, while a chat or terminal in it works. The counts show either way.', redraw: 'render' },
   edWork: { def: true, box: 'show', part: 'top', menu: 'modes', label: 'Working mark on the mode buttons', item: 'working mark on the editor buttons', on: 'Mode buttons show the working mark in their corner while a chat or terminal in them works.', off: 'No working mark on the mode buttons. The counts still show.', desc: "The working mark is the one picked in Settings, Agents. It sits in the bottom-right corner of a mode button while a chat or terminal in it works. On the editor buttons it means a chat in one of that layout's tabs is working. The counts in the top corner, such as 2 finished, show either way.", redraw: 'render' },
   'quick:pins': { def: [], quiet: true, items: [['folder', 'folder'], ['file', 'file'], ['md', '.md file'], ['txt', '.txt file'], ['board', 'board'], ['term', 'terminal'], ['browser', 'browser'], ['project', 'project'], ['clone', 'project from git']], on: 'Pinned under new in the rail.', off: 'Not pinned.', tips: {
@@ -452,6 +453,7 @@ export const PLACES: Record<string, [string, string, string]> = {
   terms: ['Terminals mode', 'Terminals mode', "the list beside your terminals, from Terminals mode's button in the rail"],
   marks: ['every chat', 'Everywhere a chat shows', 'the agents list, every chat header and orchestration'],
   ctrlp: ['ctrl p', 'Ctrl p', 'the box that finds files, commands and chats'],
+  dash: ['the dashboard', 'The dashboard', 'the row above the windows. Only Window 1 has one.{dashKey: % shows or hides it.}'],
   top: ['the left rail', 'The left rail', 'down the left edge of the main window. Only Window 1 has one'],
   make: ['new and its pins', 'New and its pins', "in the rail, with every button new can pin under it. Dashed ones aren't pinned"],
   edbtn: ['the editor buttons', 'The editor buttons', 'the editor button and each layout button, in the rail'],

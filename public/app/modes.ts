@@ -5,6 +5,7 @@ import { ask, barMenu, flyFocus, ICONS, keepMenu, keyChip, menuHead, modeOrder, 
 import { addSet, freeCell, setsHolding, agentLine, createDeck, dropSet, inCells, markSet, moveAway, moveSet, moveSetChats, cellsOf, chatsFromOrch, setChatsToOrch, nextColor, nextSet, orderHex, putInSet, restoreSet, swapInSet, setAgents, setAway, setColor, setInfo, setInfos, setOf, setOn, sets, setsMenu, setTurn, shareDeck, showSet, takeHere, toOrch } from '../decks/deck.ts';
 import { aim, bottomBtns, freeAt, freeNear, homeBtns, moveRef, pinDropIn, placeAll, pullBtns, railSpots, slotDrag, slotHtml, topBtns, watchFold, watchSlots } from './slots.ts';
 import type { SlotView } from './slots.ts';
+import { paintDash } from './topdash.ts';
 import type { MoveHow } from '../decks/deck.ts';
 import { agentHead, headClick, reportMenu } from './chathead.ts';
 import type { HeadCan } from './chathead.ts';
@@ -222,6 +223,7 @@ export function renderModes() {
 
 export function paintSwitch() {
   paintHere();
+  paintDash();
   const sw = $('#switch');
   sw.hidden = atLaunch();
   if (sw.hidden) return;
@@ -359,7 +361,8 @@ export async function chatTo(id: string, to: any, how: MoveHow) {
 }
 export const agentTab = (program: string) => newOfType(chatTabOf(program), activeGroup());
 export function addAgent(kind = 'chat', b = $('#btn-newchat'), program = '', at?: [number, number], place = 'top') {
-  const r = b?.offsetWidth ? b.getBoundingClientRect() : null, x = at ? at[0] : r ? r.right + 6 : 40, y = at ? at[1] : r?.top ?? 24;
+  const r = b?.offsetWidth ? b.getBoundingClientRect() : null, under = !!b?.closest('#dash');
+  const x = at ? at[0] : r ? (under ? r.left : r.right + 6) : 40, y = at ? at[1] : r ? (under ? r.bottom + 6 : r.top) : 24;
   if (kind === 'chat' && mode() === 'editor' && !atWs()) {
     if (program) return agentTab(program);
     return launchAgent(place, x, y, agentTab);

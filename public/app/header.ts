@@ -379,8 +379,7 @@ export const ncInner = () => gem('ai');
 const ncTip = () => {
   const on = chatsOn(), k = pinOf('top');
   const one = on.length === 1 ? on[0][1] : k ? agentName(k) : '';
-  const move = 'Hold and drag it to another cell of the rail.';
-  nc.title = `New agent\nStarts a new chat with ${one || 'the agent you pick'}: a tab in the editor, a window in agents, a chat in orchestration.${on.length > 1 || move ? '\n' : ''}${on.length > 1 ? '\nRight-click to pick another agent, or to pin one.' : ''}${move ? `\n${move}` : ''}`;
+  nc.title = `New agent\nStarts a new chat with ${one || 'the agent you pick'}: a tab in the editor, a window in agents, a chat in orchestration.${on.length > 1 ? '\n\nRight-click to pick another agent, or to pin one.' : ''}`;
   nc.setAttribute('aria-label', one ? `a new ${one} chat` : 'a new agent chat');
 };
 const ncPaint = () => {
