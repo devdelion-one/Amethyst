@@ -1658,7 +1658,7 @@ body.fg-toast { margin: 0; overflow: hidden; background: var(--raised); user-sel
 #status > :is(#ws-all, #btn-settings, #btn-keys) .ic { width: 14px; height: 14px; }
 .dock-sep { flex: none; width: 1px; height: 18px; background: var(--line); }
 .dock-sep[data-dk] { width: 9px; margin: 0 -4px; background: linear-gradient(var(--line), var(--line)) center / 1px 100% no-repeat; cursor: grab; }
-#status > :is(#ws-all, #btn-settings):hover { background: var(--hover); color: var(--text-strong); }
+#status > :is(#ws-all, #btn-settings, #btn-keys):hover { background: var(--hover); color: var(--text-strong); }
 #status > :is(#ws-all, #btn-settings).on { border-color: color-mix(in srgb, var(--accent) 60%, transparent); background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
 #ws-btn { flex: none; display: flex; align-items: stretch; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--raised); }
 #ws-btn[hidden] { display: none; }
@@ -4546,7 +4546,8 @@ body:has(> .img-view) :is(#colormenu, #tip) { z-index: 110; }
 .pj-tab, .pj-more { border-color: transparent; background: none; }
 #ws-btn, #status > #ws-all { border-color: transparent; background: none; }
 #status > #btn-settings { margin-right: calc((var(--act-w) - 24px) / 2 - var(--s3)); border-color: transparent; background: none; }
-.pj-tab:hover, .pj-more:hover, #status > :is(#ws-all, #btn-settings):hover { border-color: transparent; background: color-mix(in srgb, var(--text) 16%, transparent); }
+#status > :is(#ws-all, #btn-settings, #btn-keys):hover { border-color: transparent; background: var(--hover); }
+.pj-tab:hover, .pj-more:hover { border-color: transparent; background: color-mix(in srgb, var(--text) 16%, transparent); }
 .md-n, .pj-n, .dk-st, #btn-timer, .sc-x, .fg-time { font-family: var(--mono); }
 .md-n, .pj-n { font-weight: 600; }
 #side > .bt, #wsx .bt, #pins > .bt { font: var(--label-weight) var(--label-size) var(--label-font); letter-spacing: var(--label-track); text-transform: uppercase; }
