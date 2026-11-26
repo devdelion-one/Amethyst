@@ -43,6 +43,7 @@ import type { Live } from './server/base/live.ts';
 import { exists, isDir, replace, WIN } from './server/base/util.ts';
 import { asUser, gate, isUser } from './server/base/user.ts';
 import * as runs from './server/base/runs.ts';
+import * as remote from './server/remote/remote.ts';
 import * as agentfiles from './server/base/agentfiles.ts';
 
 type Root = ReturnType<typeof openRoot> & { ROOT: string };
@@ -1156,7 +1157,7 @@ function readBody(req: IncomingMessage) {
   });
 }
 
-const APP_TABLES = [APP_ROUTES, clips.ROUTES, welcome.ROUTES, runs.ROUTES];
+const APP_TABLES = [APP_ROUTES, clips.ROUTES, welcome.ROUTES, runs.ROUTES, remote.ROUTES];
 const PART_TABLES = [agents.ROUTES, drive.ROUTES, workers.ROUTES, terms.ROUTES, live.ROUTES, git.ROUTES, github.ROUTES, setup.ROUTES, ue.ROUTES, debug.ROUTES, voice.ROUTES, dictate.ROUTES, usage.ROUTES];
 const routeIn = (tables: Routes[], key: string): RouteHandler | undefined => tables.find((t) => t[key])?.[key];
 if (args.includes('--routes')) {
@@ -1165,14 +1166,15 @@ if (args.includes('--routes')) {
   process.exit(0);
 }
 
-const serve = async (req: IncomingMessage, res: ServerResponse) => {
+const serve = async (req: IncomingMessage, res: ServerResponse, via?: remote.Via) => {
   try {
     const host = (req.headers.host || '').replace(/:\d+$/, '');
-    if (!['localhost', '127.0.0.1', '[::1]'].includes(host)) throw new HttpError(403, 'forbidden host');
+    if (!via && !['localhost', '127.0.0.1', '[::1]'].includes(host)) throw new HttpError(403, 'forbidden host');
     const url = new URL(req.url!, 'http://localhost');
     if (!url.pathname.startsWith('/api/')) return await serveStatic(url.pathname, req, res);
     const key = `${req.method} ${url.pathname}`;
-    const user = gate.allow(req.headers, OPEN.has(key));
+    if (via && !(via.phone && remote.allows(key))) throw new HttpError(403, 'Not available from the phone.');
+    const user = via ? true : gate.allow(req.headers, OPEN.has(key));
     if (key !== 'GET /api/stream' && key !== 'POST /api/chats/wait') inFlight(key, res);
     if (req.method === 'GET' && url.pathname === '/api/stream') return live.stream(url.searchParams.get('c'), req, res);
     let handler = routeIn(APP_TABLES, key), extra: any = null, root = HOME_ROOT, pid = '';
@@ -1196,6 +1198,7 @@ const serve = async (req: IncomingMessage, res: ServerResponse) => {
       if (!String(req.headers['content-type'] || '').startsWith('application/json')) throw new HttpError(415, 'json only');
       body = await readBody(req);
     }
+    if (via && key === 'POST /api/stream') remote.followOk(body);
     await root.fresh();
     let out;
     const hungUp = new AbortController();
@@ -1216,7 +1219,7 @@ const serve = async (req: IncomingMessage, res: ServerResponse) => {
     send(res, status, { error: (e as Error).message, ...(detail && { detail }), ...(fix && { fix }), ...(bug && { bug }) });
   }
 };
-const server = http.createServer(serve), server6 = http.createServer(serve);
+const server = http.createServer((req, res) => serve(req, res)), server6 = http.createServer((req, res) => serve(req, res));
 
 const URL_ = `http://localhost:${PORT}`;
 
@@ -1272,6 +1275,7 @@ server.listen(PORT, '127.0.0.1', () => void both().then(() => {
   console.log(`Amethyst     ${URL_}/app\nhome         ${WS_DIR}\nprojects     ${HOME_ROOT.meta.projects.map((p: Project) => p.path).join(', ')}\nworkspaces   ${wsList().filter((w) => w.id !== HOME).map((w) => w.path).join(', ') || '(none)'}`);
   listening = true;
   tellUp();
+  remote.init(APP_DATA, serve);
   setTimeout(agents.warmUp, 2000).unref();
   setTimeout(agents.slimOld, Number(process.env.MIND_SLIM_AFTER) || 10e3).unref();
   if (OWN_DATA) {

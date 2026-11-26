@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Amethyst</title>
+  <meta name="theme-color" content="#18181b">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <style>
+    html, body { margin: 0; height: 100%; background: #1c1c20; color: #e6e6ea; font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    main { min-height: 100%; display: grid; place-items: center; padding: 24px; box-sizing: border-box; }
+    .card { max-width: 320px; text-align: center; background: #232328; border: 1px solid #34343b; border-radius: 12px; padding: 28px 22px; }
+    .ic { width: 40px; height: 40px; margin: 0 auto 14px; border-radius: 10px; background: #2d2d33; display: grid; place-items: center; }
+    .ic svg { width: 20px; height: 20px; fill: none; stroke: #b9a4ff; stroke-width: 1.6; }
+    h1 { font-size: 17px; margin: 0 0 8px; }
+    p { margin: 0 0 10px; color: #a9a9b2; }
+    #msg:empty { display: none; }
+    #msg { color: #ff8a8a; }
+  </style>
+</head>
+<body>
+<main>
+  <div class="card">
+    <div class="ic"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="5.5" y="2" width="9" height="16" rx="2"/><path d="M9 15h2"/></svg></div>
+    <h1>Phone remote control</h1>
+    <p>Scan the code in Amethyst: Settings, General, Phone remote control.</p>
+    <p id="msg" role="status"></p>
+  </div>
+</main>
+<script type="module" src="/phone/pair.ts"></script>
+</body>
+</html>

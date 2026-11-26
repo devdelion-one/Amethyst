@@ -8,10 +8,11 @@ import { pref } from '../base/prefs.ts';
 import { esc, setSave } from '../base/util.ts';
 import { resetSteps, setStepsText, stepsChanged, stepsShown, stepsText } from './header.ts';
 import { dockPic, forgetHtml } from './setdock.ts';
+import { phoneClick, phoneMore, phoneRows } from './setphone.ts';
 import { addPart, box, mark, pic, rowHtml } from './setstd.ts';
 import type { At, Row } from './setstd.ts';
 
-export const GEN_LEAD = "Closing and starting, don't forget's reminders, the timer, the welcome page and the tutorial.";
+export const GEN_LEAD = "Closing and starting, don't forget's reminders, the timer, the welcome page, the tutorial and phone remote control.";
 
 const DESKTOP = window.amethyst?.desktop ? window.amethyst : null;
 const and = (w: string[]) => (w.length > 1 ? `${w.slice(0, -1).join(', ')} and ${w.at(-1)}` : w[0] || '');
@@ -135,7 +136,7 @@ function example(a: At) {
   return '';
 }
 
-addPart({ rows: () => [...closeRows(), ...forgetRowsOf(), timerRow(), ...welcomeRows()], sel, look: () => '', example, home: 'general' });
+addPart({ rows: () => [...closeRows(), ...forgetRowsOf(), timerRow(), ...welcomeRows(), ...phoneRows()], sel, look: () => '', example, home: 'general' });
 
 const rows = (list: Row[]) => list.map(rowHtml).join('');
 export function genHtml() {
@@ -143,10 +144,12 @@ export function genHtml() {
   return (close.length ? box('gclose', 'Closing and starting', rows(close), 'Only in the desktop app.') : '') +
     box('gforget', "Don't forget's reminders", rows(forgetRowsOf())) +
     box('gtimer', 'Timer', rows([timerRow()])) +
-    box('gwelcome', 'Welcome page and tutorial', rows(welcomeRows()));
+    box('gwelcome', 'Welcome page and tutorial', rows(welcomeRows())) +
+    box('gphone', 'Phone remote control', rows(phoneRows()) + phoneMore());
 }
 
 export function genClick(t: Element): boolean {
+  if (phoneClick(t)) return true;
   const b = t.closest<HTMLElement>('[data-welcome-open], [data-tour-open]');
   if (!b) return false;
   if (b.matches('[data-welcome-open]')) openWelcome();

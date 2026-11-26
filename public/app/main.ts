@@ -15,6 +15,7 @@ import './runask.ts';
 import '../welcome/welcome.ts';
 import '../report/report.ts';
 import '../chatnote/chatnote.ts';
+import '../phone/phone.ts';
 import { openDash } from '../dash/dash.ts';
 import { copyItems, pasteItems, removeAsked, selectDir, selectInbox, setSolo, togglePin } from './actions.ts';
 import { closeEditorNow, flushNow, openMoved, openThought, renderEditorMeta } from '../editor/editor.ts';

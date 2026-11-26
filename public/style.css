@@ -5403,3 +5403,50 @@ body.dbg-pop #dbg .dgrip { display: none; }
 :root:not(.accent-newbtn) :is(#btn-newchat, .pn-nc, .oc-gh > .oc-new) { border-color: color-mix(in srgb, var(--text) 30%, transparent); background: color-mix(in srgb, var(--text) 14%, transparent); color: var(--text-strong); }
 :root:not(.accent-newbtn) :is(#btn-newchat, .pn-nc, .oc-gh > .oc-new):hover { border-color: color-mix(in srgb, var(--text) 50%, transparent); background: color-mix(in srgb, var(--text) 22%, transparent); color: var(--text-strong); }
 :root:not(.accent-newbtn) :is(#btn-newchat, .pn-nc, .oc-gh > .oc-new) .gem { color: var(--text-strong); }
+
+html.phone, html.phone body { overflow: hidden; height: 100%; }
+html.phone #app, html.phone #winbar { visibility: hidden; }
+#phone { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; background: var(--chrome); color: var(--text); font-family: var(--font); }
+#phone .ph-top { flex: none; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 12px 14px 8px; }
+#phone .ph-ws { height: 28px; padding: 0 2px; background: none; border: 0; color: var(--text-dim); font: inherit; font-size: var(--fs-sm); }
+#phone .ph-dd { display: flex; align-items: center; gap: 6px; height: 44px; padding: 0 10px 0 2px; background: none; border: 0; color: var(--text-strong); font: inherit; font-size: var(--fs-2xl); font-weight: 600; }
+#phone .ph-chev { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; opacity: .7; }
+#phone .ph-list { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 10px 16px; }
+#phone .ph-list .oc-row { min-height: 44px; }
+#phone .ph-list .oc-gh .oc-new { width: 44px; height: 36px; }
+#phone .ph-pj { display: inline-flex; align-items: center; gap: 4px; margin-left: 2px; font-size: var(--fs-xs); color: var(--text-dim); }
+#phone .ph-pj .pjm { width: 13px; height: 10px; }
+#phone .ph-head { position: fixed; left: 0; right: 0; top: 0; height: 56px; z-index: 52; display: flex; align-items: center; gap: 8px; padding: 0 12px; background: var(--chrome); border-bottom: 1px solid var(--line); }
+#phone .ph-back { flex: none; width: 44px; height: 44px; display: grid; place-items: center; background: none; border: 0; border-radius: var(--r-sm); color: var(--text); }
+#phone .ph-back svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+#phone .ph-tt { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+#phone .ph-tt b { font-size: var(--fs-sm); color: var(--text-strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#phone .ph-tt span { font-size: var(--fs-xs); color: var(--text-dim); }
+#phone .ph-strip { flex: none; position: relative; z-index: 53; padding: 10px 14px; background: var(--raised); border-bottom: 1px solid var(--line); font-size: var(--fs-sm); }
+#phone .ph-strip[data-kind="lost"] { color: var(--warn); }
+#phone .ph-alert { display: block; width: 100%; min-height: 44px; text-align: left; background: none; border: 0; padding: 0; color: var(--text); font: inherit; }
+#phone .ph-alert b { color: var(--danger); }
+html.phone.ph-in #phone .ph-top, html.phone.ph-in #phone .ph-list { display: none; }
+html.phone.ph-in #phone { background: transparent; pointer-events: none; }
+html.phone.ph-in #phone .ph-head, html.phone.ph-in #phone .ph-strip { pointer-events: auto; }
+html.phone.ph-in #phone .ph-strip { position: fixed; left: 0; right: 0; top: 56px; }
+html.phone.ph-in.ph-strip-on .oc-main { top: 100px; }
+html.phone.ph-in .oc-main { visibility: visible; position: fixed; left: 0; right: 0; top: 56px; bottom: 0; width: auto !important; height: auto !important; z-index: 51; background: var(--bg); border-radius: 0; }
+html.phone.ph-in .oc-main .oc-bar, html.phone .oc-done { display: none; }
+html.phone .ch-lv, html.phone .ch-tg, html.phone .ch-wt, html.phone .ch-mic { display: none !important; }
+#colormenu.ph-menu .mi { min-height: 44px; font-size: var(--fs-lg); }
+.sp-body { display: flex; flex-direction: column; gap: var(--s3); margin-top: var(--s2); padding: 0 var(--s3) var(--s2); }
+.sp-pair { display: flex; gap: var(--s4); align-items: center; padding: var(--s3); background: var(--raised); border-radius: var(--r-md); }
+.sp-qr { flex: none; width: 152px; height: 152px; padding: 6px; background: #fff; border-radius: var(--r-sm); }
+.sp-qr svg { display: block; width: 100%; height: 100%; }
+.sp-info { display: flex; flex-direction: column; gap: var(--s2); min-width: 0; }
+.sp-info b { color: var(--text-strong); font-size: var(--fs-md); }
+.sp-addr { font-family: var(--mono); font-size: var(--fs-sm); color: var(--text-strong); background: var(--bg); padding: 3px 8px; border-radius: var(--r-sm); align-self: flex-start; }
+.sp-exp { color: var(--text-dim); font-size: var(--fs-sm); }
+.sp-phones { display: flex; flex-direction: column; gap: var(--s1); }
+.sp-hd { color: var(--text-faint); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .06em; }
+.sp-phone { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); padding: var(--s2) var(--s3); background: var(--raised); border-radius: var(--r-sm); }
+.sp-who { display: flex; flex-direction: column; min-width: 0; }
+.sp-who b { color: var(--text-strong); font-size: var(--fs-sm); }
+.sp-who span { color: var(--text-dim); font-size: var(--fs-xs); }
+.sp-all { align-self: flex-end; color: var(--danger); }
