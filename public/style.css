@@ -2895,7 +2895,7 @@ span.uw-wake { display: block; background: none; }
 .set-grp > .bt { display: flex; align-items: center; gap: 10px; margin: 0 0 6px; padding: 0; color: var(--text-strong); font: 600 var(--fs-sm)/1.25 var(--font-display); letter-spacing: 0; text-transform: none; }
 .set-grp > .bt::first-letter { text-transform: uppercase; }
 .set-grp > .bt::after { content: ""; flex: 1; height: 1px; background: var(--line); }
-.set-row { display: grid; grid-template-columns: minmax(0, 1fr) 24px minmax(0, max-content); gap: var(--s3); align-items: center; min-height: 44px; padding: 9px 10px 9px 12px; border-top: 0; border-left: 2px solid transparent; border-radius: 0 var(--r-sm) var(--r-sm) 0; }
+.set-row { display: grid; grid-template-columns: minmax(min(160px, 40%), 1fr) 24px minmax(0, max-content); gap: var(--s3); align-items: center; min-height: 44px; padding: 9px 10px 9px 12px; border-top: 0; border-left: 2px solid transparent; border-radius: 0 var(--r-sm) var(--r-sm) 0; }
 .set-row:hover { background: none; }
 .set-row.set-under { padding-left: 34px; border-top-color: transparent; }
 .set-row.set-off { opacity: .5; }
@@ -2934,9 +2934,9 @@ span.uw-wake { display: block; background: none; }
 .sr-rs { display: grid; place-items: center; min-height: 0; padding: 0; border: 0; border-radius: var(--r-sm); background: none; color: var(--accent); font-size: var(--fs-md); visibility: hidden; }
 .sr-rs.on { visibility: visible; }
 .sr-rs:hover { background: var(--hover); }
-.set-row.wide { grid-template-columns: minmax(0, 1fr) 24px; }
-.set-row.wide > .set-opts { grid-column: 1 / -1; justify-content: flex-start; max-width: none; }
-.set-row.set-pills > .set-opts { max-width: 460px; }
+.set-row:is(.wide, .set-pills) { grid-template-columns: minmax(0, 1fr) 24px; }
+.set-row:is(.wide, .set-pills) > .set-opts { grid-column: 1 / -1; justify-content: flex-start; max-width: none; }
+.set-row.set-pills .pills { justify-content: flex-start; }
 .set-adv { display: none !important; }
 .set-grp.adv-open .set-adv:not(.set-miss), #settings.set-all .set-adv:not(.set-miss) { display: grid !important; }
 .set-more { display: block; width: 100%; min-height: 0; padding: 6px 14px; border: 0; border-top: 1px solid var(--line); border-radius: 0 0 var(--r-panel) var(--r-panel); background: none; color: var(--text-dim); font-size: var(--fs-sm); text-align: left; }

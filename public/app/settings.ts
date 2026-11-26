@@ -56,7 +56,16 @@ const win = $('#setwin');
 const rail = $('#set-rail');
 const railBtn = $('#set-rail-btn');
 const swBody = $('#setwin .sw-body');
-let railOn = store.get('settings:rail', true) !== false;
+const swBox = swBody.parentElement as HTMLElement;
+const tight = () => (swBox.clientWidth || Math.min(1100, innerWidth - 128)) < 1080;
+const railKey = () => (tight() ? 'settings:rail-narrow' : 'settings:rail');
+const railOn = () => (tight() ? store.get(railKey(), false) === true : store.get(railKey(), true) !== false);
+let wasTight = tight();
+new ResizeObserver(() => {
+  if (tight() === wasTight) return;
+  wasTight = tight();
+  if (!win.hidden) renderSettings();
+}).observe(swBox);
 
 const chip = (on: unknown, attrs: string, inner: string, style = '') => `<button class="chip ${on ? 'on' : ''}" ${attrs}${style ? ` style="${esc(style)}"` : ''}>${inner}</button>`;
 const seg = (chips: string) => `<span class="seg">${chips}</span>`;
@@ -433,7 +442,7 @@ function pillTip(e: Pref, label: string, hid: boolean) {
   return `${pillName(m ? m[1] : fn ? String(e.label(label)) : label)}: ${hid ? 'hidden' : 'shown'}\n${where ? cap(ended(where)) + ' ' : ''}Click to ${hid ? 'show' : 'hide'} it.`;
 }
 const choiceTip =(label: unknown, tip: unknown) => (!tip ? '' : String(tip).includes('\n') ? String(tip) : `${cap(String(label))}\n${cap(ended(String(tip)))}`);
-const descOf = (e: Pref) => e.desc ?? (e.choices ? e.tip || '' : Array.isArray(e.def) ? 'dashed = hidden' : e.on ? `${e.on}; off: ${e.off}` : e.off ? `off: ${e.off}` : '');
+const descOf = (e: Pref) => e.desc ?? (e.choices ? e.tip || '' : Array.isArray(e.def) ? 'Click a button below to hide or show it.' : e.on ? `${e.on}; off: ${e.off}` : e.off ? `off: ${e.off}` : '');
 function prefRow(key: string) {
   const e = PREFS[key], v = pref(key), at = `data-pref="${key}"`, name = nameOf(e);
   const o: RowOpts = { desc: descOf(e), rs: 'p:' + key, on: isChanged(key), attrs: ` data-row="${esc(key)}"`, cls: [e.under && 'set-under', e.under && !pref(e.under) && 'set-off', e.adv && 'set-adv'].filter(Boolean).join(' ') };
@@ -850,8 +859,7 @@ secs.addEventListener('click', (e: MouseEvent) => {
   if (b) openTab(b.dataset.setTab!);
 });
 railBtn.addEventListener('click', () => {
-  railOn = !railOn;
-  store.set('settings:rail', railOn);
+  store.set(railKey(), !railOn());
   renderSettings();
 });
 rail.addEventListener('click', (e: MouseEvent) => {
@@ -998,10 +1006,10 @@ export function renderSettings() {
   else if (cur === 'changed') applyChanged();
   const rs = el.querySelector('[data-rs-sec]');
   if (rs) rs.style.visibility = el.querySelector('.sr-rs.on[data-rs]') ? '' : 'hidden';
-  const rHtml = railHtml(el), hasRail = !!rHtml, showRail = hasRail && railOn;
+  const rHtml = railHtml(el), hasRail = !!rHtml, showRail = hasRail && railOn();
   railBtn.hidden = !hasRail;
-  railBtn.textContent = railOn ? 'Hide preview' : 'Show preview';
-  railBtn.classList.toggle('on', railOn);
+  railBtn.textContent = showRail ? 'Hide preview' : 'Show preview';
+  railBtn.classList.toggle('on', showRail);
   rail.hidden = !showRail;
   swBody.classList.toggle('has-rail', showRail);
   rail.innerHTML = showRail ? rHtml : '';
