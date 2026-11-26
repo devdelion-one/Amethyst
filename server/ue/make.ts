@@ -9,6 +9,7 @@ type Edit = { path: string; before: string; after: string };
 type Cursor = { line: number; col: number };
 
 const ID = /^[A-Za-z_][A-Za-z0-9_]*$/;
+const CTRL = /[\x00-\x1f\x7f]/;
 const HEADER: Record<string, string> = { AActor: 'ActorClass', APawn: 'PawnClass', ACharacter: 'CharacterClass', UActorComponent: 'ActorComponentClass', USceneComponent: 'ActorComponentClass' };
 const TYPES = ['Runtime', 'RuntimeNoCommandlet', 'RuntimeAndProgram', 'CookedOnly', 'UncookedOnly', 'Developer', 'DeveloperTool', 'Editor', 'EditorNoCommandlet', 'EditorAndProgram', 'Program', 'ServerOnly', 'ClientOnly', 'ClientOnlyNoCommandlet'];
 const PHASES = ['EarliestPossible', 'PostConfigInit', 'PostSplashScreen', 'PreEarlyLoadingScreen', 'PreLoadingScreen', 'PreDefault', 'Default', 'PostDefault', 'PostEngineInit', 'None'];
@@ -159,9 +160,39 @@ function mentions(cs: string, mod: string) {
   return code.includes(`"${mod}"`);
 }
 
-function addDependency(cs: string, mod: string) {
+function parseIdList(raw: unknown, label: string): string[] {
+  if (raw == null || raw === '') return [];
+  const items = Array.isArray(raw) ? raw : typeof raw === 'string' ? raw.split(',') : null;
+  if (!items) throw new HttpError(400, `${label} must be a list of module names`);
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const item of items) {
+    const rawStr = String(item ?? '');
+    if (CTRL.test(rawStr)) throw new HttpError(400, `${label} cannot contain control characters`);
+    const s = rawStr.trim();
+    if (!s) continue;
+    if (!ID.test(s)) throw new HttpError(400, `"${s}" isn't a valid module name: letters, digits and _, not starting with a digit`);
+    if (!seen.has(s)) {
+      seen.add(s);
+      out.push(s);
+    }
+  }
+  return out;
+}
+
+function cleanMeta(raw: unknown, label: string, max = 200): string | undefined {
+  if (raw == null) return undefined;
+  const s = String(raw);
+  if (CTRL.test(s)) throw new HttpError(400, `${label} cannot contain control characters`);
+  const trimmed = s.trim();
+  if (trimmed.length > max) throw new HttpError(400, `${label} is too long (max ${max} characters)`);
+  return trimmed;
+}
+
+function addDependency(cs: string, mod: string, scope: 'Public' | 'Private' = 'Public') {
+  const prop = scope === 'Private' ? 'PrivateDependencyModuleNames' : 'PublicDependencyModuleNames';
   const eol = eolOf(cs);
-  const re = /PublicDependencyModuleNames\s*\.\s*AddRange\s*\(\s*new\s+string\s*\[\s*\]\s*\{/g;
+  const re = new RegExp(`${prop}\\s*\\.\\s*AddRange\\s*\\(\\s*new\\s+string\\s*\\[\\s*\\]\\s*\\{`, 'g');
   for (let m; (m = re.exec(cs)); ) {
     if (/\/\/[^\n]*$/.test(cs.slice(cs.lastIndexOf('\n', m.index) + 1, m.index))) continue;
     const open = m.index + m[0].length - 1;
@@ -190,10 +221,19 @@ function addDependency(cs: string, mod: string) {
     }
     return cs.slice(0, lastEnd + 1) + `, "${mod}"` + cs.slice(lastEnd + 1);
   }
-  const one = /^([ \t]*)PublicDependencyModuleNames\s*\.\s*Add\s*\(\s*"[^"]*"\s*\)\s*;[^\n]*$/m.exec(cs);
+  const one = new RegExp(`^([ \\t]*)${prop}\\s*\\.\\s*Add\\s*\\(\\s*"[^"]*"\\s*\\)\\s*;[^\\n]*$`, 'm').exec(cs);
   if (one) {
     const end = one.index + one[0].length;
-    return cs.slice(0, end) + eol + one[1] + `PublicDependencyModuleNames.Add("${mod}");` + cs.slice(end);
+    return cs.slice(0, end) + eol + one[1] + `${prop}.Add("${mod}");` + cs.slice(end);
+  }
+  if (scope === 'Private') {
+    const pub = /^([ \t]*)PublicDependencyModuleNames\s*\.\s*Add(?:Range)?\s*\(/m.exec(cs);
+    if (pub) {
+      const semi = scan(cs, pub.index + pub[0].length - 1, (c, _, d) => c === ';' && d === 0);
+      if (semi >= 0) {
+        return cs.slice(0, semi + 1) + eol + eol + pub[1] + `PrivateDependencyModuleNames.AddRange(new string[] { "${mod}" });` + cs.slice(semi + 1);
+      }
+    }
   }
   return null;
 }
@@ -317,10 +357,18 @@ async function newModule(f: Found, root: string, b: any) {
   if (!ID.test(name)) throw new HttpError(400, `"${name}" isn't a C++ name: letters, digits and _, not starting with a digit`);
   if (!TYPES.includes(type)) throw new HttpError(400, `no module type ${type}`);
   if (!PHASES.includes(phase)) throw new HttpError(400, `no loading phase ${phase}`);
+  const extraPub = parseIdList(b.deps, 'deps');
+  const extraPriv = parseIdList(b['private-deps'] ?? b.privateDeps, 'private-deps');
+  const rawClass = b.class == null ? '' : String(b.class);
+  if (CTRL.test(rawClass)) throw new HttpError(400, 'class cannot contain control characters');
+  const clsIn = rawClass.trim();
+  if (clsIn && !ID.test(clsIn)) throw new HttpError(400, `"${clsIn}" isn't a C++ class name: letters, digits and _, not starting with a digit`);
+  const modClass = clsIn ? (/^F[A-Z_]/.test(clsIn) ? clsIn : 'F' + clsIn) : '';
   const plugins = await projectPlugins(projDir);
   const plugin = b.plugin ? plugins.find((p) => p.name === b.plugin) : null;
   if (b.plugin && !plugin) throw new HttpError(404, `no plugin ${b.plugin} in this project`);
   const base = path.join(plugin ? plugin.dir : projDir, 'Source', name);
+  if (!inside(projDir, base) || !inside(root, base)) throw new HttpError(400, 'module folder is outside the Unreal project');
   const owner = plugin ? plugin.file : f.path;
   const targets = plugin ? [] : (Array.isArray(b.targets) ? b.targets.map(String) : []).filter((t: string) => f.targets.some((x) => x.name === t));
   const ownerJson = JSON.parse((await fs.promises.readFile(owner, 'utf8')).replace(/^﻿/, '') || '{}');
@@ -334,9 +382,15 @@ async function newModule(f: Found, root: string, b: any) {
   const braw = await template(path.join(dir, 'GameModule.Build.cs.template')), hraw = await template(path.join(dir, 'GameModule.h.template'));
   const eol = eolOf(braw), copy = await copyright(projDir), keep = !!b.comments;
   const list = (xs: string[]) => xs.map((x) => `"${x}"`).join(', ');
-  const [bc] = finish(fields(braw.replace(/\r\n/g, '\n'), { MODULE_NAME: name, PUBLIC_DEPENDENCY_MODULE_NAMES: list(['Core', 'CoreUObject', 'Engine']), PRIVATE_DEPENDENCY_MODULE_NAMES: list(/^Editor/.test(type) ? ['UnrealEd'] : []) || ' ' }, copy), eol, keep, copy);
-  const [h] = finish(fields(hraw.replace(/\r\n/g, '\n'), { MODULE_NAME: name, PUBLIC_HEADER_INCLUDES: '' }, copy), eol, keep, copy);
-  const c = [...(copy ? [copy, ''] : []), `#include "${name}.h"`, '#include "Modules/ModuleManager.h"', '', `IMPLEMENT_MODULE(FDefaultModuleImpl, ${name});`, ''].join(eol);
+  const pubDeps = [...new Set(['Core', 'CoreUObject', 'Engine', ...extraPub])];
+  const privDeps = [...new Set([...(/^Editor/.test(type) ? ['UnrealEd'] : []), ...extraPriv])];
+  const [bc] = finish(fields(braw.replace(/\r\n/g, '\n'), { MODULE_NAME: name, PUBLIC_DEPENDENCY_MODULE_NAMES: list(pubDeps), PRIVATE_DEPENDENCY_MODULE_NAMES: list(privDeps) || ' ' }, copy), eol, keep, copy);
+  const h = modClass
+    ? [...(copy ? [copy, ''] : []), '#pragma once', '', '#include "CoreMinimal.h"', '#include "Modules/ModuleManager.h"', '', `class ${modClass} : public IModuleInterface`, '{', 'public:', '\tvirtual void StartupModule() override;', '\tvirtual void ShutdownModule() override;', '};', ''].join(eol)
+    : finish(fields(hraw.replace(/\r\n/g, '\n'), { MODULE_NAME: name, PUBLIC_HEADER_INCLUDES: '' }, copy), eol, keep, copy)[0];
+  const c = modClass
+    ? [...(copy ? [copy, ''] : []), `#include "${name}.h"`, '', `void ${modClass}::StartupModule()`, '{', '}', '', `void ${modClass}::ShutdownModule()`, '{', '}', '', `IMPLEMENT_MODULE(${modClass}, ${name});`, ''].join(eol)
+    : [...(copy ? [copy, ''] : []), `#include "${name}.h"`, '#include "Modules/ModuleManager.h"', '', `IMPLEMENT_MODULE(FDefaultModuleImpl, ${name});`, ''].join(eol);
   const edits: Edit[] = [];
   const o = await readEdit(owner, (t) => addToList(t, 'Modules', { Name: name, Type: type, LoadingPhase: phase }), root);
   if (o) edits.push(o);
@@ -376,9 +430,12 @@ async function newPlugin(f: Found, root: string, b: any) {
   const name = String(b.name || '').trim(), id = String(b.template || 'Blank');
   if (!name) throw new HttpError(400, 'type a name');
   if (!ID.test(name)) throw new HttpError(400, `"${name}" isn't a C++ name: letters, digits and _, not starting with a digit`);
+  const friendlyName = cleanMeta(b['friendly-name'] ?? b.friendlyName, 'friendly-name');
+  const category = cleanMeta(b.category, 'category');
   const all = await pluginTemplates(engine), t = all.find((x) => x.id === id);
   if (!t) throw new HttpError(404, `the engine has no plugin template ${id}`);
   const src = path.join(pluginBrowser(engine), 'Templates', id), dest = path.join(projDir, 'Plugins', name);
+  if (!inside(projDir, dest) || !inside(root, dest)) throw new HttpError(400, 'plugin folder is outside the Unreal project');
   const why = exists(dest) ? `Plugins/${name} is already there: nothing is overwritten` : '';
   const rel = (p: string) => slash(path.relative(root, p));
   const copies = (await filesOf(src)).filter((x) => !PLUGIN_SKIP.has(path.extname(x).slice(1).toLowerCase())).map((x) => {
@@ -397,7 +454,7 @@ async function newPlugin(f: Found, root: string, b: any) {
   const uproject = await fs.promises.readFile(f.path, 'utf8');
   const eol = eolOf(uproject);
   if (ownDesc) {
-    const desc = { FileVersion: 3, Version: 1, VersionName: '1.0', FriendlyName: name, Description: String(b.description || ''), Category: 'Other', CreatedBy: '', CreatedByURL: '', DocsURL: '', MarketplaceURL: '', SupportURL: '', CanContainContent: t.content, IsBetaVersion: false, IsExperimentalVersion: false, Installed: false, ...(t.modules ? { Modules: [{ Name: name, Type: t.type, LoadingPhase: t.phase }] } : {}) };
+    const desc = { FileVersion: 3, Version: 1, VersionName: '1.0', FriendlyName: friendlyName || name, Description: String(b.description || ''), Category: category || 'Other', CreatedBy: '', CreatedByURL: '', DocsURL: '', MarketplaceURL: '', SupportURL: '', CanContainContent: t.content, IsBetaVersion: false, IsExperimentalVersion: false, Installed: false, ...(t.modules ? { Modules: [{ Name: name, Type: t.type, LoadingPhase: t.phase }] } : {}) };
     files.push([upluginFile, JSON.stringify(desc, null, '\t').split('\n').join(eol)]);
   }
   if (needIcon) {
@@ -410,6 +467,13 @@ async function newPlugin(f: Found, root: string, b: any) {
     if (PLUGIN_TEXT.has(ext)) {
       let text = (await fs.promises.readFile(c.from, 'utf8')).split('PLUGIN_NAME').join(name);
       text = text.split(name + '_API').join(name.toUpperCase() + '_API');
+      if (ext === 'uplugin') {
+        const parsed = JSON.parse(text.replace(/^﻿/, ''));
+        if (friendlyName) parsed.FriendlyName = friendlyName;
+        if (category) parsed.Category = category;
+        if (b.description != null && String(b.description) !== '') parsed.Description = String(b.description);
+        text = JSON.stringify(parsed, null, '\t').split('\n').join(eolOf(text));
+      }
       files.push([c.to, text]);
     } else files.push([c.to, await fs.promises.readFile(c.from)]);
   }
@@ -421,6 +485,71 @@ async function newPlugin(f: Found, root: string, b: any) {
   await writeAll(root, files, edits, t.id === 'ContentOnly' ? [path.join(dest, 'Content')] : []);
   await names.forget(projDir);
   return { ...plan, edits };
+}
+
+async function addModuleDeps(f: Found, root: string, b: any) {
+  const projDir = path.dirname(f.path);
+  const rawMod = String(b.module ?? '');
+  if (CTRL.test(rawMod)) throw new HttpError(400, 'module name cannot contain control characters');
+  const modName = rawMod.trim();
+  if (!modName) throw new HttpError(400, 'give a module name');
+  if (!ID.test(modName)) throw new HttpError(400, `"${modName}" isn't a valid module name: letters, digits and _, not starting with a digit`);
+  const pubDeps = parseIdList(b.add, 'add');
+  const privDeps = parseIdList(b['private-add'] ?? b.privateAdd, 'private-add');
+  if (!pubDeps.length && !privDeps.length) throw new HttpError(400, 'give at least one dependency with --add or --private-add');
+  const rawPlugin = b.plugin == null ? '' : String(b.plugin);
+  if (CTRL.test(rawPlugin)) throw new HttpError(400, 'plugin name cannot contain control characters');
+  const pluginName = rawPlugin.trim();
+  if (pluginName && !ID.test(pluginName)) throw new HttpError(400, `"${pluginName}" isn't a valid plugin name: letters, digits and _, not starting with a digit`);
+  const plugins = await projectPlugins(projDir);
+  let buildFile = '';
+  if (pluginName) {
+    const p = plugins.find((x) => x.name === pluginName);
+    if (!p) throw new HttpError(404, `no plugin ${pluginName} in this project`);
+    const cand = path.join(p.dir, 'Source', modName, modName + '.Build.cs');
+    if (!exists(cand)) throw new HttpError(404, `no module ${modName} in plugin ${pluginName}`);
+    buildFile = cand;
+  } else {
+    const direct = path.join(projDir, 'Source', modName, modName + '.Build.cs');
+    if (exists(direct)) buildFile = direct;
+    else {
+      const hits = plugins.map((p) => path.join(p.dir, 'Source', modName, modName + '.Build.cs')).filter(exists);
+      if (hits.length > 1) throw new HttpError(409, `more than one plugin has a module named ${modName}: pass --plugin`);
+      if (hits.length === 1) buildFile = hits[0];
+    }
+  }
+  if (!buildFile) throw new HttpError(404, `no module ${modName} in this project`);
+  if (!inside(projDir, buildFile) || !inside(root, buildFile)) throw new HttpError(400, 'module is outside the Unreal project');
+  const rel = slash(guard(path.relative(root, buildFile)));
+  let text = await fs.promises.readFile(buildFile, 'utf8');
+  const before = text;
+  const added: string[] = [];
+  const skipped: string[] = [];
+  for (const dep of pubDeps) {
+    if (mentions(text, dep)) {
+      skipped.push(dep);
+      continue;
+    }
+    const next = addDependency(text, dep, 'Public');
+    if (next == null) throw new HttpError(400, `could not find PublicDependencyModuleNames in ${rel}`);
+    text = next;
+    added.push(dep);
+  }
+  for (const dep of privDeps) {
+    if (mentions(text, dep)) {
+      skipped.push(dep);
+      continue;
+    }
+    const next = addDependency(text, dep, 'Private');
+    if (next == null) throw new HttpError(400, `could not find PrivateDependencyModuleNames in ${rel}`);
+    text = next;
+    added.push(dep);
+  }
+  if (text !== before) {
+    await fs.promises.writeFile(buildFile, text);
+    await names.forget(projDir);
+  }
+  return { module: modName, file: rel, added, skipped };
 }
 
 async function create(f: Found, root: string, b: any) {
@@ -483,4 +612,4 @@ async function newProject(root: string, b: { name?: string; engine: { id: string
   return { name, engine: b.engine.id, made: [...files.map(([f]) => slash(path.relative(root, f))), 'Content/'] };
 }
 
-export { newProject, create, pluginTemplates, projectPlugins, addDependency, addToList, addTargetModule, TYPES, PHASES };
+export { newProject, create, addModuleDeps, pluginTemplates, projectPlugins, addDependency, addToList, addTargetModule, TYPES, PHASES };

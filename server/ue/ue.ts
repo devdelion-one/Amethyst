@@ -974,6 +974,17 @@ const CMD_ROUTES: Routes = {
     const name = kind === 'class' ? r.cls : r.name;
     return { ...r, text: [`made the ${kind} ${name}${r.plugin ? ` in the plugin ${r.plugin}` : ''}${kind === 'plugin' && r.enable ? `, enabled in ${r.owner}` : ''}:`, ...sayMade(r), 'Next: amethyst ue generate, then amethyst ue build.'].join('\n') };
   },
+  'POST /api/ue/cmd/deps': async (body, _, root: string | null) => {
+    const b = { ...(body || {}) };
+    const f = await find(root, b);
+    if (f.why && f.why !== 'no-targets') refuse(f);
+    const r = await make.addModuleDeps(f, root!, b);
+    const lines = [
+      r.added.length ? `added ${r.added.join(', ')} to ${r.file}` : `nothing added to ${r.file}`,
+      ...(r.skipped.length ? [`already present: ${r.skipped.join(', ')}`] : []),
+    ];
+    return { ...r, text: lines.join('\n') };
+  },
   'POST /api/ue/cmd/project': async (body, _, root: string | null) => {
     if (!root) throw new HttpError(400, 'run it inside the project folder it should fill');
     if (body?.cwd && !sameDir(path.resolve(String(body.cwd)), path.resolve(root))) throw new HttpError(400, `run it in the folder of an Amethyst project: ${body.cwd} isn't one, so nothing was made (add the folder as a project in Amethyst first)`);
