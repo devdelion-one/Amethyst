@@ -179,6 +179,7 @@ export function setTheme(name: string): string {
     tokens['on-accent'] = contrast(acc, '#ffffff') >= contrast(acc, dark) ? '#ffffff' : dark;
   }
   tokens.veil ??= tokens.ground;
+  tokens.winbar ??= mix(tokens.ground, tokens.accent, light ? 0.15 : 0.22);
   tokens.tray ??= tokens.ground;
   tokens.work ??= tokens.accent;
   tokens['done-tint'] ??= tokens.ok;
