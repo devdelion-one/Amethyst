@@ -1,4 +1,5 @@
 import { diffCount } from './chattext.ts';
+import { esc } from './util.ts';
 
 export interface Field {
   key: string;
@@ -12,6 +13,21 @@ export interface Field {
 
 const ASKS: Record<string, string> = { execute: 'Run this?', edit: 'Edit this?', delete: 'Delete this?', move: 'Move this?', fetch: 'Fetch this?', read: 'Read this?' };
 
+const CAP = 20000;
+
+export function inputText(raw: any): string {
+  const show = (v: unknown) => (typeof v === 'string' ? v : JSON.stringify(v, null, 2) ?? String(v));
+  const text = raw == null || raw === '' ? '' : typeof raw !== 'object' || Array.isArray(raw) ? show(raw) : Object.entries(raw).filter(([k, v]) => k !== 'description' && v !== undefined).map(([k, v]) => `${k}: ${show(v).replace(/\n/g, '\n  ')}`).join('\n');
+  return text.length > CAP ? `${text.slice(0, CAP)}\n… ${(text.length - CAP).toLocaleString('en-US')} more characters` : text;
+}
+
+const keyLine = (l: string) => {
+  const m = /^([^\s:][^:]*:)(.*)$/.exec(l);
+  return m ? `<span class="k">${esc(m[1])}</span>${esc(m[2])}` : esc(l);
+};
+
+export const inputHtml = (text = ''): string => (text ? `\n${text.split('\n').map(keyLine).join('\n')}` : '');
+
 export function askCard(ev: any, tool: any) {
   if (ev.form) return { id: ev.ask, form: { message: ev.form.message || '', schema: ev.form.schema || {} } };
   const tc = ev.toolCall || {}, d = { ...tool, ...tc };
@@ -21,8 +37,9 @@ export function askCard(ev: any, tool: any) {
     const [add, del] = diffCount(c);
     return { path: c.path, add, del, fresh: !c.oldText };
   });
+  const input = d.rawInput?.command || files.length ? '' : inputText(d.rawInput);
   const options = (ev.options || []).map(({ optionId, name, kind }: { optionId: string; name: string; kind?: string }) => ({ optionId, name, ...(kind ? { kind } : {}) }));
-  return { id: ev.ask, q: ASKS[d.kind] || 'Allow this?', why, what: String(what), files, options };
+  return { id: ev.ask, q: ASKS[d.kind] || 'Allow this?', why, what: String(what), input, files, options };
 }
 
 const choicesOf = (f: any): { const: unknown; title?: string; description?: string }[] | null => (f.type === 'boolean' ? [{ const: true, title: 'yes' }, { const: false, title: 'no' }] : f.oneOf || f.items?.anyOf || (f.enum || f.items?.enum)?.map((v: unknown) => ({ const: v, title: String(v) })) || null);

@@ -1,7 +1,7 @@
 import { icon } from '../base/icon.ts';
 import { api } from '../base/model.ts';
 import { esc, showErr } from '../base/util.ts';
-import { answersOf, askCard, fieldsOf, readyOf } from '../base/asks.ts';
+import { answersOf, askCard, fieldsOf, inputHtml, readyOf } from '../base/asks.ts';
 import type { Field } from '../base/asks.ts';
 import { tell } from '../base/notify.ts';
 import { bound, show } from '../base/binds.ts';
@@ -25,11 +25,11 @@ type CardsCtx = {
 export function createCards({ line, state, tools, asks, chat, backToEnd, input }: CardsCtx) {
   function ask(ev: AskEvent) {
     if (ev.form) return askForm(ev);
-    const tc = ev.toolCall || {}, t = tools.get(tc.toolCallId), { q, what, why } = askCard(ev, t?.data);
+    const tc = ev.toolCall || {}, t = tools.get(tc.toolCallId), { q, what, why, input: args } = askCard(ev, t?.data);
     const opts = ev.options.map((o: { kind: string; optionId: string; name: string }, i: number) => `<button type="button" class="${o.kind === 'allow_once' ? 'p' : ''}" data-opt="${esc(o.optionId)}"><span class="n">${i + 1}</span>${esc(o.name)}</button>`).join('');
     const holder = { diffs: (tc.content || []).filter((c: Part) => c.type === 'diff') };
     const files = holder.diffs.map((c: Part) => `<div class="ch-fileline"><span class="ch-file lk-chip lk lk-file" data-chopen="${esc(c.path)}">${icon('file')}${esc(c.path)}</span>${diffBtn(holder, c)}</div>`).join('');
-    const row = line('ch-ask', `<div class="ask-h"><span class="q">${q}</span>${why ? `<span class="why">${esc(why)}</span>` : ''}</div><pre class="ask-cmd">${esc(what)}</pre>${files}<div class="row">${opts}</div>`);
+    const row = line('ch-ask', `<div class="ask-h"><span class="q">${q}</span>${why ? `<span class="why">${esc(why)}</span>` : ''}</div><pre class="ask-cmd">${esc(what)}${inputHtml(args)}</pre>${files}<div class="row">${opts}</div>`);
     row.diffs = holder.diffs;
     row.dataset.ask = '';
     row.askId = ev.ask;

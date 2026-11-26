@@ -222,7 +222,7 @@ export interface State {
   dragging: string | null;
 }
 
-export type AskCard = { id: string; q: string; why: string; what: string; files: { path: string; add?: number; del?: number; fresh?: boolean }[]; options: { optionId: string; name: string; kind?: string }[]; form?: { message: string; schema: unknown } };
+export type AskCard = { id: string; q: string; why: string; what: string; input?: string; files: { path: string; add?: number; del?: number; fresh?: boolean }[]; options: { optionId: string; name: string; kind?: string }[]; form?: { message: string; schema: unknown } };
 export type SubSummary = { id: string; name: string; type?: string; status: string; now?: string; why?: string; start: number; end?: number };
 export interface AgentInfo {
   id: string;

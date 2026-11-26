@@ -1,4 +1,4 @@
-import { answersOf, fieldsOf, readyOf } from './asks.ts';
+import { answersOf, fieldsOf, inputHtml, readyOf } from './asks.ts';
 import { api } from './model.ts';
 import { tell } from './notify.ts';
 import { esc } from './util.ts';
@@ -15,7 +15,7 @@ const foot = (send: boolean) => `<div class="dk-afoot"><button type="button" cla
 function allowHtml(k: Ask) {
   const files = k.files.length ? `<div class="dk-afiles">${k.files.map((f) => `<div class="dk-afile"><span class="p">${esc(f.path)}</span><span class="df">${f.add ? `<b class="a">+${f.add}</b>` : ''}${f.del ? ` <b class="r">−${f.del}</b>` : ''}${f.fresh ? ' · new' : ''}</span></div>`).join('')}</div>` : '';
   const opts = k.options.map((o, i) => opt(i + 1, esc(o.name), `data-dk-opt="${esc(o.optionId)}"`, o.kind === 'allow_once' ? ' p' : '')).join('');
-  return `<div class="dk-aq">${esc(k.q)}${k.why ? `<span class="why">${esc(k.why)}</span>` : ''}</div><pre class="dk-acmd">${esc(k.what)}</pre>${files}<div class="dk-aopts">${opts}</div>${foot(false)}`;
+  return `<div class="dk-aq">${esc(k.q)}${k.why ? `<span class="why">${esc(k.why)}</span>` : ''}</div><pre class="dk-acmd">${esc(k.what)}${inputHtml(k.input)}</pre>${files}<div class="dk-aopts">${opts}</div>${foot(false)}`;
 }
 
 function formHtml(k: Ask, fields: Field[]) {

@@ -624,6 +624,7 @@ body.out-mod .lk:is(a, code, span):not(.miss), body.out-mod .cm-content.pm-mod .
 .ask-h .q { flex: none; color: var(--text-strong); font-weight: 600; }
 .ask-h .why { min-width: 0; color: var(--text); }
 .ask-cmd { margin: 0; max-height: 8.5em; padding: 5px 9px; overflow: auto; border-radius: var(--r-sm); background: color-mix(in srgb, var(--bg) 88%, black); color: var(--text); font: 350 var(--fs-sm)/1.55 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+.ask-cmd .k, .dk-acmd .k { color: var(--text-faint); }
 .ch-ask .row { display: flex; flex-wrap: wrap; gap: 6px; }
 .ask-wait, .ask-ready { position: relative; }
 .ask-wait::after { content: ''; position: absolute; left: 10px; right: 10px; bottom: 2px; height: 2px; background: var(--accent); transform-origin: left; animation: ask-wait var(--wait, 1s) linear forwards; pointer-events: none; }
@@ -3631,7 +3632,7 @@ a.up-btn { display: flex; align-items: center; text-decoration: none; }
 .dk-ask { flex: 1 0 100%; order: 9; display: flex; flex-direction: column; gap: 8px; min-width: 0; margin-top: 2px; padding: 9px 0 3px; border-top: 1px solid var(--line); cursor: default; }
 .dk-aq { color: var(--text-strong); font-size: var(--fs-sm); font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
 .dk-aq .why { display: block; margin-top: 1px; color: var(--text-dim); font-size: var(--fs-xs); font-weight: 400; }
-.dk-acmd { margin: 0; padding: 6px 8px; border-radius: var(--r-sm); background: color-mix(in srgb, var(--bg) 88%, black); color: var(--text); font: var(--fs-xs)/1.45 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+.dk-acmd { margin: 0; max-height: 8.5em; padding: 6px 8px; overflow: auto; border-radius: var(--r-sm); background: color-mix(in srgb, var(--bg) 88%, black); color: var(--text); font: var(--fs-xs)/1.45 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
 .dk-afiles { display: flex; flex-direction: column; gap: 3px; }
 .dk-afile { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: start; color: var(--text); font: var(--fs-xs)/1.4 var(--mono); }
 .dk-afile .p { overflow-wrap: anywhere; }
