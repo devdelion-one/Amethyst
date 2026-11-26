@@ -5440,3 +5440,9 @@ html.phone .ch-lv, html.phone .ch-tg, html.phone .ch-wt, html.phone .ch-mic { di
 .sp-who b { color: var(--text-strong); font-size: var(--fs-sm); }
 .sp-who span { color: var(--text-dim); font-size: var(--fs-xs); }
 .sp-all { align-self: flex-end; color: var(--danger); }
+
+#activity #switch :is(button, a), #activity #switch :is(button, a):hover { border-color: transparent; background: none; box-shadow: none; }
+#activity #switch :is(button, a):not(.ly, [data-mode], #btn-newchat) { color: var(--text-dim); }
+#activity #switch :is(button, a):not(.ly, [data-mode], #btn-newchat):hover { color: var(--text-strong); }
+#activity #switch :is(button, a):is(.on, .cur), #activity #switch :is(button, a):is(.on, .cur):hover { border: 1px solid color-mix(in srgb, var(--text) 22%, transparent); background: color-mix(in srgb, var(--text) 9%, transparent); }
+#activity #switch :is(button, a):is(.on, .cur):not(.mk)::before { content: none; }
