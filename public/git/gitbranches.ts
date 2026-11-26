@@ -118,7 +118,7 @@ export async function branchMenu(btn: HTMLElement) {
     r.local.map((l) => `<button class="mi ${l.name === cur ? 'on' : ''}" data-gbr="${esc(l.name)}" data-gref="${esc(l.name)}" data-glocal>${esc(l.name)}<span class="d">${esc(track(l))}</span>${dots}</button>`).join('') +
     r.remote.map((ref) => `<button class="mi" data-gbr="${esc(ref.slice(ref.indexOf('/') + 1))}" data-gref="${esc(ref)}">${esc(ref.slice(ref.indexOf('/') + 1))}<span class="d">on ${esc(ref.slice(0, ref.indexOf('/')))}</span>${dots}</button>`).join('') +
     `<div class="sep"></div><button class="mi" data-gbrnew>+ new branch<span class="d">from here, with your changes</span></button>` +
-    `<button class="mi" data-gtags>tags…<span class="d">${r.tags.length ? r.tags[0] : 'none yet'}</span></button>`;
+    `<button class="mi" data-gtags>tags…<span class="d">${r.tags.length ? esc(r.tags[0]) : 'none yet'}</span></button>`;
   const m = $('#colormenu');
   let more = false;
   const press = (e: Event) => (more = e.type === 'contextmenu' || !!(e.target as Element).closest('[data-gmore]'));

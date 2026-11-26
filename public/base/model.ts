@@ -358,8 +358,12 @@ const GROUPS: [RegExp, string][] = [
   [/\.(png|jpe?g|gif|webp|bmp|ico|tiff?|psd|svg)$/i, '#c39bff'],
 ];
 export const fileColor = (name: string): string => GROUPS.find(([re]) => re.test(name))?.[1] || '#d9e0d3';
-export const colorOf = (t: { meta?: FileMeta; board?: boolean; name: string }): string => (t.meta?.color as string) || (t.board ? DEFAULT.board : fileColor(t.name));
-export const styleMark = (x: { meta?: Record<string, unknown> } | null | undefined): number => (pref('filestyle:on') && (x?.meta?.mark as number)) || 0;
+export const hexOr = <T>(v: unknown, or: T): string | T => (typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v) ? v : or);
+export const colorOf = (t: { meta?: FileMeta; board?: boolean; name: string }): string => hexOr(t.meta?.color, null) || (t.board ? DEFAULT.board : fileColor(t.name));
+export const styleMark = (x: { meta?: Record<string, unknown> } | null | undefined): number => {
+  const m = x?.meta?.mark;
+  return pref('filestyle:on') && typeof m === 'number' && [1, 2, 3, 4, 5, 6].includes(m) ? m : 0;
+};
 
 export function within(loc: string, anc: string): boolean {
   for (let c = S.dirs.get(loc), i = 0; c && i < 99; c = S.dirs.get(c.parent as string), i++) if (c.loc === anc) return true;

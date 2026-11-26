@@ -7,7 +7,7 @@ import { dirIcon, fileIcon, fileTint, nameHtml } from './filelook.ts';
 import { onOutside, raise } from './lift.ts';
 import { DEFAULT, gem, GLYPH, modeGem, NAME, workGem } from './kinds.ts';
 import { tell } from './notify.ts';
-import { atWs, dirGem, inboxLoc, inboxTint, levelKey, matches, S, styleMark, tintOf, within } from './model.ts';
+import { atWs, dirGem, hexOr, inboxLoc, inboxTint, levelKey, matches, S, styleMark, tintOf, within } from './model.ts';
 import { page } from './page.ts';
 import { BAR_LAST, BAR_ORDER, BAR_SHARE, BTN_OF, chatOn, isOff, MENUS, onPref, peek, pref, PREFS, saved, savedOff, setAt, setOff, setPref } from './prefs.ts';
 import { onPrefUndo, prefStep } from './prefundo.ts';
@@ -49,7 +49,7 @@ interface AskOpts {
 
 export const MARK_NOS = [1, 2, 3, 4, 5, 6];
 export const markName = (n: number): string => pref('marks:names')[n - 1]?.trim() || `mark ${n}`;
-export const markBadge = (n: number | undefined): string => (n ? `<i class="fs-mk m${n}">${ICONS['mark' + n]}</i>` : '');
+export const markBadge = (n: number | undefined): string => (n && MARK_NOS.includes(n) ? `<i class="fs-mk m${n}">${ICONS['mark' + n]}</i>` : '');
 export const agentsOn = (rel: string): string[] => (pref('agentMarks') ? agentsOf(rel).filter(chatOn) : []);
 const AGENT_WORD: Record<string, string> = { claude: 'Claude', codex: 'Codex', antigravity: 'Antigravity', cursor: 'Cursor', copilot: 'Copilot', grok: 'Grok' };
 export const agentWords = (ags: string[]): string => ags.map((a) => AGENT_WORD[a]).join(' and ');
@@ -242,7 +242,7 @@ export type TreeRow = { key: string; depth: number; html: () => string };
 
 function fileRow(t: Note, depth: number, lit: string | null | undefined): string {
   const drag = `data-th="${esc(t.path)}" draggable="true" data-drag="file:${esc(t.path)}"`;
-  return `<div class="ti tt ${hid(t.title)} ${S.open?.path === t.path || lit === t.path ? 'on' : ''} ${(S.marked.size > 1 ? marked(t.path) : S.picked === t.path) ? 'sel' : ''}" data-open="${esc(t.path)}" ${drag} title="${esc(t.title)}" data-tip-cut=".nm" style="--d:${depth};--tc:${esc(col(t.color))}"><b class="tg"></b><i class="gl" style="${fileTint(t.name, t.meta?.color ? col(t.meta.color as string) : t.board ? col(DEFAULT.board) : null)}">${fileIcon(t.board)}</i><span class="nm">${nameHtml(t.title)}</span>${agentsOf(parentOf(t.path) + '/').length ? '' : agentMark(t.path)}${markBadge(styleMark(t))}</div>`;
+  return `<div class="ti tt ${hid(t.title)} ${S.open?.path === t.path || lit === t.path ? 'on' : ''} ${(S.marked.size > 1 ? marked(t.path) : S.picked === t.path) ? 'sel' : ''}" data-open="${esc(t.path)}" ${drag} title="${esc(t.title)}" data-tip-cut=".nm" style="--d:${depth};--tc:${esc(col(t.color))}"><b class="tg"></b><i class="gl" style="${fileTint(t.name, hexOr(t.meta?.color, null) ? col(t.meta!.color as string) : t.board ? col(DEFAULT.board) : null)}">${fileIcon(t.board)}</i><span class="nm">${nameHtml(t.title)}</span>${agentsOf(parentOf(t.path) + '/').length ? '' : agentMark(t.path)}${markBadge(styleMark(t))}</div>`;
 }
 
 function inboxRow(ib: Folder, depth: number): string {
@@ -255,7 +255,7 @@ function folderRow(c: Folder, depth: number, top: boolean): string {
   const tip = top && c.path ? ` title="${esc(`${c.path}
 Where this folder is on disk.`)}" data-tip-mono` : '';
   const attrs = `data-drop="${esc(c.loc)}" ${c.kind !== 'inbox' && !c.path.includes('/') ? 'data-fold' : ''} ${c.loc === '' ? '' : `draggable="true" data-drag="dir:${esc(c.loc)}"`}`;
-  return `<div class="ti ${ROW_CLS[c.kind]} ${S.ctx === c.loc ? 'on' : ''} ${marked(c.loc) ? 'sel' : ''}" data-dir="${esc(c.loc)}"${tip} ${attrs} style="--d:${depth};--bc:${esc(tintOf(c))}">${foldButton(c.loc, c.thoughts.length || c.kids.length)}${c.kind === 'inbox' && c.path ? `<i class="sq">${dirGem(c)}</i>` : `<i class="sq" style="${top ? '--ic:var(--bc)' : c.meta?.color ? `--ic:${esc(col(c.meta.color as string))}` : ''}">${dirIcon(isOpen(c.loc))}</i>`}<span class="nm">${esc(c.name)}</span>${c.path && !agentsOf(parentOf(c.path) + '/').length ? agentMark(c.path + '/') : ''}${markBadge(styleMark(c))}${!c.path && S.inbox && pref('inboxShortcut') ? inboxGo() : ''}</div>`;
+  return `<div class="ti ${ROW_CLS[c.kind]} ${S.ctx === c.loc ? 'on' : ''} ${marked(c.loc) ? 'sel' : ''}" data-dir="${esc(c.loc)}"${tip} ${attrs} style="--d:${depth};--bc:${esc(tintOf(c))}">${foldButton(c.loc, c.thoughts.length || c.kids.length)}${c.kind === 'inbox' && c.path ? `<i class="sq">${dirGem(c)}</i>` : `<i class="sq" style="${top ? '--ic:var(--bc)' : hexOr(c.meta?.color, null) ? `--ic:${esc(col(c.meta!.color as string))}` : ''}">${dirIcon(isOpen(c.loc))}</i>`}<span class="nm">${esc(c.name)}</span>${c.path && !agentsOf(parentOf(c.path) + '/').length ? agentMark(c.path + '/') : ''}${markBadge(styleMark(c))}${!c.path && S.inbox && pref('inboxShortcut') ? inboxGo() : ''}</div>`;
 }
 
 let kept = '';

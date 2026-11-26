@@ -337,6 +337,12 @@ const pickMeta = (m: Record<string, any> = {}) =>
       .filter(([k, v]) => META_KEYS.includes(k) && (!STYLE_OK[k] || v === null || STYLE_OK[k](v)))
       .map(([k, v]) => [k, k === 'color' && v ? v.toLowerCase() : v]),
   );
+const cleanStyles = (all: unknown): Record<string, any> =>
+  Object.fromEntries(
+    Object.entries(all && typeof all === 'object' ? all : {})
+      .filter(([, x]) => x && typeof x === 'object' && !Array.isArray(x))
+      .map(([k, x]) => [k, Object.fromEntries(Object.entries(x).filter(([f, v]) => !STYLE_OK[f] || STYLE_OK[f](v)))]),
+  );
 
 export function openRoot(disk: Disk, saved: string | null, store: ArchiveStore, data: Disk = disk) {
   const same = (a: string, b: string) => (disk.caseless ? a.toLowerCase() === b.toLowerCase() : a === b);
@@ -398,6 +404,8 @@ export function openRoot(disk: Disk, saved: string | null, store: ArchiveStore, 
       for (const dirs of [m.dirs, ...archive.map((a: any) => a?.meta?.dirs)]) for (const d of Object.values<any>(dirs || {})) if (d && typeof d === 'object') for (const k of ['color', 'desc', 'inboxColor']) delete d[k];
       m.v = 6;
     }
+    m.files = cleanStyles(m.files);
+    m.dirs = cleanStyles(m.dirs);
     return m;
   }
   let meta: RootMeta, broken: string | null = null, moved: string[] | null = null;
