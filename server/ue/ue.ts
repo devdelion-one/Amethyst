@@ -16,6 +16,7 @@ import * as screenshot from './screenshot.ts';
 import { stopUht, uht } from './uht.ts';
 import { debugConfig, exeOf } from './debug.ts';
 import * as asks from './ask.ts';
+import * as assets from './assets.ts';
 import * as gate from '../base/runs.ts';
 import { isUser } from '../base/user.ts';
 import { keepOutDir } from '../base/agentfiles.ts';
@@ -113,9 +114,11 @@ type ProjectHooks = {
 };
 let debug: Debugger = { start: async () => ({ why: 'no-debugger' }), debugging: () => false, sessionOf: () => null, ready: () => null, prepare: () => {}, who: (_b, root) => ({ agent: false, chat: '', root, outside: false }), allow: () => {} };
 let projects: ProjectHooks | null = null;
-const init = ({ dataDir, debugger: d, projects: p }: { dataDir: string; debugger?: Debugger; projects?: ProjectHooks }) => {
+let findProject: assets.FindProject = () => null;
+const init = ({ dataDir, debugger: d, projects: p, findProject: fp }: { dataDir: string; debugger?: Debugger; projects?: ProjectHooks; findProject?: assets.FindProject }) => {
   if (d) debug = d;
   if (p) projects = p;
+  if (fp) findProject = fp;
   addedFile = path.join(dataDir, 'ue-engines.json');
   okFile = path.join(dataDir, 'ue-ok.json');
   uhtLog = path.join(dataDir, 'ue-uht-missed.log');
@@ -268,9 +271,9 @@ async function findToRun(root: string | null, body: { uproject?: string; engine?
 
 const labelOf = (e: Engine) => (/^\d/.test(e.id) ? `UE ${e.id}` : e.id && e.id !== 'added' ? e.id : 'Unreal Engine');
 
-async function askRun(root: string | null, body: any, f: Found, title: string): Promise<Found> {
+async function askRun(root: string | null, body: any, f: Found, title: string, warn?: string): Promise<Found> {
   if (!f.engine || !f.path || (f.why && f.why !== 'unconfirmed' && f.why !== 'no-targets')) return f;
-  const e = f.engine, how = await gate.ask({ title, text: `${gate.whoAsks(body)} asks for it, with ${labelOf(e)}.`, warn: "This runs the project's own code: its build rules and plugins." }, body.timeout == null ? 300 : Number(body.timeout) || 0);
+  const e = f.engine, how = await gate.ask({ title, text: `${gate.whoAsks(body)} asks for it, with ${labelOf(e)}.`, warn: warn || "This runs the project's own code: its build rules and plugins." }, body.timeout == null ? 300 : Number(body.timeout) || 0);
   if (how !== 'yes') return { ...f, why: `run-${how}` };
   if (f.why === 'unconfirmed') {
     const project = path.dirname(f.path);
@@ -280,8 +283,8 @@ async function askRun(root: string | null, body: any, f: Found, title: string): 
   return findToRun(root, body);
 }
 
-async function askOk(root: string | null, body: any, f: Found, title: string): Promise<Found> {
-  if (!gate.free(body)) return askRun(root, body, f, title);
+async function askOk(root: string | null, body: any, f: Found, title: string, warn?: string): Promise<Found> {
+  if (!gate.free(body)) return askRun(root, body, f, title, warn);
   if (f.why !== 'unconfirmed' || !asks.watched()) return f;
   const e = f.engine!, label = labelOf(e);
   const how = await asks.wait({ project: path.dirname(f.path), engine: e.dir, name: f.name, label }, body.timeout == null ? 300 : Number(body.timeout) || 0);
@@ -1227,6 +1230,16 @@ const CMD_ROUTES: Routes = {
     });
     const rel = relTo(root!, r.path);
     return { ok: true, ...r, text: `Saved viewport screenshot (${r.width}x${r.height}) to ${rel}\n${r.path}` };
+  },
+  'POST /api/ue/cmd/assets': async (body, _, root: string | null) => {
+    if (!root) throw new HttpError(400, 'run it inside an Unreal project folder');
+    const b = body || {};
+    const req = assets.parseRequest(b, findProject);
+    const pre = await findToRun(root, b);
+    const projName = pre.name || 'this project';
+    const f = await askOk(root, b, pre, req.promptTitle(projName), req.promptWarn(projName));
+    if (f.why && f.why !== 'no-targets') refuse(f);
+    return assets.execute(f, req);
   },
 };
 

@@ -617,4 +617,4 @@ async function newProject(root: string, b: { name?: string; engine: { id: string
   return { name, engine: b.engine.id, made: [...files.map(([f]) => slash(path.relative(root, f))), 'Content/'] };
 }
 
-export { checkProjectName, newProject, create, addModuleDeps, pluginTemplates, projectPlugins, addDependency, addToList, addTargetModule, TYPES, PHASES };
+export { checkProjectName, newProject, create, addModuleDeps, pluginTemplates, projectPlugins, inside, addDependency, addToList, addTargetModule, TYPES, PHASES };

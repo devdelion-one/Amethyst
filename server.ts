@@ -333,6 +333,20 @@ ue.init({
     validateProjectDir: (dir, wid, opts) => validateProjectDir(dir, wid ? wsById(wid) : null, opts),
     registerProject: (dir, opts) => registerProject(dir, { W: wsById(opts.wid), name: opts.name, create: opts.create }),
   },
+  findProject: (name: string) => {
+    const want = String(name || '').trim();
+    if (!want) return null;
+    let best: Project | null = null;
+    for (const w of wsList()) {
+      if (!fs.existsSync(w.path)) continue;
+      for (const p of wsRoot(w).meta.projects as Project[]) {
+        if (p.name.toLowerCase() === want.toLowerCase() || p.id === want) {
+          if (!best || p.path.length > best.path.length) best = p;
+        }
+      }
+    }
+    return best ? { id: best.id, name: best.name, path: best.path } : null;
+  },
 });
 terms.init({ dataDir: path.join(WS_DIR, DOT), port: PORT, claudeAccount: agents.claudeAccount, hookPath: path.join(import.meta.dirname, 'hook.js') });
 
