@@ -104,8 +104,12 @@ export const ACTIONS: Act[] = [
   {
     name: 'ue editor',
     tool: 'ue_editor',
-    about: "Open Unreal Editor on this project and return at once; ue log shows how far it got. It refuses when the Editor target was never built (Unreal would stop at a dialog), unless --force. While the user has \"chats answer other chats' permission asks\" off, each run first waits for their OK in Amethyst's window.",
-    args: [{ name: 'force', type: 'boolean', about: "Open it even though the Editor target isn't built" }],
+    about: "Open Unreal Editor on this project and return at once; ue log shows how far it got. It refuses when the Editor target was never built (Unreal would stop at a dialog), unless --force. With --close, request a graceful close of the project's running Unreal Editor and wait for it to exit. While the user has \"chats answer other chats' permission asks\" off, each run first waits for their OK in Amethyst's window.",
+    args: [
+      { name: 'force', type: 'boolean', about: "Open it even though the Editor target isn't built" },
+      { name: 'close', type: 'boolean', about: "Close the project's running Unreal Editor gracefully and wait for it to exit" },
+      { name: 'timeout', type: 'number', about: 'With --close, seconds to wait for the editor to exit (15 by default)' },
+    ],
     route: 'POST /api/ue/cmd/editor',
     example: 'amethyst ue editor',
   },

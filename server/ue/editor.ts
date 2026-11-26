@@ -121,13 +121,16 @@ function fakeOpen() {
   const v = process.env.MIND_FAKE_UE_EDITOR || '';
   if (v === '1' || v === '0') return v === '1';
   try {
-    return fs.readFileSync(v, 'utf8').trim() === '1';
+    const t = fs.readFileSync(v, 'utf8').trim();
+    return t === '1' || t === 'stay';
   } catch {
     return false;
   }
 }
 
 type Proc = { open: boolean; started: number; pid: number };
+type CloseReq = 'sent' | 'nowindow' | 'gone' | 'error';
+type CloseResult = { closed: boolean; open: boolean; pid: number; why?: string };
 const fakePid = () => Number(process.env.MIND_FAKE_UE_PID) || 4242;
 function editorProc(full: string): Promise<Proc> {
   if (process.env.MIND_FAKE_UE_EDITOR) return Promise.resolve(fakeOpen() ? { open: true, started: 0, pid: fakePid() } : { open: false, started: 0, pid: 0 });
@@ -143,6 +146,57 @@ function editorProc(full: string): Promise<Proc> {
   );
 }
 const editorOpen = async (full: string) => (await editorProc(full)).open;
+
+function requestClose(pid: number): Promise<CloseReq> {
+  if (!Number.isInteger(pid) || pid <= 0) return Promise.resolve('gone');
+  const fake = process.env.MIND_FAKE_UE_EDITOR;
+  if (fake) {
+    if (fake === '0') return Promise.resolve('gone');
+    if (fake === '1') return Promise.resolve('sent');
+    try {
+      const t = fs.readFileSync(fake, 'utf8').trim();
+      if (t === '1') {
+        fs.writeFileSync(fake, '0');
+        return Promise.resolve('sent');
+      }
+      if (t === 'stay') return Promise.resolve('sent');
+      return Promise.resolve('gone');
+    } catch {
+      return Promise.resolve('gone');
+    }
+  }
+  if (!WIN) return Promise.resolve('gone');
+  const id = Math.trunc(pid);
+  const ps = `$p = Get-Process -Id ${id} -ErrorAction SilentlyContinue; if (-not $p -or $p.ProcessName -notlike 'UnrealEditor*') { 'gone' } elseif ($p.CloseMainWindow()) { 'sent' } else { 'nowindow' }`;
+  return new Promise<CloseReq>((res) =>
+    execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', ps], { windowsHide: true, timeout: 15e3 }, (err, out) => {
+      if (err) return res('error');
+      const v = String(out || '').trim();
+      res(v === 'sent' || v === 'nowindow' || v === 'gone' ? v : 'error');
+    }),
+  );
+}
+
+async function closeEditor(full: string, timeoutSec = 15): Promise<CloseResult> {
+  const p = await editorProc(full);
+  if (!p.open) return { closed: false, open: false, pid: 0 };
+  if (!Number.isInteger(p.pid) || p.pid <= 0) return { closed: false, open: true, pid: 0, why: 'error' };
+  const req = await requestClose(p.pid);
+  if (req === 'error') return { closed: false, open: true, pid: p.pid, why: 'error' };
+  if (req === 'gone') {
+    const after = await editorProc(full);
+    if (!after.open || (after.pid && after.pid !== p.pid)) return { closed: true, open: false, pid: p.pid };
+  }
+  const waitMs = Math.max(0, Math.min(Number(timeoutSec) || 0, 120)) * 1000;
+  const pollMs = process.env.MIND_FAKE_UE_EDITOR ? 50 : 500;
+  const deadline = Date.now() + waitMs;
+  for (;;) {
+    const cur = await editorProc(full);
+    if (!cur.open || (cur.pid && cur.pid !== p.pid)) return { closed: true, open: false, pid: p.pid };
+    if (Date.now() >= deadline) return { closed: false, open: true, pid: p.pid, why: req === 'nowindow' ? 'nowindow' : 'timeout' };
+    await new Promise((r) => setTimeout(r, Math.min(pollMs, Math.max(10, deadline - Date.now()))));
+  }
+}
 
 function anyEditor() {
   if (process.env.MIND_FAKE_UE_EDITOR) return Promise.resolve(fakeOpen());
@@ -298,5 +352,5 @@ function stopAll() {
   link.shut();
 }
 
-export { watch, now, recheck, opened, readRows, filter, parseLines, editorOpen, editorProc, fakePid, logFile, stopAll, PIE_ON, PIE_OFF };
+export { watch, now, recheck, opened, readRows, filter, parseLines, editorOpen, editorProc, closeEditor, fakePid, logFile, stopAll, PIE_ON, PIE_OFF };
 export type { Row, Proj, Ed };

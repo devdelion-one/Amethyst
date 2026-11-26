@@ -929,6 +929,26 @@ const CMD_ROUTES: Routes = {
     return { text: sayRun(root!, run, !live(run)) };
   },
   'POST /api/ue/cmd/editor': async (body, _, root: string | null) => {
+    if (body?.close) {
+      const f = await find(root, body || {});
+      if (!f.path || f.why === 'os') refuse(f);
+      await gate.mayRun(
+        body,
+        (who) => ({
+          title: `Allow closing Unreal Editor on ${f.name}?`,
+          text: `${who} asks to close Unreal Editor on ${f.name}.`,
+          warn: 'Unsaved work in Unreal Editor may prompt to save before closing.',
+        }),
+        300,
+      );
+      const wait = body?.timeout == null ? 15 : Number(body.timeout) || 0;
+      const r = await editor.closeEditor(f.path, wait);
+      if (!r.open && !r.closed) return { ok: true, open: false, closed: false, text: `Unreal Editor is not open on ${f.name}` };
+      if (r.closed) return { ok: true, open: false, closed: true, pid: r.pid, text: `Closed Unreal Editor on ${f.name}` };
+      if (r.why === 'nowindow') throw new HttpError(409, `Unreal Editor on ${f.name} has no main window to close yet (it may still be starting): wait for it to finish loading or close it yourself`);
+      if (r.why === 'error') throw new HttpError(500, `could not ask Unreal Editor on ${f.name} to close`);
+      throw new HttpError(409, `Unreal Editor on ${f.name} is still open after ${wait} s: it may be waiting on a Save dialog for unsaved changes. Save or close it in Unreal Editor before building.`);
+    }
     const pre = await findToRun(root, body || {});
     const f = await askOk(root, body || {}, pre, `Allow opening Unreal Editor on ${pre.name || 'this project'}?`);
     if (f.why) refuse(f);
