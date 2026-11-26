@@ -1,6 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 
+if (process.platform === 'win32') process.env.NoDefaultCurrentDirectoryInExePath = '1';
+
 try {
   for (const line of fs.readFileSync(path.join(import.meta.dirname, '..', '..', '.env'), 'utf8').split(/\r?\n/)) {
     const m = /^\s*([A-Z][A-Z0-9_]*)\s*=\s*(.*?)\s*$/.exec(line);
