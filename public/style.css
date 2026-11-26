@@ -152,7 +152,6 @@ body.resizing-y, body.resizing-y * { cursor: row-resize !important; user-select:
 #app.rail-right #activity { order: 99; }
 #app.side-right :is(#side, #wsx) { order: 98; }
 #app.side-right #side-grip { right: auto; left: calc(-1 * var(--gap)); }
-#activity { cursor: grab; }
 #activity.rd-lift { opacity: .35; }
 #activity.rd-ghost { position: fixed; z-index: 1000; margin: 0; pointer-events: none; opacity: .95; box-shadow: var(--float); }
 body.rd-moving, body.rd-moving * { cursor: grabbing !important; user-select: none; }

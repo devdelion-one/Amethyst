@@ -485,8 +485,9 @@ ${cap(t)}${/[.!?]$/.test(t) ? '' : '.'}`;
   }
   if (flyNow) flyNow.style.display = '';
   const r = m.getBoundingClientRect(), fitX = (v: number) => Math.max(8, Math.min(v, innerWidth - r.width - 8)), fitY = (v: number) => Math.max(8, Math.min(v, innerHeight - r.height - 8));
-  const rr = document.querySelector('#app.rail-right #activity')?.getBoundingClientRect(), byRail = !was && !!rr?.width && x >= rr.left - 1 && y >= rr.top && y <= rr.bottom;
-  m.style.left = fitX(was ? was[0] : byRail ? rr!.left - 6 - r.width : x) + 'px';
+  const ra = document.querySelector('#app > #shell > #activity'), rr = ra?.getBoundingClientRect(), railR = !!ra?.closest('.rail-right');
+  const byRail = !was && !!rr?.width && x >= rr.left - 1 && (railR || x <= rr.right + 1) && y >= rr.top && y <= rr.bottom;
+  m.style.left = fitX(was ? was[0] : byRail ? (railR ? rr!.left - 6 - r.width : rr!.right + 6) : x) + 'px';
   m.style.top = fitY(was ? was[1] : up ? y - r.height : y) + 'px';
   m.scrollTop = was ? scrolled : 0;
   scrolled = m.scrollTop;
