@@ -1560,7 +1560,6 @@ body.fg-toast { margin: 0; overflow: hidden; background: var(--raised); user-sel
 .oc-main { order: var(--o-chat, 4); position: relative; flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; border-radius: var(--r-panel); background: var(--bg); overflow: hidden; }
 .oc-main { container-type: inline-size; }
 .oc-bar { cursor: grab; }
-.oc-main[style*="--gem-c"] .oc-bar { box-shadow: inset 2px 0 0 var(--gem-c); }
 .oc-info { flex: none; display: flex; align-items: center; gap: var(--s2); color: var(--text-dim); font-size: var(--fs-xs); white-space: nowrap; }
 .oc-bar [data-oc-term] { order: 998; }
 .oc-bar [data-dk-out] { order: 999; }
@@ -3481,11 +3480,13 @@ a.up-btn { display: flex; align-items: center; text-decoration: none; }
 .dk-ch :is(.dk-code, .dk-title, .dk-provider, .dk-st) { font-size: var(--fs-sm); line-height: 16px; }
 .dk-ch .dk-st { display: inline-flex; align-items: baseline; }
 .dk-ch .dk-id { align-items: baseline; }
-.dk-ch .dk-id > .dk-mark { align-self: center; }
+.dk-badge { flex: none; display: inline-flex; align-items: center; gap: 6px; }
+.dk-ch .dk-id > .dk-badge { align-self: center; }
 .dk-ch .dk-st > .dk-sw { align-self: baseline; }
 .dk-ch .dk-who { flex: none; color: var(--text-strong); font-size: var(--fs-sm); font-weight: 600; }
 .dk-code { flex: none; color: var(--gem-c, var(--accent)); font: 500 var(--fs-xs) var(--mono); letter-spacing: .02em; }
-.dk-cell[style*="--gem-c"] .dk-ch { box-shadow: inset 2px 0 0 var(--gem-c); }
+:is(.dk-cell, .oc-main)[style*="--gem-c"] .dk-ch { padding-left: 5px; }
+:is(.dk-cell, .oc-main)[style*="--gem-c"] .dk-ch .dk-badge { padding: 2px 6px; border-radius: var(--r-sm); background: color-mix(in srgb, var(--gem-c) 16%, transparent); }
 .dk-ch .dk-code { font-weight: 600; letter-spacing: .04em; }
 .dk-title { flex: 0 999 auto; min-width: 0; max-width: 26ch; overflow: clip; text-overflow: ellipsis; white-space: nowrap; color: var(--text-strong); font-weight: 600; }
 .dk-pj { flex: none; max-width: 30%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 7px; border-radius: var(--r-pill); background: var(--hover); color: var(--text-dim); font-size: var(--fs-xs); }

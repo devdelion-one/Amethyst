@@ -29,7 +29,7 @@ export function idHead(a: Agent, o: HeadOpts = {}) {
   const bare = a.kind === 'chat' && !headOn('deck:model', o);
   const who = bare ? '' : a.kind === 'chat' ? `<i class="dk-provider dk-who"${a.model ? ` title="${esc(modelTip(a.model))}" data-tip-icon="model"` : ''}>${esc(a.model || providerOf(a))}</i>` : `<i class="dk-provider">${esc(providerOf(a))}</i>`;
   const word = (busyNow(a) && stepWord(a.step, a.program)) || WORD[a.status as string] || a.status as string, title = headTitle(a);
-  return `<span class="dk-id"${a.kind === 'chat' ? ` data-chat="${esc(a.id)}"` : ''}><i class="dk-mark">${markOf(a)}</i>${headOn('deck:code', o) ? codeOf(a.id, title) : ''}${title && headOn('deck:title', o) ? `<b class="dk-title" title="${esc(title)}" data-tip-cut>${esc(title)}</b>` : ''}${who}<span class="dk-st" data-st="${a.status}"><span class="dk-sw">${word}</span>${spark(groupOf(a))}</span></span>`;
+  return `<span class="dk-id"${a.kind === 'chat' ? ` data-chat="${esc(a.id)}"` : ''}><span class="dk-badge"><i class="dk-mark">${markOf(a)}</i>${headOn('deck:code', o) ? codeOf(a.id, title) : ''}</span>${title && headOn('deck:title', o) ? `<b class="dk-title" title="${esc(title)}" data-tip-cut>${esc(title)}</b>` : ''}${who}<span class="dk-st" data-st="${a.status}"><span class="dk-sw">${word}</span>${spark(groupOf(a))}</span></span>`;
 }
 export const HEAD_BTNS = ['deck:more', 'deck:spotBtn', 'deck:markBtn', 'deck:markShow', 'deck:reportBtn', 'deck:noteBtn', 'deck:noteShow', 'deck:pinBtn', 'deck:benchBtn', 'deck:setBtn', 'deck:orchBtn', 'deck:tabBtn', 'deck:closeBtn', 'chpill:off'];
 const fmore = () => `<button data-dk-fmore aria-label="more">${icon('more')}</button>`;

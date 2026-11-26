@@ -109,7 +109,7 @@ const fwBar = (html: string, p: string) => {
 };
 const barOf = (p: string) => `<div class="wbar hr-win">${p === 'qterm' || p === 'pwsh' ? fwBar(qtHead(p === 'pwsh' ? 'pwsh' : 'term', true), p) : p === 'hitch' ? fwBar(fwHead('freeze log'), p) : p === 'ue' ? fwBar(ueHead(true), p) : winBar(p)}</div>`;
 
-const SEL: Record<string, string> = { 'deck:code': '.dk-id > .dk-code', 'deck:title': '.dk-title', 'deck:doneBadge': '.dk-done', 'orch:termBtn': '[data-oc-term]', 'orch:folderBtn': '[data-oc-folder]', 'orch:closeBtn': '[data-dk-out]', 'deck:closeBtn': '[data-dk-out]', 'deck:more': '.ch-more', winSize: '.szs', 'qagent:new': '[aria-label="new chat"]', 'win:every': '.xw-every' };
+const SEL: Record<string, string> = { 'deck:code': '.dk-id .dk-code', 'deck:title': '.dk-title', 'deck:doneBadge': '.dk-done', 'orch:termBtn': '[data-oc-term]', 'orch:folderBtn': '[data-oc-folder]', 'orch:closeBtn': '[data-dk-out]', 'deck:closeBtn': '[data-dk-out]', 'deck:more': '.ch-more', winSize: '.szs', 'qagent:new': '[aria-label="new chat"]', 'win:every': '.xw-every' };
 const selOf = (k: string, p: string, id = '') => (k === 'chpill:off' ? (p === 'menu' ? `.ch-menu > [data-ch="${id}"]` : `.ch-pill[data-ch="${id}"]`) : k === 'deck:model' ? (p === 'qagent' ? '.ch-model' : '.dk-who') : SEL[k] || BTN_OF[k]);
 const sel = (a: At) => selOf(a.key, a.place, a.id);
 const mk = (html: string, p: string, keys: string[], ring = '', all = false) => {
