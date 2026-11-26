@@ -16,7 +16,7 @@ export const ACTIONS: Act[] = [
   {
     name: 'ue project',
     tool: 'ue_project',
-    about: "Make a new, empty Unreal C++ project in this folder: <Name>.uproject, Source/<Name>.Target.cs, Source/<Name>Editor.Target.cs (BuildSettingsVersion and IncludeOrderVersion Latest), one Runtime module Source/<Name> with IMPLEMENT_PRIMARY_GAME_MODULE, Config/DefaultEngine.ini, Config/DefaultGame.ini and Content/. It refuses if the folder already has a .uproject, and never overwrites a file. It lists the files it made.",
+    about: "Make a new, empty Unreal C++ project in this folder: <Name>.uproject, Source/<Name>.Target.cs, Source/<Name>Editor.Target.cs (BuildSettingsVersion and IncludeOrderVersion Latest), one Runtime module Source/<Name> with IMPLEMENT_PRIMARY_GAME_MODULE, Config/DefaultEngine.ini, Config/DefaultGame.ini, .gitignore (when none is there) and Content/. It refuses if the folder already has a .uproject, and never overwrites a file. It lists the files it made.",
     args: [
       { name: 'name', type: 'string', pos: true, required: true, about: 'The project name, a C++ name' },
       { name: 'engine', type: 'string', about: 'The engine: a version such as 5.7, or its folder; the newest one installed by default' },

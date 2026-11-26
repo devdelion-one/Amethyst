@@ -11,7 +11,7 @@ function init(o: Partial<typeof hands>) {
   Object.assign(hands, o);
 }
 
-const WHOLE = new Set(['GET /api/git/repos', 'POST /api/git/login', 'POST /api/git/clone', 'GET /api/gh/repos', 'GET /api/git/identity', 'POST /api/git/identity', 'GET /api/git/doing', 'POST /api/git/cancel']);
+const WHOLE = new Set(['GET /api/git/repos', 'POST /api/git/init', 'POST /api/git/login', 'POST /api/git/clone', 'GET /api/gh/repos', 'GET /api/git/identity', 'POST /api/git/identity', 'GET /api/git/doing', 'POST /api/git/cancel']);
 const inPicked =
   (key: string, handler: RouteHandler): RouteHandler =>
   async (body, q, root, ...rest) => {

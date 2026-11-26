@@ -117,12 +117,21 @@ const ROUTES: Routes = {
     const working = (st.chats || []).filter((c: any) => c.working).map((c: any) => c.title || 'a chat');
     return { ...st, text: [head, working.length ? `at work here: ${working.join(', ')}` : '', rows.length ? `${st.total} changed:` : 'no changes', ...rows, st.more ? `… and ${st.more} more` : ''].filter(Boolean).join('\n') };
   },
-  'POST /api/git/init': async (_b, _q, root: string | null) => {
+  'POST /api/git/init': async (body, _q, root: string | null) => {
     const cwd = inRepo(root);
-    if (await placeOf(cwd)) throw new HttpError(409, 'This project is in git already.');
+    const raw = body?.branch;
+    let initial = 'main';
+    if (raw != null) {
+      const b = String(raw).trim();
+      if (!b || b.length > 200 || b.startsWith('-') || /[\x00-\x1f\x7f]/.test(b) || b === 'HEAD' || (await git(cwd, ['check-ref-format', `refs/heads/${b}`])).code) {
+        throw new HttpError(400, `"${b}" can't be a branch name.`);
+      }
+      initial = b;
+    }
+    if (hasGit(cwd) || (await placeOf(cwd))) throw new HttpError(409, 'This project is in git already.');
     const below = await reposOf(cwd);
     if (below.length) throw new HttpError(409, `There ${below.length === 1 ? 'is a repository' : 'are repositories'} inside this project already (${below.map((r) => r.name).slice(0, 3).join(', ')}): starting git here would wrap ${below.length === 1 ? 'it' : 'them'} in another one.`);
-    must(await git(cwd, ['init', '-b', 'main']));
+    must(await git(cwd, ['init', '-b', initial]));
     forgetPlace(cwd);
     const ignore = path.join(cwd, '.gitignore');
     if (!fs.existsSync(ignore)) fs.writeFileSync(ignore, '# what git leaves out (made by Amethyst)\n.env\n.env.*\n!.env.example\n.amethyst/\nnode_modules/\n.DS_Store\nThumbs.db\ndesktop.ini\n');
@@ -131,7 +140,8 @@ const ROUTES: Routes = {
     forget(cwd);
     must(await git(cwd, ['add', '-A', '--', '.', ...leaveOut(cwd, skip)]));
     must(await gitLong(cwd, ['commit', '-q', '-m', 'First commit', '--', '.', ...leaveOut(cwd, skip)], { what: 'committing', idle: 10 * 60e3 }));
-    return done(cwd, said(`git started · first commit of ${st.files.length - skip.length} files`));
+    const count = st.files.length - skip.length;
+    return done(cwd, said(`git started on ${initial}, first commit of ${count} ${count === 1 ? 'file' : 'files'}`));
   },
   'POST /api/git/connect': async ({ name, private: priv, url }, _q, root: string | null) => {
     const cwd = inRepo(root), st = await repoStatus(cwd);

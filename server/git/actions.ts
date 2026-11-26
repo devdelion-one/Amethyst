@@ -113,6 +113,15 @@ export const ACTIONS: Act[] = [
     cli: true,
   },
   {
+    name: 'git init',
+    tool: 'git_init',
+    about: 'Start a git repository in this project, write a default .gitignore when none is there, and make the first commit (secrets left out). Refuses if the folder is already in git or holds another repository.',
+    args: [{ name: 'branch', type: 'string', about: 'The first branch name (main by default)' }],
+    route: 'POST /api/git/init',
+    example: 'amethyst git init --branch main',
+    cli: true,
+  },
+  {
     name: 'git clone',
     tool: 'git_clone',
     about: "Copy a repository onto this PC, with its submodules, and add it as a project to the workspace it is run from (a chat or terminal in one of its projects). Run outside a workspace, it only copies. Prints where it went. While the user has \"chats answer other chats' permission asks\" off, it refuses a repository that has an agent's settings or hooks (like .claude/settings.local.json or .github/hooks/): that clone is the user's to make.",

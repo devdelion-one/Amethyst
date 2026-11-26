@@ -431,6 +431,32 @@ async function create(f: Found, root: string, b: any) {
   throw new HttpError(400, 'kind is class, module or plugin');
 }
 
+const UE_GITIGNORE = [
+  'Binaries/',
+  'DerivedDataCache/',
+  'Intermediate/',
+  'Saved/',
+  'Build/',
+  '.vs/',
+  '.idea/',
+  '.vscode/',
+  '*.sln',
+  '*.suo',
+  '*.opensdf',
+  '*.sdf',
+  '*.VC.db',
+  '*.VC.opendb',
+  '*.xcodeproj',
+  '*.xcworkspace',
+  '.amethyst/',
+  '.env',
+  '.env.*',
+  '!.env.example',
+  '.DS_Store',
+  'Thumbs.db',
+  'desktop.ini',
+];
+
 async function newProject(root: string, b: { name?: string; engine: { id: string } }) {
   const name = String(b.name || '').trim();
   if (!name) throw new HttpError(400, 'type a name');
@@ -441,6 +467,7 @@ async function newProject(root: string, b: { name?: string; engine: { id: string
   const target = (cls: string, type: string) =>
     lines(['using UnrealBuildTool;', 'using System.Collections.Generic;', '', `public class ${cls} : TargetRules`, '{', `\tpublic ${cls}(TargetInfo Target) : base(Target)`, '\t{', `\t\tType = TargetType.${type};`, '\t\tDefaultBuildSettings = BuildSettingsVersion.Latest;', '\t\tIncludeOrderVersion = EngineIncludeOrderVersion.Latest;', `\t\tExtraModuleNames.Add("${name}");`, '\t}', '}']);
   const uproject = { FileVersion: 3, EngineAssociation: b.engine.id, Category: '', Description: '', Modules: [{ Name: name, Type: 'Runtime', LoadingPhase: 'Default' }] };
+  const ignore = path.join(root, '.gitignore');
   const files: [string, string][] = [
     [path.join(root, name + '.uproject'), JSON.stringify(uproject, null, '\t').split('\n').join(eol) + eol],
     [path.join(root, 'Source', name + '.Target.cs'), target(name + 'Target', 'Game')],
@@ -450,6 +477,7 @@ async function newProject(root: string, b: { name?: string; engine: { id: string
     [path.join(root, 'Source', name, name + '.cpp'), lines([`#include "${name}.h"`, '#include "Modules/ModuleManager.h"', '', `IMPLEMENT_PRIMARY_GAME_MODULE(FDefaultGameModuleImpl, ${name}, "${name}");`])],
     [path.join(root, 'Config', 'DefaultEngine.ini'), lines(['[/Script/HardwareTargeting.HardwareTargetingSettings]', 'TargetedHardwareClass=Desktop', 'AppliedTargetedHardwareClass=Desktop', 'DefaultGraphicsPerformance=Maximum', 'AppliedDefaultGraphicsPerformance=Maximum'])],
     [path.join(root, 'Config', 'DefaultGame.ini'), lines(['[/Script/EngineSettings.GeneralProjectSettings]', `ProjectID=${crypto.randomUUID().replace(/-/g, '').toUpperCase()}`, `ProjectName=${name}`])],
+    ...(exists(ignore) ? [] : ([[ignore, lines(UE_GITIGNORE)]] as [string, string][])),
   ];
   await writeAll(root, files, [], [path.join(root, 'Content')]);
   return { name, engine: b.engine.id, made: [...files.map(([f]) => slash(path.relative(root, f))), 'Content/'] };
