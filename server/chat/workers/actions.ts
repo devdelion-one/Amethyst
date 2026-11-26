@@ -6,7 +6,7 @@ export const ACTIONS: Act[] = [
   {
     name: 'agent run',
     tool: 'agent_run',
-    about: "Start a subagent of any kind (claude, codex, antigravity, cursor, copilot or grok) on a task and get its answer. It runs as its own agent in this project's folder; the user sees it as a subagent of this chat, with its steps. Returns its answer under a first line naming it by its code (like \"Codex · H57:\"), the code amethyst agent send takes; with background, its code at once. A mode that may work without asking is the user's to pick: a chat can't start one in it unless the user allowed chats to answer permission asks.",
+    about: "Start a subagent of any kind (claude, codex, antigravity, cursor, copilot or grok) on a task and get its answer. It runs as its own agent in this project's folder; the user sees it as a subagent of this chat, with its steps. Returns its answer under a first line naming it by its code (like \"Codex · H57:\"), the code amethyst agent send takes; with background, its code at once. A mode that may work without asking is the user's to pick: a chat can't start one in it unless the user allowed chats to answer permission asks. To a chat in a mode that may work without asking, your prompt waits for the user to allow it, unless the user allowed chats to answer permission asks; that chat shows a permission ask with it.",
     args: [
       { name: 'agent', type: 'string', pos: true, required: true, about: 'claude, codex, antigravity, cursor, copilot or grok' },
       { name: 'prompt', type: 'string', pos: true, rest: true, required: true, about: 'The task, as you would give it to a person who knows nothing of this chat' },

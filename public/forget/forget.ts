@@ -193,6 +193,8 @@ function length(ms: number) {
 
 const inTime = (n: Fg) => 'in ' + length(n.due! - Date.now()).replace(/m$/, 'min');
 
+export type FgNote = Fg;
+export const forgetRows = (ns: Fg[]) => ns.map(row).join('');
 function row(n: Fg) {
   const time = rang.has(n.id)
     ? `<button class="fg-later fg-ok" data-fgok title="Seen&#10;Stops this reminder. It repeats, so the next one comes in ${left(n)}.">ok</button>`
@@ -315,6 +317,9 @@ const clock = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${S
 export const forgetListHere = () => !!loaded;
 export const forgetListOn = () => listAt.on;
 export const forgetListText = () => listAt.at.map(clock).join(' ');
+export const forgetListTimes = () => listAt.at.map(clock);
+export const forgetListChanged = () => listAt.on !== LIST.on || listAt.at.join() !== LIST.at.join();
+export const resetForgetList = () => saveList({ ...LIST });
 export function setForgetListText(text: string) {
   const out: number[] = [], every = /every\s*(\d+(?:\.\d+)?)\s*([hm]?)/gi;
   for (const [, n, u] of text.matchAll(every)) {
@@ -324,6 +329,7 @@ export function setForgetListText(text: string) {
   for (const [, h, m = '0'] of text.replace(every, ' ').matchAll(/\b(\d{1,2})(?::(\d{2}))?\b/g)) if (+h < 24 && +m < 60) out.push((h as unknown as number) * 60 + +m);
   const at = [...new Set(out)].sort((a, b) => a - b).slice(0, 96);
   if (at.length) saveList({ ...listAt, at });
+  return at.length > 0;
 }
 export const setForgetListOn = (on: boolean) => saveList({ ...listAt, on });
 function saveList(l: typeof LIST) {
@@ -335,15 +341,21 @@ function saveList(l: typeof LIST) {
   page.renderSettings?.();
 }
 
-function showList() {
-  const all = sorted(), more = Math.max(0, all.length - 8);
-  const items = all.slice(0, 8).map((n) => ({ id: n.id, text: n.text, time: n.due ? left(n) : '' }));
-  const head = `<span class="fl-h"><b>don't forget</b><span class="fl-n">${all.length}</span><span class="fl-bt"><button data-fl="settings" title="Settings&#10;The don't forget settings." data-tip-set="general" aria-label="settings">${ICONS.settings}</button><button class="x" title="Close&#10;Closes this window." aria-label="close">×</button></span></span>`;
-  const rows = all.length
+type ListItem = { id: string; text: string; time: string };
+export function listCard(items: ListItem[], total: number) {
+  const more = Math.max(0, total - items.length);
+  const head = `<span class="fl-h"><b>don't forget</b><span class="fl-n">${total}</span><span class="fl-bt"><button data-fl="settings" title="Settings&#10;The don't forget settings." data-tip-set="general:g:list" aria-label="settings">${ICONS.settings}</button><button class="x" title="Close&#10;Closes this window." aria-label="close">×</button></span></span>`;
+  const rows = total
     ? `${items.map((i) => `<span class="fl-r${i.time === 'now' ? ' due' : ''}" data-id="${esc(i.id)}"><span class="fl-t">${esc(i.text)}</span><i>${i.time}</i><span class="fl-bt"><button class="fl-done" aria-label="done" aria-pressed="false">${ICONS.check}</button><button class="fl-rm" aria-label="remove" aria-pressed="false">${ICONS.bin}</button></span></span>`).join('')}${more ? `<span class="fl-more">and ${more} more</span>` : ''}`
     : `<span class="fl-empty">nothing to remember yet</span>`;
-  const btns = all.length ? `<button data-fl="confirm" title="Confirm&#10;The ones you marked done or removed leave the list." disabled>confirm</button>` : `<button data-fl="add">add one</button>`;
-  const n = notify(`<span class="fl">${head}<span class="fl-rows">${rows}</span><span class="fl-b">${btns}</span></span>`, { ms: 20000 });
+  const btns = total ? `<button data-fl="confirm" title="Confirm&#10;The ones you marked done or removed leave the list." disabled>confirm</button>` : `<button data-fl="add">add one</button>`;
+  return `<span class="fl">${head}<span class="fl-rows">${rows}</span><span class="fl-b">${btns}</span></span>`;
+}
+export const listItem = (n: Fg): ListItem => ({ id: n.id, text: n.text, time: n.due ? left(n) : '' });
+function showList() {
+  const all = sorted(), more = Math.max(0, all.length - 8);
+  const items = all.slice(0, 8).map(listItem);
+  const n = notify(listCard(items, all.length), { ms: 20000 });
   n.classList.add('fl-note');
   (n.querySelector('.fl-h .x') as HTMLElement).onclick = n.close!;
   n.addEventListener('click', (e) => {
@@ -374,8 +386,7 @@ function listAct(what: string) {
 }
 
 function toSettings() {
-  store.set('settings:tab', 'general');
-  page.openSettings();
+  page.openSettingsAt('general:g:list');
   setTimeout(() => {
     const at = document.querySelector('[data-forget-list], [data-forget-color]') as HTMLElement;
     at?.scrollIntoView({ block: 'center' });

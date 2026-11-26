@@ -267,7 +267,7 @@ function draw() {
       ${row('Unreal', unrealRows())}
       ${showCount() ? row('Count', countRows()) : ''}
     </div>
-    <div class="wl-foot"><button class="wl-later" data-wl-later title="Set up later&#10;Closes this page and keeps the app as it is.&#10;&#10;Settings, General brings the page back." data-tip-set="general" data-tip-icon="close"><span class="tx">set up later</span></button><button class="wl-go" data-wl-start ${busy ? 'disabled' : ''} title="Start&#10;Keeps these choices, makes the workspaces you set up, and brings in the ticked folders, each where you put it." data-tip-keys="=ctrl+enter:start" data-tip-icon="check"><span class="tx">${busy ? 'starting…' : 'start'}</span><kbd>ctrl enter</kbd></button></div>
+    <div class="wl-foot"><button class="wl-later" data-wl-later title="Set up later&#10;Closes this page and keeps the app as it is.&#10;&#10;The Welcome page row in Settings, General brings it back." data-tip-set="general:g:wl" data-tip-icon="close"><span class="tx">set up later</span></button><button class="wl-go" data-wl-start ${busy ? 'disabled' : ''} title="Start&#10;Keeps these choices, makes the workspaces you set up, and brings in the ticked folders, each where you put it." data-tip-keys="=ctrl+enter:start" data-tip-icon="check"><span class="tx">${busy ? 'starting…' : 'start'}</span><kbd>ctrl enter</kbd></button></div>
   </div>${countPop()}`;
   const sc = el.querySelector('.wl-scroll');
   if (sc) sc.scrollTop = top;

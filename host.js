@@ -31,7 +31,7 @@ const BOT = /bot|crawl|spider|preview|curl|wget/i;
 const KEEP_DAYS = 400, MAX_REFS = 200, MAX_IDS = 200000, MAX_ONLINE = 1000, ONLINE_MS = 5 * 60000;
 const PAGES = { '/index.html': '/', '/privacy.html': '/privacy', '/license.html': '/license', '/download.html': '/download' };
 const SHORT = { ...PAGES, '/terms': '/license' };
-const REPO = 'devdelion-one/Amethyst.exe', RELEASES = `https://github.com/${REPO}/releases`, LATEST_MS = 10 * 60000, RETRY_MS = 60000;
+const REPO = 'devdelion-one/Amethyst', RELEASES = `https://github.com/${REPO}/releases`, LATEST_MS = 10 * 60000, RETRY_MS = 60000;
 let latest = { at: 0, version: '', url: '', notes: '' }, asking = null;
 async function ask() {
   let found = null;

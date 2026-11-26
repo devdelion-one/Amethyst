@@ -11,7 +11,7 @@ const ASKING: Record<string, string[]> = {
 };
 const PLANS: Record<string, string[]> = { claude: ['exit-plan-default'], cursor: ['accepted'] };
 const FREE = new Set(['model', 'effort', 'reasoning_effort', 'thought_level', 'codex:model', 'codex:effort', 'fast', 'ultracode']);
-const TURN_OFF = new Set(['always-approve', 'yolo', 'auto', 'auto-approve', 'auto-run', 'autorun', 'autopilot', 'allow-all', 'allow-all-tools', 'allow-all-paths', 'allow-all-urls', 'add-dir', 'run-everything', 'force', 'full-access', 'bypass', 'bypass-permissions', 'skip-permissions', 'dangerously-skip-permissions', 'permissions', 'permission-mode', 'approvals', 'approval-mode', 'mode', 'sandbox']);
+const SAFE = ['compact', 'model', 'effort', 'fast'];
 
 export function heldOption(agent: string, code: string, o: { id: string; name: string; category?: string; mode: boolean }, v: { value: string; name: string }) {
   if (o.mode || o.id === 'mode' || o.category === 'mode') {
@@ -23,6 +23,9 @@ export function heldOption(agent: string, code: string, o: { id: string; name: s
 export const planOpen = (agent: string, o: { optionId: string; kind?: string }) => /^reject/.test(o.kind || '') || !!PLANS[agent]?.includes(o.optionId);
 
 export function heldText(text: string) {
-  const word = /^\/([\w:-]+)/.exec(text.trim())?.[1] || '';
-  if (TURN_OFF.has(word.toLowerCase())) throw new HttpError(403, `/${word} may turn off asking for permission, so only the user sends it (${OFF}).`);
+  const word = /^\/([^\s/]+)(?=\s|$)/.exec(text.trim())?.[1];
+  if (word && !SAFE.includes(word.toLowerCase())) throw new HttpError(403, `/${word}: only the user sends slash commands while ${OFF}. Open to you: ${SAFE.map((x) => '/' + x).join(', ')}.`);
 }
+
+export const asksIn = (agent: string, mode: string | null) => !!mode && (ASKING[agent] || []).includes(mode);
+export const heldQids = new Set<string>();

@@ -1,6 +1,7 @@
 import { barMenu, buttonMenu, chip, ICONS, miRow, rowIcons } from '../base/controls.ts';
 import { icon } from '../base/icon.ts';
 import { api } from '../base/model.ts';
+import { page } from '../base/page.ts';
 import { allLimits, limitsOf, limitsRead, notify, tell, watchLimits } from '../base/notify.ts';
 import { chatOn, isOff, onPref, pref, setPref } from '../base/prefs.ts';
 import { $, AM, esc, store } from '../base/util.ts';
@@ -37,16 +38,21 @@ function tokenLine(l: Lim, list: [number, number][]) {
   if (!span || !l.resets || !list.length) return '';
   const used = sumSince(list, l.resets - span), pct = nowPct(l);
   if (!used) return '';
-  return `${tokens(used)} tokens` + (pct >= 5 && pct < 100 ? ` · ~${tokens((used / pct) * (100 - pct))} left` : '');
+  return `${tokens(used)} tokens` + (pct >= 5 && pct < 100 ? `, ~${tokens((used / pct) * (100 - pct))} left` : '');
 }
 
 const groupOf = (l: Lim) => l.key.split(' ').slice(0, -1).join(' ');
 const spanName = (l: Lim) => (l.key.endsWith(' session') ? '5-hour limit' : l.key.endsWith(' week') ? 'Weekly limit' : '');
 const limitName = (l: Lim) => (l.agent === 'antigravity' && spanName(l) ? `${groupOf(l)} ${spanName(l).toLowerCase()}`.trim() : (NAMES as Record<string, string>)[l.name] || l.name[0].toUpperCase() + l.name.slice(1) + ' limit');
-function row(l: Lim, list: [number, number][], name = limitName(l)) {
-  const pct = nowPct(l);
-  const reset = l.resets ? (l.resets < Date.now() ? 'has reset' : resetLine(l.resets)) : '', toks = tokenLine(l, list);
-  return `<div class="uw-row"><div class="uw-n"><span>${esc(name)}</span><small>${esc(reset)}</small><small>${esc(toks)}</small></div><i class="uw-bar ${pct >= 100 ? 'full' : pct > 75 ? 'warn' : ''}" style="--p:${pct}"></i><span class="uw-pct">${pct}% used</span></div>`;
+function leftShort(ms?: number) {
+  if (!ms || ms <= Date.now()) return '';
+  const m = Math.ceil((ms - Date.now()) / 60e3), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60);
+  return d ? `${d}d ${h}h` : h ? `${h}h ${m % 60}m` : `${m}m`;
+}
+function row(l: Lim, name = limitName(l)) {
+  const pct = nowPct(l), live = !!l.resets && l.resets > Date.now();
+  const reset = l.resets ? (live ? 'resets in ' + leftShort(l.resets) : 'has reset') : '';
+  return `<div class="uw-row"${live ? ` title="${esc(resetLine(l.resets!))}"` : ''}><div class="uw-n"><span>${esc(name)}</span><small>${esc(reset)}</small><b class="uw-pct">${pct}%</b></div><i class="uw-bar ${level(pct)}" style="--p:${pct}"></i></div>`;
 }
 
 const planOf = (a: Acct) => (a.plan ? a.plan[0].toUpperCase() + a.plan.slice(1) : 'Claude');
@@ -54,6 +60,7 @@ const nameOf = (a: Acct) => `${planOf(a)}${a.email ? ' · ' + a.email.split('@')
 export const userOf = (a: Acct) => (!a.signedIn ? 'sign in…' : a.email ? a.email.split('@')[0] : planOf(a));
 const CHEVRON = '<svg class="ic uw-chev" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>';
 const PLUS = '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>';
+const CHECK = '<svg class="ic uw-chk" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.2 8.4 6.5 11.7 13 4.8"/></svg>';
 let menu = false, sel: string | null = null, opening = false;
 let agyOpen = false, agyAsk: string | null = null;
 const looks = new Map<string, any>(), waking = new Map<string, string>(), held = new Map<string, number>();
@@ -74,10 +81,10 @@ function moveLine(a: Acct, cur: Acct, r: any) {
   const busy = r?.busy || 0, terms = r?.terms || 0, old = userOf(cur);
   if (!busy && !terms) return `chats move to ${userOf(a)} at their next message, same conversation`;
   return [
-    busy && `${busy === 1 ? '1 chat finishes its' : busy + ' chats finish their'} turn on ${old} first`,
-    terms && `${terms === 1 ? '1 claude terminal stays' : terms + ' claude terminals stay'} on ${busy ? 'it' : old}`,
-    'nothing is closed',
-  ].filter(Boolean).join(' · ');
+    busy && `${busy === 1 ? '1 chat finishes its' : busy + ' chats finish their'} turn on ${old} first.`,
+    terms && `${terms === 1 ? '1 claude terminal stays' : terms + ' claude terminals stay'} on ${busy ? 'it' : old}.`,
+    'Nothing is closed.',
+  ].filter(Boolean).join(' ');
 }
 function limsOf(a: Acct, cur: Acct = inUse()) {
   const got = looks.get(a.id);
@@ -114,20 +121,22 @@ function pane(a: Acct, cur: Acct) {
   const body = !a.signedIn ? none('its limits show here after the sign-in')
     : wait ? none('reading its limits…') : got === 'failed' ? none("couldn't read its limits") : lims.length ? lims.map(prow).join('') : none('no limits reported');
   const full = !on && lims.find((l) => nowPct(l) >= 100);
-  const note = !a.signedIn ? esc(`its sign-in opens in a terminal window; claude stays on ${userOf(cur)}`) : on ? 'the account in use'
-    : (full ? `<span class="full">${esc(`${limitName(full).toLowerCase()} is full${full.resets ? ', ' + resetLine(full.resets) : ''}`)}</span> · ` : '') + esc(moveLine(a, cur, got));
+  const note = !a.signedIn ? esc(`Sign-in opens in a terminal window. Claude stays on ${userOf(cur)}.`) : on ? ''
+    : (full ? `<span class="full">${esc(`${limitName(full)} is full${full.resets ? ', ' + resetLine(full.resets) : ''}.`)}</span> ` : '') + esc(moveLine(a, cur, got));
   const warn = a.signedIn && !on && (got?.busy || got?.terms);
   const act = !a.signedIn ? `<button class="primary uw-go" data-uw-go title="Sign in\nSigns in to this account in a terminal window.">Sign in…</button>`
-    : on ? '<span class="uw-in">in use</span>' : `<button class="primary uw-go" data-uw-go title="${esc(`Switch\nSwitches Claude to ${userOf(a)}. Chats move at their next message, nothing is closed.`)}" data-tip-keys="=enter:switch">Switch</button>`;
+    : on ? `<span class="uw-in">${CHECK}<span>In use</span></span>` : `<button class="primary uw-go" data-uw-go title="${esc(`Switch\nSwitches Claude to ${userOf(a)}. Chats move at their next message, nothing is closed.`)}" data-tip-keys="=enter:switch">Switch</button>`;
   const fix = repairLine(a);
-  const set = a.dir ? `<div class="uw-pset">${shareChips(a)}<span class="uw-dir" title="${esc("Account folder\nThis account's sign-in lives here. Don't delete it while the account is in this list.")}">${esc(a.dir)}</span></div>${fix ? `<div class="uw-fix" title="${esc(fix)}" data-tip-cut>${esc(fix)}</div>` : ''}` : '';
-  return `<div class="uw-pane"><div class="uw-ph"><b>${esc(a.signedIn ? userOf(a) : 'this account')}</b><span>${esc(!a.signedIn ? 'not signed in' : [a.email, a.plan && planOf(a) + ' plan'].filter(Boolean).join(' · '))}</span></div><div class="uw-lims">${body}</div><div class="uw-pnote${warn ? ' warn' : ''}">${note}</div>${set}<div class="uw-pfoot">${removeButton(a)}${wakeButton(a, lims, wait || got === 'failed')}${act}</div></div>`;
+  const set = a.dir ? `<div class="uw-pset">${shareChips(a)}</div>${fix ? `<div class="uw-fix" title="${esc(fix)}" data-tip-cut>${esc(fix)}</div>` : ''}` : '';
+  const planBadge = a.signedIn && a.plan ? `<span class="uw-pbadge">${esc(a.plan)}</span>` : '';
+  const emailLine = !a.signedIn ? 'Not signed in' : a.email || '';
+  return `<div class="uw-pane"><div class="uw-ph"><div class="uw-ph-row"><b>${esc(a.signedIn ? userOf(a) : 'This account')}</b>${planBadge}</div>${emailLine ? `<span class="uw-email">${esc(emailLine)}</span>` : ''}</div><div class="uw-lims">${body}</div>${note ? `<div class="uw-pnote${warn ? ' warn' : ''}">${note}</div>` : ''}${set}<div class="uw-pfoot">${removeButton(a)}${wakeButton(a, lims, wait || got === 'failed')}${act}</div></div>`;
 }
 function wakeAllButton(list: Acct[]) {
   if (!pref('usage:wake')) return '';
   const signed = list.filter((a: Acct) => a.signedIn), off = !wakingAll && signed.every((a) => runsTill(limsOf(a)) || isHeld(a.id) || fullOf(limsOf(a)));
   const tip = wakingAll === 'sure?' ? 'Start all\nClick again to start them.' : wakingAll ? '' : off ? "Start all\nEvery account's 5-hour window is running, just started or has a full limit." : "Start all\nStarts every account's 5-hour window that isn't running. It sends hi to Haiku as each account in a hidden chat, one after another.";
-  return `<button class="uw-wake uw-wall${wakingAll === 'sure?' ? ' ask' : ''}" data-uw-wake-all${off || (wakingAll && wakingAll !== 'sure?') ? ' aria-disabled="true"' : ''} title="${esc(tip)}">${esc(wakingAll || 'Start all')}</button>`;
+  return `<button class="uw-wake uw-wall${wakingAll === 'sure?' ? ' ask' : ''}" data-uw-wake-all${off || (wakingAll && wakingAll !== 'sure?') ? ' aria-disabled="true"' : ''} title="${esc(tip)}">${esc(wakingAll || 'Start all 5h windows')}</button>`;
 }
 const acctChip = (cur: Acct) => `<button class="chip uw-acct" data-uw-open aria-haspopup="listbox" aria-expanded="${menu}" title="${esc(`${cur.email || userOf(cur)}\nThe Claude account these limits are for. Click to look at, switch or add an account.`)}"><b>${cur.signedIn && cur.plan ? `<span class="uw-plan">${esc(cur.plan)}</span>` : ''}${esc(userOf(cur))}</b>${CHEVRON}</button>`;
 function accounts() {
@@ -139,14 +148,19 @@ function accounts() {
   const shown = lookedAt();
   const items = list.map((a: Acct) => {
     const on = a.id === cur.id;
-    const line = !a.signedIn ? 'not signed in' : a.plan ? planOf(a) + ' plan' : 'signed in';
+    const lims = limsOf(a, cur), s5 = lims.find((l) => l.key === 'session');
     const twin = a.signedIn && a.email && list.some((b: Acct) => b !== a && b.signedIn && b.email === a.email);
-    const same = twin ? ` · <em class="uw-same" title="${esc(`Same login\nAnother account here is signed in as ${a.email} too, so both use the same limits.\n\nRemove one of them.`)}">same login</em>` : '';
-    return `<button class="cpo${on ? ' on' : ''}" role="option" aria-selected="${a.id === shown.id}" data-uw-acct="${esc(a.id)}"><span class="cpo-t"><b>${esc(userOf(a))}</b><span>${esc(line)}${same}</span></span>${on ? '<span class="uw-in">in use</span>' : ''}</button>`;
+    const sub = twin
+      ? `<span class="uw-rsub"><em class="uw-same" title="${esc(`Same login\nAnother account here is signed in as ${a.email} too, so both use the same limits.\n\nRemove one of them.`)}">same login</em></span>`
+      : s5
+        ? `<span class="uw-rbar"><i class="uw-bar ${nowPct(s5) >= 100 ? 'full' : nowPct(s5) > 75 ? 'warn' : ''}" style="--p:${nowPct(s5)}"></i><em>${nowPct(s5)}%</em></span>`
+        : `<span class="uw-rsub">${esc(!a.signedIn ? 'not signed in' : a.plan ? planOf(a) + ' plan' : 'signed in')}</span>`;
+    return `<button class="cpo uw-ritem${on ? ' on' : ''}" role="option" aria-selected="${a.id === shown.id}" data-uw-acct="${esc(a.id)}"><span class="cpo-t"><span class="uw-rtop"><b>${esc(userOf(a))}</b>${on ? `<span class="uw-in uw-rin" title="In use">${CHECK}</span>` : ''}</span>${sub}</span></button>`;
   });
   const pop = opening;
   opening = false;
-  return `<span class="uw-sw">${chip}<div class="uw-menu${pop ? ' pop' : ''}" role="listbox" aria-label="claude accounts"><div class="cpp-head"><b>Accounts</b>${wakeAllButton(list)}</div><div class="uw-list">${items.join('')}</div><button class="uw-add" data-uw-add title="Add account\nAdds a Claude account. You sign in to it in a terminal window.">${PLUS}<span>Add account</span></button>${pane(shown, cur)}</div></span>`;
+  const wall = wakeAllButton(list);
+  return `<span class="uw-sw">${chip}<div class="uw-menu uw-split-menu${pop ? ' pop' : ''}" role="listbox" aria-label="claude accounts"><div class="uw-rail"><div class="cpp-head"><b>Accounts</b></div><div class="uw-list">${items.join('')}</div><div class="uw-rfoot"><button class="uw-add" data-uw-add title="Add account\nAdds a Claude account. You sign in to it in a terminal window.">${PLUS}<span>Add account</span></button>${wall}</div></div>${pane(shown, cur)}</div></span>`;
 }
 
 type AgyTokenEntry = { at: number; total: number; input: number; output: number; cached: number; thinking: number };
@@ -189,7 +203,7 @@ function agyAccounts() {
   const row = (a: AgyAcct) => {
     const ask = agyAsk === a.id, google = AGY_GOOGLE.includes(a.method), who = a.email || a.line;
     const login = google ? `<button class="uw-go" data-uw-agy-login="${esc(a.id)}" title="${esc(AGY_LOGIN)}">Sign in…</button>` : '';
-    const act = a.inUse ? '<span class="uw-in">in use</span>' : `<button class="primary uw-go" data-uw-agy-use="${esc(a.id)}" title="${esc(`Switch\nSwitches Antigravity to ${who}. Open Antigravity chats move at their next message, nothing is closed.`)}">Switch</button>`;
+    const act = a.inUse ? `<span class="uw-in">${CHECK}<span>In use</span></span>` : `<button class="primary uw-go" data-uw-agy-use="${esc(a.id)}" title="${esc(`Switch\nSwitches Antigravity to ${who}. Open Antigravity chats move at their next message, nothing is closed.`)}">Switch</button>`;
     const rm = `<span class="uw-rm"><button class="${ask ? 'ask' : ''}" data-uw-agy-forget="${esc(a.id)}" title="${esc(ask ? 'Remove?\nClick again to remove it.' : `Remove\nTakes ${who} off Amethyst's list. Antigravity CLI's own sign-in stays as it is.`)}">${ask ? 'Remove?' : 'Remove…'}</button></span>`;
     return `<div class="cpo uw-agy${a.inUse ? ' on' : ''}" role="option" aria-selected="${a.inUse}"><span class="cpo-t"><b>${esc(who)}</b><span>${esc(google && !a.email ? 'signed-in account shows after the first chat' : AGY_WAYS[a.method] || a.method)}</span></span>${rm}${login}${act}</div>`;
   };
@@ -241,19 +255,50 @@ async function agyLogin(id?: string, way?: string) {
     tell(win, { title: "The sign-in didn't open", line: (e as Error).message, ms: 4000 });
   }
 }
-const topBar = (on: boolean) => `<div class="uw-top float-head"><img src="amethyst.svg" alt="" draggable="false"><span>usage and limits</span><button class="uw-pop"${pref('usage:popBtn') ? '' : ' hidden'} data-uw-pop role="switch" aria-checked="${on}" aria-label="usage pop-ups" title="Usage pop-ups: ${on ? 'on' : 'off'}&#10;A pop-up when a limit reaches 50, 75, 80, 90 and 100%. Click to turn them ${on ? 'off' : 'on'}.">${ICONS.bell}</button><button class="x" data-uw-close title="Close&#10;Closes this window." data-tip-keys="=esc:close" aria-label="close">${ICONS.wx}</button></div>`;
+const topBar = (on: boolean) => `<div class="uw-top float-head"><img src="amethyst.svg" alt="" draggable="false"><span>usage and limits</span><button class="uw-dash"${pref('usage:dashBtn') ? '' : ' hidden'} data-uw-dash aria-label="dashboard" title="Dashboard&#10;Opens the dashboard: tokens, cost, chats, commits and files changed per day.">${ICONS.dash}</button><button class="uw-pop"${pref('usage:popBtn') ? '' : ' hidden'} data-uw-pop role="switch" aria-checked="${on}" aria-label="usage pop-ups" title="Usage pop-ups: ${on ? 'on' : 'off'}&#10;A pop-up when a limit reaches 50, 75, 80, 90 and 100%. Click to turn them ${on ? 'off' : 'on'}.">${ICONS.bell}</button><button class="x" data-uw-close title="Close&#10;Closes this window." data-tip-keys="=esc:close" aria-label="close">${ICONS.wx}</button></div>`;
 function agyRows(list: Lim[]) {
   const groups = [...new Set(list.map(groupOf))];
-  return groups.map((g) => `<div class="uw-grp">${esc(g)}</div>` + list.filter((l) => groupOf(l) === g).sort((a, b) => spanOf(a) - spanOf(b)).map((l) => row(l, [], spanName(l))).join('')).join('');
+  return groups.map((g) => `<div class="uw-grp">${esc(g)}</div>` + list.filter((l) => groupOf(l) === g).sort((a, b) => spanOf(a) - spanOf(b)).map((l) => row(l, spanName(l))).join('')).join('');
+}
+const OPEN = 'usage:open';
+const opened = () => new Set(store.get(OPEN, []) as string[]);
+function fold(id: string) {
+  const s = opened();
+  if (!s.delete(id)) s.add(id);
+  store.set(OPEN, [...s]);
+  draw();
+}
+function shortName(l: Lim, label: boolean) {
+  const s = spanOf(l), g = groupOf(l).split(' ')[0];
+  const span = s === 300 ? '5h' : s === 10080 ? '7d' : /month/.test(l.name) ? 'mo' : s >= 1440 ? Math.round(s / 1440) + 'd' : s ? Math.round(s / 60) + 'h' : l.name;
+  return label && g ? `${g} ${span}` : span;
+}
+function mostUsed(list: Lim[]) {
+  const by = (l: Lim) => (l.resets && l.resets > Date.now() ? l.resets : Infinity);
+  const two = [...list].sort((a, b) => nowPct(b) - nowPct(a) || by(a) - by(b)).slice(0, 2);
+  return two.sort((a, b) => spanOf(a) - spanOf(b) || list.indexOf(a) - list.indexOf(b));
+}
+function mini(list: Lim[], note: string) {
+  if (!list.length) return `<span class="uw-mnote">${esc(note)}</span>`;
+  const two = mostUsed(list), label = two.length > 1 && groupOf(two[0]) !== groupOf(two[1]);
+  return `<span class="uw-mini">${two.map((l) => {
+    const pct = nowPct(l), left = leftShort(l.resets);
+    const tip = `${limitName(l)}: ${pct}% used` + (left ? `, ${resetLine(l.resets!)}` : '');
+    return `<span class="uw-ml" title="${esc(tip)}"><span>${esc(shortName(l, label))}</span><i class="uw-bar ${level(pct)}" style="--p:${pct}"></i><em>${esc(left)}</em><b>${pct}%</b></span>`;
+  }).join('')}</span>`;
 }
 function agent(id: 'claude' | 'codex' | 'antigravity' | 'cursor' | 'copilot' | 'grok', name: string, note: string, sum: string, sumTip = '', extra = '') {
   if (!chatOn(id)) return '';
   const list = (allLimits() as any[]).filter((l) => l.agent === id).sort((a, b) => (a.key === 'session' ? -1 : b.key === 'session' ? 1 : 0));
-  const asOf = list.length ? Math.max(...list.map((l) => l.at)) : 0;
-  const head = `<div class="uw-head"><span>${esc(name)}</span>${id === 'claude' ? accounts() : id === 'antigravity' ? agyAccounts() : ''}<small>${id === 'claude' && asOf ? 'as of ' + clock(asOf) : ''}</small></div>`;
-  const rows = !list.length ? `<div class="uw-none">${esc(note)}</div>` : id === 'antigravity' ? agyRows(list) : list.map((l) => row(l, reading[id]?.tokens || [])).join('');
-  const foot = sum ? `<div class="uw-sum"${sumTip ? ` title="${esc(sumTip)}"` : ''}>${esc(sum)}</div>` : '';
-  return `<section class="uw-agent">${head}${rows}${foot || extra ? `<div class="uw-foot">${foot}${extra}</div>` : ''}</section>`;
+  const open = opened().has(id);
+  const tip = `${name}\nClick to ${open ? 'hide' : 'show'} its limits in full.`;
+  const head = `<div class="uw-head uw-fold" data-uw-fold="${id}" role="button" tabindex="0" aria-expanded="${open}" title="${esc(tip)}"><span>${esc(name)}</span>${open ? (id === 'claude' ? accounts() : id === 'antigravity' ? agyAccounts() : '') : mini(list, note)}</div>`;
+  if (!open) return `<section class="uw-agent" data-agent="${id}">${head}</section>`;
+  const asOf = id === 'claude' && list.length ? `<div class="uw-asof">as of ${clock(Math.max(...list.map((l) => l.at)))}</div>` : '';
+  const rows = !list.length ? `<div class="uw-none">${esc(note)}</div>` : id === 'antigravity' ? agyRows(list) : list.map((l) => row(l)).join('');
+  const toks = list.map((l) => [l, tokenLine(l, reading[id]?.tokens || [])] as const).filter(([, t]) => t).map(([l, t]) => `<span>${esc(`${shortName(l, true)}: ${t}`)}</span>`).join('');
+  const foot = toks || sum ? `<div class="uw-toks">${toks}${sum ? `<span class="uw-sum"${sumTip ? ` title="${esc(sumTip)}"` : ''}>${esc(sum)}</span>` : ''}</div>` : '';
+  return `<section class="uw-agent open" data-agent="${id}">${head}${asOf}${rows}${foot || extra ? `<div class="uw-foot">${foot}${extra}</div>` : ''}</section>`;
 }
 
 type UsageSlot = { id: string; agent: string | null; meter: boolean; left: boolean; name: boolean };
@@ -486,10 +531,11 @@ function draw() {
   const codexNote = !codex ? 'not installed' : codex.signedIn ? 'no limits reported' : 'not signed in';
   const on = popOn(), at = win.querySelector('.uw-body')?.scrollTop || 0;
   const typed = win.querySelector<HTMLInputElement>('[data-uw-agy-key]'), kept = typed?.value || '', focused = !!typed && document.activeElement === typed;
-  const agySum = agySummary(agy);
+  const agySum = agySummary(agy), had = (document.activeElement as HTMLElement)?.dataset?.uwFold;
   const bar = topBar(on);
   win.innerHTML = `${bar}<div class="uw-body">${agent('claude', 'Claude Agent', 'no limits reported', claudeSum)}${agent('codex', 'Codex Agent', codexNote, codex?.credits ? `${codex.credits} credits left` : '')}${agent('antigravity', 'Antigravity Agent', agy ? 'no limits reported' : 'not installed', agySum.sum, agySum.tip, agySum.extra)}${agent('cursor', 'Cursor Agent', !cursor ? 'not installed' : cursor.signedIn ? 'no limits reported' : 'not signed in', cursor?.signedIn ? `uses ${cursor.line}` : '')}${agent('copilot', 'Copilot Agent', copilot ? 'type /usage in a chat' : 'not installed', copilot ? `uses ${copilot.line}` : '')}${agent('grok', 'Grok Agent', grok ? 'type /session-info in a chat' : 'not installed', grok ? `uses ${grok.line}` : '')}</div>`;
   win.querySelector('.uw-body')!.scrollTop = at;
+  if (had) (win.querySelector(`[data-uw-fold="${had}"]`) as HTMLElement)?.focus();
   const again = win.querySelector<HTMLInputElement>('[data-uw-agy-key]');
   if (again && kept) again.value = kept;
   if (again && focused) again.focus();
@@ -625,8 +671,17 @@ function act() {
   showMenu(false);
   (a.signedIn ? use(a.id) : signIn(a.id)).catch(retry(a.signedIn ? 'switch the account' : 'sign in'));
 }
+win.addEventListener('keydown', (e) => {
+  const f = (e.target as HTMLElement).closest?.('[data-uw-fold]') as HTMLElement;
+  if (!f || f !== e.target || (e.key !== 'Enter' && e.key !== ' ')) return;
+  e.preventDefault();
+  fold(f.dataset.uwFold!);
+});
 win.addEventListener('click', (e) => {
+  const f = (e.target as HTMLElement).closest('[data-uw-fold]') as HTMLElement;
+  if (f && !(e.target as HTMLElement).closest('.uw-sw')) return fold(f.dataset.uwFold!);
   if ((e.target as HTMLElement).closest('[data-uw-close]')) return toggle(false);
+  if ((e.target as HTMLElement).closest('[data-uw-dash]')) return toggle(false), page.openDash();
   if ((e.target as HTMLElement).closest('[data-uw-pop]')) return store.set('usage:pop', !popOn()), draw();
   if ((e.target as HTMLElement).closest('[data-uw-open]')) return agyMenu(false), showMenu(!menu);
   if ((e.target as HTMLElement).closest('[data-uw-agy-open]')) return agyMenu(!agyOpen);
@@ -776,8 +831,9 @@ addEventListener('storage', (e) => {
 onPref('usage:accounts', draw);
 onPref('usage:wake', draw);
 onPref('usage:popBtn', draw);
+onPref('usage:dashBtn', draw);
 onPref('agents:off', draw);
-rowIcons({ 'usage:popBtn': () => ICONS.bell, 'usage:accounts': () => icon('agent'), 'usage:wake': () => icon('fast') });
+rowIcons({ 'usage:dashBtn': () => ICONS.dash, 'usage:popBtn': () => ICONS.bell, 'usage:accounts': () => icon('agent'), 'usage:wake': () => icon('fast') });
 barMenu('.uw-top', 'usage');
 popSteps();
 draw();

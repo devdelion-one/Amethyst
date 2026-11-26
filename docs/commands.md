@@ -30,7 +30,7 @@ Exit codes: `0` done, `1` failed (error from Amethyst or app not running), `2` i
 
 **Surface:** CLI and MCP tool `agent_run`
 
-Start a subagent of any kind (claude, codex, antigravity, cursor, copilot or grok) on a task and get its answer. It runs as its own agent in this project's folder; the user sees it as a subagent of this chat, with its steps. Returns its answer under a first line naming it by its code (like "Codex - H57:"), the code amethyst agent send takes; with background, its code at once. A mode that may work without asking is the user's to pick: a chat can't start one in it unless the user allowed chats to answer permission asks.
+Start a subagent of any kind (claude, codex, antigravity, cursor, copilot or grok) on a task and get its answer. It runs as its own agent in this project's folder; the user sees it as a subagent of this chat, with its steps. Returns its answer under a first line naming it by its code (like "Codex - H57:"), the code amethyst agent send takes; with background, its code at once. A mode that may work without asking is the user's to pick: a chat can't start one in it unless the user allowed chats to answer permission asks. To a chat in a mode that may work without asking, your prompt waits for the user to allow it, unless the user allowed chats to answer permission asks; that chat shows a permission ask with it.
 
 ```powershell
 amethyst agent run <agent> <prompt...> [--model <model>] [--effort <effort>] [--mode <mode>] [--worktree] [--background] [--timeout <timeout>]
@@ -100,7 +100,7 @@ amethyst chat list
 
 **Surface:** CLI and MCP tool `chat_new`
 
-Start a new chat in this project. It is a normal chat the user sees and can type into; it goes next to yours when your set has a free cell, else in the set given, else in the agents list. With text it gets that as its first message (or, with draft, finds it in its message box for the user to send). Returns its code. Give it more work with amethyst chat send. A mode that may work without asking is the user's to pick: a chat, an agent outside Amethyst or a terminal can't start one in it unless the user allowed chats to answer permission asks.
+Start a new chat in this project. It is a normal chat the user sees and can type into; it goes next to yours when your set has a free cell, else in the set given, else in the agents list. With text it gets that as its first message (or, with draft, finds it in its message box for the user to send). Returns its code. Give it more work with amethyst chat send. A mode that may work without asking is the user's to pick: a chat, an agent outside Amethyst or a terminal can't start one in it unless the user allowed chats to answer permission asks. To a chat in a mode that may work without asking, its first message waits for the user to allow it, unless the user allowed chats to answer permission asks; that chat shows a permission ask with it.
 
 ```powershell
 amethyst chat new [text...] [--agent <agent>] [--model <model>] [--mode <mode>] [--worktree] [--set <set>] [--report] [--attach <a,b>] [--draft] [--follow] [--amethyst <amethyst>]
@@ -113,7 +113,7 @@ amethyst chat new [text...] [--agent <agent>] [--model <model>] [--mode <mode>] 
 - `--set` (string, optional): Where to show it: a chat set (its id, or + for a new one), or an editor set (ed:<id>, or ed:new for a new one)
 - `--report` (boolean, optional): Notify me: the user gets a notification each time it is ready (amethyst chat report turns it off)
 - `text` (string, optional): Its first message, sent at once
-- `--attach` (list, optional): Files to send with the first message: pictures go as pictures, other files as @path
+- `--attach` (list, optional): Files to send with the first message (files in this project): pictures go as pictures, other files as @path
 - `--draft` (boolean, optional): Put the text in its message box unsent, for the user to send
 - `--follow` (boolean, optional): Take the user to it (not from a chat: a chat never moves the user)
 - `--amethyst` (number, optional): The Amethyst (window) it opens in, 1 by default; it shows there when that Amethyst opens
@@ -124,7 +124,7 @@ Example: `amethyst chat new --set + --follow "plan the landing page"`
 
 **Surface:** CLI and MCP tool `chat_send`
 
-Send a message to another chat, as if the user typed it (it shows as from you). If the chat is busy, the message waits in its queue. Returns the message's qid. When it finishes, you get a short message saying so (unless tell is false), or call amethyst chat wait; then amethyst chat read gives the answer.
+Send a message to another chat, as if the user typed it (it shows as from you). If the chat is busy, the message waits in its queue. Returns the message's qid. When it finishes, you get a short message saying so (unless tell is false), or call amethyst chat wait; then amethyst chat read gives the answer. To a chat in a mode that may work without asking, the message waits for the user to allow it, unless the user allowed chats to answer permission asks; that chat shows a permission ask with it.
 
 ```powershell
 amethyst chat send <chat> <text...> [--attach <a,b>] [--now] [--worktree] [--tell] [--report]
@@ -132,7 +132,7 @@ amethyst chat send <chat> <text...> [--attach <a,b>] [--now] [--worktree] [--tel
 
 - `chat` (string, required): The chat: its code (Q20 or @Q20), its title, or its id. Only chats in your own project.
 - `text` (string, required): The message
-- `--attach` (list, optional): Files to attach: pictures go as pictures, other files as @path
+- `--attach` (list, optional): Files to attach (files in this project): pictures go as pictures, other files as @path
 - `--now` (boolean, optional): If the chat is busy, put the message into its current turn instead of the queue (agents that can take it)
 - `--worktree` (boolean, optional): On a fresh chat: work in its own git worktree
 - `--tell` (boolean, optional): false: no message to you when it finishes (default true)
@@ -361,7 +361,7 @@ Example: `amethyst chat move Q20 V10 --amethyst 1`
 
 **Surface:** CLI and MCP tool `chat_end`
 
-End a chat and close it. A chat can end only the chats it started.
+End a chat and close it. Only the user ends a chat someone else started: a chat, or an agent outside Amethyst, ends only the chats it started.
 
 ```powershell
 amethyst chat end <chat>
@@ -396,7 +396,7 @@ amethyst git repos
 
 **Surface:** CLI only
 
-Commit the changed files, as the commit button does: what is staged in git if anything is, otherwise every change (secrets left out). Prints what was committed.
+Commit the changed files, as the commit button does: what is staged in git if anything is, otherwise every change (secrets left out). Prints what was committed. While the user has "chats answer other chats' permission asks" off, and the repo has a git hook that would run, it first waits for their OK in Amethyst's window.
 
 ```powershell
 amethyst git commit [message...] [--push] [--amend] [--force] [--skip <a,b>] [--repo <repo>]
@@ -415,7 +415,7 @@ Example: `amethyst git commit "Fix the login form" --push`
 
 **Surface:** CLI only
 
-Ask the remote for new commits now. Prints how many there are to pull and to push.
+Ask the remote for new commits now. Prints how many there are to pull and to push. While the user has "chats answer other chats' permission asks" off, and the repo has a git hook that would run, it first waits for their OK in Amethyst's window.
 
 ```powershell
 amethyst git fetch [--repo <repo>]
@@ -427,7 +427,7 @@ amethyst git fetch [--repo <repo>]
 
 **Surface:** CLI only
 
-Pull the remote’s commits into this branch. When both sides have new commits it follows git’s pull.rebase setting, or --how.
+Pull the remote’s commits into this branch. When both sides have new commits it follows git’s pull.rebase setting, or --how. While the user has "chats answer other chats' permission asks" off, and the repo has a git hook that would run, it first waits for their OK in Amethyst's window. While that setting is off, it refuses a change that brings in an agent's settings or hooks (like .claude/settings.local.json or .github/hooks/): that change is the user's to make.
 
 ```powershell
 amethyst git pull [--how <how>] [--repo <repo>]
@@ -442,7 +442,7 @@ Example: `amethyst git pull --how rebase`
 
 **Surface:** CLI only
 
-Push this branch; the first time, publish it.
+Push this branch; the first time, publish it. While the user has "chats answer other chats' permission asks" off, and the repo has a git hook that would run, it first waits for their OK in Amethyst's window.
 
 ```powershell
 amethyst git push [--lease] [--repo <repo>]
@@ -455,7 +455,7 @@ amethyst git push [--lease] [--repo <repo>]
 
 **Surface:** CLI only
 
-Pull, then push.
+Pull, then push. While the user has "chats answer other chats' permission asks" off, and the repo has a git hook that would run, it first waits for their OK in Amethyst's window. While that setting is off, it refuses a change that brings in an agent's settings or hooks (like .claude/settings.local.json or .github/hooks/): that change is the user's to make.
 
 ```powershell
 amethyst git sync [--how <how>] [--repo <repo>]
@@ -468,7 +468,7 @@ amethyst git sync [--how <how>] [--repo <repo>]
 
 **Surface:** CLI only
 
-Switch to a branch, or make one with --create.
+Switch to a branch, or make one with --create. While the user has "chats answer other chats' permission asks" off, and the repo has a git hook that would run, it first waits for their OK in Amethyst's window. While that setting is off, it refuses a change that brings in an agent's settings or hooks (like .claude/settings.local.json or .github/hooks/): that change is the user's to make.
 
 ```powershell
 amethyst git branch <name> [--create] [--from <from>] [--changes <changes>] [--repo <repo>]
@@ -504,7 +504,7 @@ Example: `amethyst git branch-names --issue "feature/{n}-{title}" --chat "ai/{ch
 
 **Surface:** CLI only
 
-Undo the merge or rebase that is under way.
+Undo the merge or rebase that is under way. While the user has "chats answer other chats' permission asks" off, and the repo has a git hook that would run, it first waits for their OK in Amethyst's window.
 
 ```powershell
 amethyst git abort [--repo <repo>]
@@ -516,7 +516,7 @@ amethyst git abort [--repo <repo>]
 
 **Surface:** CLI only
 
-Leave out the commit that clashes and go on with the rebase, cherry-pick or revert under way.
+Leave out the commit that clashes and go on with the rebase, cherry-pick or revert under way. While the user has "chats answer other chats' permission asks" off, and the repo has a git hook that would run, it first waits for their OK in Amethyst's window.
 
 ```powershell
 amethyst git skip [--repo <repo>]
@@ -528,7 +528,7 @@ amethyst git skip [--repo <repo>]
 
 **Surface:** CLI only
 
-Copy a repository onto this PC, with its submodules, and add it as a project to the workspace it is run from (a chat or terminal in one of its projects). Run outside a workspace, it only copies. Prints where it went.
+Copy a repository onto this PC, with its submodules, and add it as a project to the workspace it is run from (a chat or terminal in one of its projects). Run outside a workspace, it only copies. Prints where it went. While the user has "chats answer other chats' permission asks" off, it refuses a repository that has an agent's settings or hooks (like .claude/settings.local.json or .github/hooks/): that clone is the user's to make.
 
 ```powershell
 amethyst git clone <url> [into] [--name <name>] [--add]
@@ -545,7 +545,7 @@ Example: `amethyst git clone owner/repo`
 
 **Surface:** CLI only
 
-Tag the commit you are on (or --at another), and with --push send the tag to the remote.
+Tag the commit you are on (or --at another), and with --push send the tag to the remote. While the user has "chats answer other chats' permission asks" off, and the repo has a git hook that would run, it first waits for their OK in Amethyst's window.
 
 ```powershell
 amethyst git tag <name> [--at <at>] [--message <message>] [--push] [--repo <repo>]
@@ -641,7 +641,7 @@ Example: `amethyst git compare chat/q20`
 
 **Surface:** CLI only
 
-Go on with the merge or rebase that is under way, once its conflicts are fixed.
+Go on with the merge or rebase that is under way, once its conflicts are fixed. While the user has "chats answer other chats' permission asks" off, and the repo has a git hook that would run, it first waits for their OK in Amethyst's window.
 
 ```powershell
 amethyst git continue [--repo <repo>]
@@ -653,7 +653,7 @@ amethyst git continue [--repo <repo>]
 
 **Surface:** CLI only
 
-Publish a GitHub release for a tag (pushed first if needed), with notes GitHub writes from the pull requests since the last one, or your own.
+Publish a GitHub release for a tag (pushed first if needed), with notes GitHub writes from the pull requests since the last one, or your own. While the user has "chats answer other chats' permission asks" off, and the repo has a git hook that would run, it first waits for their OK in Amethyst's window.
 
 ```powershell
 amethyst git release <tag> [--title <title>] [--notes <notes>] [--repo <repo>]
@@ -712,7 +712,7 @@ amethyst pr open <n> [--repo <repo>]
 
 **Surface:** CLI only
 
-Open a pull request for the branch you are on (pushed first if needed); an issue number in the branch name is linked with "Fixes #N".
+Open a pull request for the branch you are on (pushed first if needed); an issue number in the branch name is linked with "Fixes #N". While the user has "chats answer other chats' permission asks" off, and the repo has a git hook that would run, it first waits for their OK in Amethyst's window.
 
 ```powershell
 amethyst pr create <title...> [--body <body>] [--base <base>] [--draft] [--repo <repo>]
@@ -761,7 +761,7 @@ Example: `amethyst pr review 12 --how approve`
 
 **Surface:** CLI only
 
-Merge a pull request on GitHub, in a way the repository allows.
+Merge a pull request on GitHub, in a way the repository allows. While the user has "chats answer other chats' permission asks" off, and the repo has a git hook that would run, it first waits for their OK in Amethyst's window.
 
 ```powershell
 amethyst pr merge <n> [--how <how>] [--delete-branch] [--auto] [--repo <repo>]
@@ -779,7 +779,7 @@ Example: `amethyst pr merge 12 --how squash`
 
 **Surface:** CLI only
 
-Switch the project's folder to a pull request's branch, or with --worktree open it in a folder of its own.
+Switch the project's folder to a pull request's branch, or with --worktree open it in a folder of its own. While the user has "chats answer other chats' permission asks" off, and the repo has a git hook that would run, it first waits for their OK in Amethyst's window. While that setting is off, it refuses a change that brings in an agent's settings or hooks (like .claude/settings.local.json or .github/hooks/): that change is the user's to make.
 
 ```powershell
 amethyst pr checkout <n> [--worktree] [--repo <repo>]
@@ -882,7 +882,7 @@ amethyst issue close <n> [--reason <reason>] [--repo <repo>]
 
 **Surface:** CLI only
 
-Start on an issue: a branch named for it, linked to it on GitHub, and this folder switched to it; with --where folder, in a folder of its own instead.
+Start on an issue: a branch named for it, linked to it on GitHub, and this folder switched to it; with --where folder, in a folder of its own instead. While the user has "chats answer other chats' permission asks" off, and the repo has a git hook that would run, it first waits for their OK in Amethyst's window. While that setting is off, it refuses a change that brings in an agent's settings or hooks (like .claude/settings.local.json or .github/hooks/): that change is the user's to make.
 
 ```powershell
 amethyst issue start <n> [--where <where>] [--repo <repo>]
@@ -938,7 +938,7 @@ Example: `amethyst ue new module MyToolsEditor --plugin MyTools --type Editor`
 
 **Surface:** CLI and MCP tool `ue_generate`
 
-Generate the project files (the .sln) for this Unreal project with its engine, and wait for the end. It says whether it succeeded, with any errors.
+Generate the project files (the .sln) for this Unreal project with its engine, and wait for the end. It says whether it succeeded, with any errors. While the user has "chats answer other chats' permission asks" off, each run first waits for their OK in Amethyst's window.
 
 ```powershell
 amethyst ue generate [--timeout <timeout>]
@@ -952,7 +952,7 @@ Example: `amethyst ue generate`
 
 **Surface:** CLI and MCP tool `ue_build`
 
-Build this Unreal project with UnrealBuildTool and wait for the end: the Editor target in Development by default. It says whether it succeeded and lists the errors and warnings as file:line:col. The build runs on in Amethyst's build window if the wait runs out; ue wait waits on. It refuses while Unreal Editor is open on the project (its files are locked), unless --force.
+Build this Unreal project with UnrealBuildTool and wait for the end: the Editor target in Development by default. It says whether it succeeded and lists the errors and warnings as file:line:col. The build runs on in Amethyst's build window if the wait runs out; ue wait waits on. It refuses while Unreal Editor is open on the project (its files are locked), unless --force. While the user has "chats answer other chats' permission asks" off, each run first waits for their OK in Amethyst's window.
 
 ```powershell
 amethyst ue build [target] [--config <config>] [--rebuild] [--clean] [--force] [--timeout <timeout>]
@@ -997,7 +997,7 @@ Example: `amethyst ue cancel`
 
 **Surface:** CLI and MCP tool `ue_editor`
 
-Open Unreal Editor on this project and return at once; ue log shows how far it got. It refuses when the Editor target was never built (Unreal would stop at a dialog), unless --force.
+Open Unreal Editor on this project and return at once; ue log shows how far it got. It refuses when the Editor target was never built (Unreal would stop at a dialog), unless --force. While the user has "chats answer other chats' permission asks" off, each run first waits for their OK in Amethyst's window.
 
 ```powershell
 amethyst ue editor [--force]
@@ -1030,7 +1030,7 @@ Example: `amethyst ue log --category LogModuleManager --lines 40`
 
 **Surface:** CLI and MCP tool `debug_start`
 
-Start debugging this project's Unreal program: Unreal Editor (DebugGame Editor), built first, then started under the debugger; when the editor is already open it attaches to it instead. With game: the game in its own window (Unreal Editor with -game). With attach: only attach to the open editor. It returns at once; set breakpoints with amethyst debug break, then amethyst debug wait returns at the first stop.
+Start debugging this project's Unreal program: Unreal Editor (DebugGame Editor), built first, then started under the debugger; when the editor is already open it attaches to it instead. With game: the game in its own window (Unreal Editor with -game). With attach: only attach to the open editor. It returns at once; set breakpoints with amethyst debug break, then amethyst debug wait returns at the first stop. While the user has "chats answer other chats' permission asks" off, each run first waits for their OK in Amethyst's window.
 
 ```powershell
 amethyst debug start [--game] [--attach] [--build]
@@ -1149,7 +1149,7 @@ Example: `amethyst debug vars --frame 1 --depth 3`
 
 **Surface:** CLI and MCP tool `debug_evaluate`
 
-Evaluate a C++ expression in a frame while stopped, e.g. Health, this->Weapon or Items.Num. Returns its value and type, and its members when it has some. An expression with a call or an assignment could change the program: that needs the user's "agents can control the debugger".
+Evaluate a C++ expression in a frame while stopped, e.g. Health, this->Weapon or Items.Num. Returns its value and type, and its members when it has some. An expression with a call or an assignment could change the program: that needs the user's \"agents can control the debugger\". While the user has "chats answer other chats' permission asks" off, an expression with a call or an assignment first waits for their OK in Amethyst's window.
 
 ```powershell
 amethyst debug eval <expr...> [--frame <frame>] [--depth <depth>]

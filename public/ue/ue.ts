@@ -15,6 +15,7 @@ import { WIN } from '../base/windows.ts';
 import { askAgent, refreshChecks, setBuildProblems, setUht } from './checks.ts';
 import type { Uht } from './checks.ts';
 import { onPlace } from '../app/places.ts';
+import './ask.ts';
 
 const POP = location.pathname === '/ue.html';
 const desk = window.amethyst;

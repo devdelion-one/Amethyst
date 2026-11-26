@@ -1,6 +1,7 @@
 import { api } from '../base/model.ts';
 import { page } from '../base/page.ts';
 import { esc } from '../base/util.ts';
+import { webLink } from '../base/markdown.ts';
 
 export function ghapi(method: string, url: string, body?: object): Promise<any> {
   const repo = page.gitRepo();
@@ -20,4 +21,4 @@ const CHECK: Record<string, [string, string]> = { pass: ['✓', 'Checks: pass\nE
 const REVIEW: Record<string, [string, string]> = { approved: ['✓', 'Review: approved\nA reviewer approved this pull request.'], changes: ['✗', 'Review: changes asked\nA reviewer asked for changes.'], waiting: ['○', 'Review: waiting\nIt waits for a review.'] };
 export const checkMark = (s: string) => (CHECK[s] ? `<span class="gh-ck ${s}" title="${esc(CHECK[s][1])}">${CHECK[s][0]}</span>` : '<span class="gh-ck"></span>');
 export const reviewMark = (s: string) => (REVIEW[s] ? `<span class="gh-rv ${s}" title="${esc(REVIEW[s][1])}">${REVIEW[s][0]}</span>` : '<span class="gh-rv"></span>');
-export const link = (url: string, label: string) => `<a href="${esc(url)}" target="_blank" rel="noopener">${label}</a>`;
+export const link = (url: string, label: string) => webLink(url, label);

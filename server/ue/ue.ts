@@ -14,6 +14,8 @@ import * as lcGuard from './guard.ts';
 import * as editor from './editor.ts';
 import { stopUht, uht } from './uht.ts';
 import { debugConfig, exeOf } from './debug.ts';
+import * as asks from './ask.ts';
+import * as gate from '../base/runs.ts';
 import type { ChildProcessWithoutNullStreams } from 'child_process';
 import type { Routes } from '../../public/base/types.ts';
 import type { Config } from './debug.ts';
@@ -252,6 +254,29 @@ async function find(root: string | null, { uproject = '', engine = '' }: { uproj
 async function findToRun(root: string | null, body: { uproject?: string; engine?: string } = {}): Promise<Found> {
   const f = await find(root, body);
   return f.engine && !f.ok && (!f.why || f.why === 'no-targets') ? { ...f, why: 'unconfirmed' } : f;
+}
+
+const labelOf = (e: Engine) => (/^\d/.test(e.id) ? `UE ${e.id}` : e.id && e.id !== 'added' ? e.id : 'Unreal Engine');
+
+async function askRun(root: string | null, body: any, f: Found, title: string): Promise<Found> {
+  if (!f.engine || !f.path || (f.why && f.why !== 'unconfirmed' && f.why !== 'no-targets')) return f;
+  const e = f.engine, how = await gate.ask({ title, text: `${gate.whoAsks(body)} asks for it, with ${labelOf(e)}.`, warn: "This runs the project's own code: its build rules and plugins." }, body.timeout == null ? 300 : Number(body.timeout) || 0);
+  if (how !== 'yes') return { ...f, why: `run-${how}` };
+  if (f.why === 'unconfirmed') {
+    const project = path.dirname(f.path);
+    await changeOk((all) => [...all.filter((x) => !sameDir(x.project, project) || !sameDir(x.engine, e.dir)), { project, engine: e.dir }]);
+    asks.given(project, e.dir);
+  }
+  return findToRun(root, body);
+}
+
+async function askOk(root: string | null, body: any, f: Found, title: string): Promise<Found> {
+  if (!gate.free(body)) return askRun(root, body, f, title);
+  if (f.why !== 'unconfirmed' || !asks.watched()) return f;
+  const e = f.engine!, label = labelOf(e);
+  const how = await asks.wait({ project: path.dirname(f.path), engine: e.dir, name: f.name, label }, body.timeout == null ? 300 : Number(body.timeout) || 0);
+  if (how === 'yes') return findToRun(root, body);
+  return { ...f, why: how === 'no' ? 'refused' : 'unconfirmed' };
 }
 
 function parse(s: string): Problem | null {
@@ -780,7 +805,9 @@ const FIND_WHY: Record<string, string> = {
   os: 'the Unreal commands work on Windows only for now',
   'bad-json': "the .uproject isn't valid JSON",
   'not-engine': "that folder isn't an Unreal Engine: it has no Engine\\Build\\BatchFiles\\Build.bat",
-  unconfirmed: "this engine waits for your OK in Amethyst's build window",
+  unconfirmed: "this engine waits for the user's OK in Amethyst: they click Allow in the prompt Amethyst shows, or 'use this engine' in the project's build window (the Unreal build button in the top bar opens it). amethyst ue wait waits for it",
+  refused: 'the user said not now to this engine for this project: ask them before trying again',
+  ...Object.fromEntries(Object.entries(gate.SAID).map(([k, v]) => [`run-${k}`, v])),
 };
 type Why = { why?: string | null; assoc?: string; detail?: string; engine?: Engine | null };
 function sayWhy(f: Why) {
@@ -789,7 +816,7 @@ function sayWhy(f: Why) {
   return (FIND_WHY[f.why || ''] || f.why || 'the Unreal project is not ready') + (f.detail ? `: ${f.detail}` : '');
 }
 const refuse = (f: Why): never => {
-  throw new HttpError(400, sayWhy(f));
+  throw new HttpError(f.why?.startsWith('run-') ? 403 : 400, sayWhy(f));
 };
 const secs = (ms: number) => `${Math.round(ms / 1000)} s`;
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
@@ -829,7 +856,8 @@ function sayRun(root: string, run: Run, done: boolean) {
 
 async function cmdRun(root: string | null, body: any, action: string) {
   if (!root) throw new HttpError(400, 'run it inside an Unreal project folder');
-  const f = await findToRun(root, body);
+  const pre = await findToRun(root, body);
+  const f = await askOk(root, body, pre, `Allow ${action === 'generate' ? 'project files for' : action === 'clean' ? 'a clean of' : action === 'rebuild' ? 'a rebuild of' : 'a build of'} ${pre.name || 'this project'}?`);
   if (f.why) refuse(f);
   let target = '', config = '';
   if (action !== 'generate') {
@@ -882,9 +910,15 @@ const CMD_ROUTES: Routes = {
   'POST /api/ue/cmd/build': async (body, _, root: string | null) => cmdRun(root, body || {}, body?.clean ? 'clean' : body?.rebuild ? 'rebuild' : 'build'),
   'POST /api/ue/cmd/generate': async (body, _, root: string | null) => cmdRun(root, body || {}, 'generate'),
   'POST /api/ue/cmd/wait': async (body, _, root: string | null) => {
+    const secs = body?.timeout == null ? 300 : Number(body.timeout) || 0;
+    const f = root ? await find(root, body || {}) : null, a = f?.path ? asks.pendingIn(path.dirname(f.path)) : null;
+    if (a) {
+      if (!(await asks.whenEnded(a, secs))) return { text: `${f!.name} still waits for the user's OK in Amethyst; amethyst ue wait waits on` };
+      for (let i = 0; i < 20 && !live(runs.get(keyOf(root!))); i++) await sleep(100);
+    }
     const run = root ? runs.get(keyOf(root)) : undefined;
-    if (!run) return { text: 'nothing has been built here since Amethyst started' };
-    const done = await waitEnd(run, body?.timeout == null ? 300 : Number(body.timeout) || 0);
+    if (!run) return { text: a ? 'the OK ended without a build: the waiting command says why' : 'nothing has been built here since Amethyst started' };
+    const done = await waitEnd(run, secs);
     return { text: sayRun(root!, run, done), run: pub(run), problems: run.problems };
   },
   'POST /api/ue/cmd/cancel': async (_, __, root: string | null) => {
@@ -895,7 +929,8 @@ const CMD_ROUTES: Routes = {
     return { text: sayRun(root!, run, !live(run)) };
   },
   'POST /api/ue/cmd/editor': async (body, _, root: string | null) => {
-    const f = await findToRun(root, body || {});
+    const pre = await findToRun(root, body || {});
+    const f = await askOk(root, body || {}, pre, `Allow opening Unreal Editor on ${pre.name || 'this project'}?`);
     if (f.why) refuse(f);
     if (!(await editorOpen(f.path)) && !body?.force && fs.existsSync(path.join(path.dirname(f.path), 'Source')) && !editorBuilt(f)) {
       const t = editorTarget(f);
@@ -973,9 +1008,19 @@ const ROUTES: Routes = {
       again = false;
       if (f.why && f.why !== 'no-targets' && f.why !== 'bad-json') refuse(f);
       const project = path.dirname(f.path), engine = f.engine?.dir;
-      if (engine) await changeOk((all) => [...all.filter((x) => !sameDir(x.project, project) || !sameDir(x.engine, engine)), { project, engine }]);
+      if (engine) {
+        await changeOk((all) => [...all.filter((x) => !sameDir(x.project, project) || !sameDir(x.engine, engine)), { project, engine }]);
+        asks.given(project, engine);
+      }
     }
     return { engines: await engines(!!again) };
+  },
+  'POST /api/ue/ask': async ({ id, yes }) => {
+    const a = asks.byId(Number(id));
+    if (!a) return { gone: true };
+    if (yes === true) await changeOk((all) => [...all.filter((x) => !sameDir(x.project, a.project) || !sameDir(x.engine, a.engine)), { project: a.project, engine: a.engine }]);
+    asks.answer(a.id, yes === true);
+    return { ok: true };
   },
   'POST /api/ue/find': async ({ uproject, engine, again }, _, root: string | null) => find(root, { uproject, engine }, !!again),
   'POST /api/ue/run': async (body, _, root: string | null) => start(root, body),
@@ -988,6 +1033,11 @@ const ROUTES: Routes = {
     const w = debug.who(body || {}, root);
     debug.allow(w, 'Starting the debugger');
     const mode = body?.mode || (body?.attach === true ? 'attach' : body?.game === true ? 'game' : 'editor');
+    if (w.outside || !gate.free(body)) {
+      const pre = await findToRun(w.root, body || {});
+      const f = await askOk(w.root, body || {}, pre, `Allow debugging ${pre.name || 'this project'}?`);
+      if (f.why === 'refused' || f.why === 'unconfirmed' || f.why?.startsWith('run-')) refuse(f);
+    }
     const r: Record<string, any> = await startDebug(w.root, { ...(body || {}), mode, by: w.agent ? 'agent' : 'you', agent: w.agent });
     if (!w.outside) return r;
     const text = sayStart(r, mode);
@@ -1063,3 +1113,4 @@ const ROUTES: Routes = {
 };
 
 export { ROUTES, follow, stopAll, parse, init };
+export const followAsks = asks.follow;

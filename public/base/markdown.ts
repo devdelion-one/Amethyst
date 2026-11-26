@@ -12,7 +12,7 @@ function frontRows(lines: string[]) {
 }
 
 const isWeb = (href: string): boolean => /^(https?:|mailto:)/i.test(href);
-const webLink = (href: string, html: string) => (isWeb(href) ? `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${html}</a>` : html);
+export const webLink = (href: string, html: string) => (isWeb(href) ? `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${html}</a>` : html);
 export const slug = (s: string): string =>
   s
     .toLowerCase()

@@ -1,5 +1,6 @@
 import { api } from '../base/model.ts';
 import { esc, setSave } from '../base/util.ts';
+import { notify } from '../base/notify.ts';
 
 type SignInCtx = {
   el: HTMLElement;
@@ -29,7 +30,9 @@ const WAYS: Record<string, { title: string; sub: string; text: string; login?: b
 
 export function createSignIn({ el, tab, name, line, state, ended, end, close, reset, restart }: SignInCtx) {
   const infoOf = (all: any) => ({ codex: all, antigravity: all.antigravity, cursor: all.cursor, copilot: all.copilot, grok: all.grok } as Record<string, any>)[tab().type] || all.auth;
+  let account = 'default';
   function signInScreen(info: any, why = '', keep = false) {
+    if (info?.account) account = info.account;
     const codex = tab().type === 'codex', agy = tab().type === 'antigravity', cursor = tab().type === 'cursor', copilot = tab().type === 'copilot', grok = tab().type === 'grok';
     const back = keep ? `<button type="button" class="si-x" data-si-back title="Close&#10;Closes this window." aria-label="close">×</button>` : '';
     const put = keep ? (cls: string, html: string) => {
@@ -119,7 +122,9 @@ export function createSignIn({ el, tab, name, line, state, ended, end, close, re
       const body = m === 'claude'
         ? cc?.signedIn
           ? `<div class="row"><button class="primary" data-si-use="claude">Use Claude Code</button></div>`
-          : `<p>${cc?.installed ? 'Run' : `<a href="${CC_URL}" target="_blank" rel="noopener noreferrer">Install Claude Code ↗</a>, then run`} <code>claude auth login</code> in a terminal.</p><div class="row"><button class="outline" data-si-start>check again</button></div>`
+          : cc?.installed
+          ? `<p>Sign in opens a terminal that runs <code>claude auth login</code>. Finish there, then check again.</p><div class="row"><button class="primary" data-si-login="claude">Sign in in a terminal…</button><button class="outline" data-si-start>check again</button></div>`
+          : `<p><a href="${CC_URL}" target="_blank" rel="noopener noreferrer">Install Claude Code ↗</a>, then run <code>claude auth login</code> in a terminal.</p><div class="row"><button class="outline" data-si-start>check again</button></div>`
         : w.login
         ? `<div class="row"><button class="primary" data-si-use="${m}">Use my ${w.title.toLowerCase()}</button><button class="outline" data-si-login="${m}">Sign in…</button></div>`
         : `<div class="si-fields">${w.fields!.map(field).join('')}</div><div class="row"><button class="primary" data-si-save="${m}">Use ${esc(w.title)}</button></div>`;
@@ -172,6 +177,15 @@ export function createSignIn({ el, tab, name, line, state, ended, end, close, re
       return;
     }
     const box = el.querySelector(`.si-way[data-way="${method}"] .si-body`);
+    if (method === 'claude') {
+      try {
+        const r = await api('POST', '/api/agent/account', { id: account });
+        notify(r.opened ? 'Finish the Claude sign-in in the window that opened, then check again.' : `Sign in in a terminal, then check again: <code>${esc(r.cmd)}</code>`, { ms: 12000 });
+      } catch (e) {
+        notify(`Couldn't open the Claude sign-in: ${esc((e as Error).message)}`, { ms: 12000 });
+      }
+      return;
+    }
     try {
       await api('PUT', '/api/agent/auth', { method });
       const r = await api('POST', '/api/agent/login', { method });

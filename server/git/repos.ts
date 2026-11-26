@@ -11,6 +11,7 @@ import { gh, ghState, ghForget } from '../base/ghcli.ts';
 import { worktreesOf, removeWorktree } from '../base/worktrees.ts';
 import { hands, inRepo, said, but, relArg, leaveOut, remoteOf, remotes, status, repoStatus, forget, forgetLocks, done, lfsOf } from './status.ts';
 import { push } from './sync.ts';
+import { free, keepOut } from '../base/agentfiles.ts';
 
 const MAX_BELOW = 300;
 const SKIP = new Set(['node_modules', '.git']);
@@ -204,7 +205,8 @@ const ROUTES: Routes = {
     });
     return { list, text: list.map((x) => `${x.name}${x.private ? ' (private)' : ''}`).join('\n') || 'no repositories' };
   },
-  'POST /api/git/clone': async ({ url, into, name, add, cwd: from, by, key }, _q, _at, pid) => {
+  'POST /api/git/clone': async (body, _q, _at, pid) => {
+    const { url, into, name, add, cwd: from, by, key } = body;
     let u = String(url ?? '').trim();
     if (/^[\w.-]{1,39}\/[\w.-]{1,100}$/.test(u)) u = `https://github.com/${u}.git`;
     if (!/^(https:\/\/[^\s]+|(ssh:\/\/)?[\w.-]+@[\w.-]+[:/][^\s]+|file:\/\/[^\s]+|[a-z]:[\\/][^\n]+|\/[^\n]+)$/i.test(u) || u.length > 500 || u.startsWith('-')) throw new HttpError(400, 'That does not look like a repository address (https://github.com/owner/repo, or owner/repo).');
@@ -212,9 +214,21 @@ const ROUTES: Routes = {
     const base = typeof from === 'string' && path.isAbsolute(from) ? from : path.join(os.homedir(), 'Documents');
     const dir = path.resolve(base, String(into ?? '').trim() || own);
     if (fs.existsSync(dir) && fs.readdirSync(dir).length) throw new HttpError(409, `${dir} is there already and not empty: pick another folder.`);
+    const had = fs.existsSync(dir), look = !free(body);
     fs.mkdirSync(path.dirname(dir), { recursive: true });
-    const r = await gitLong(path.dirname(dir), ['clone', '--progress', '--recurse-submodules', '--', u, dir], { what: 'cloning', key: dir, idle: 5 * 60e3 });
+    const r = await gitLong(path.dirname(dir), ['clone', '--progress', look ? '--no-checkout' : '--recurse-submodules', '--', u, dir], { what: 'cloning', key: dir, idle: 5 * 60e3 });
     must(r);
+    if (look) {
+      try {
+        await keepOut(body, dir, '', 'HEAD');
+      } catch (e) {
+        if (had) for (const f of fs.readdirSync(dir)) fs.rmSync(path.join(dir, f), { recursive: true, force: true, maxRetries: 3 });
+        else fs.rmSync(dir, { recursive: true, force: true, maxRetries: 3 });
+        throw e;
+      }
+      if (!(await git(dir, ['rev-parse', '--verify', '-q', 'HEAD'])).code) must(await gitLong(dir, ['checkout', '--progress'], { what: 'checking out', key: dir, idle: 5 * 60e3 }));
+      if (fs.existsSync(path.join(dir, '.gitmodules'))) must(await gitLong(dir, ['submodule', 'update', '--init', '--recursive', '--progress'], { what: 'cloning the submodules', key: dir, idle: 5 * 60e3 }));
+    }
     const lfs = (await lfsOf(dir)).lfs;
     let project = null, none = '';
     if (add !== false) {

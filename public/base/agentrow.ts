@@ -1,10 +1,11 @@
 import { every } from './life.ts';
-import { pref, PREFS } from './prefs.ts';
+import { onPref, pref, PREFS } from './prefs.ts';
 import { esc, showErr, sinceShort, store } from './util.ts';
 import { busyNow, gem, workCorner, workGem } from './kinds.ts';
 import { clearedOf, codeOf, markOf, providerOf, setCleared } from './agentlook.ts';
 import { crystalOf } from './codes.ts';
-import { ask, colorRow, ICONS, markName, popMenu } from './controls.ts';
+import { ask, colorRow, ICONS, MARK_NOS, markName, miRow, popMenu } from './controls.ts';
+import { tell } from './notify.ts';
 import { api, markNo, S } from './model.ts';
 import { runTime } from './words.ts';
 import { bound, show as keyName } from './binds.ts';
@@ -76,8 +77,39 @@ const put = (e: HTMLElement, text: string) => e.textContent !== text && (e.textC
 every(1000, () => {
   for (const e of ticks) put(e, runTime(Math.max(0, Math.round((Date.now() - +e.dataset.from!) / 1000))));
 });
+const WAITING = new Set(['idle', 'done', 'asks']);
+export const keepsCache = (a: { kind?: string; program?: string; status?: string }) => a.kind === 'chat' && a.program === 'claude' && WAITING.has(a.status || '');
+export const coolOf = (at: number, now = Date.now()) => (!pref('cache:color') ? '' : now - at >= 60 * 60e3 ? 'gone' : now - at >= 45 * 60e3 ? 'soon' : '');
+const COOL_TIP: Record<string, string> = {
+  soon: "Cache runs out soon\nThis chat's cache lasts an hour after its last turn. A message after that costs more.",
+  gone: 'Cache gone\nThe next message sends the whole chat again, which costs more.',
+};
+const caches = document.getElementsByClassName('dk-cache') as HTMLCollectionOf<HTMLElement>;
+function cool(e: HTMLElement) {
+  const c = coolOf(+e.dataset.at!);
+  if ((e.dataset.cool || '') === c) return;
+  if (c) (e.dataset.cool = c), (e.title = COOL_TIP[c]);
+  else delete e.dataset.cool, e.removeAttribute('title');
+}
+const coolAll = () => {
+  for (const e of caches) cool(e);
+};
+onPref('cache:color', coolAll);
+export function whenSpan(a: Agent, text = true) {
+  if (!a.at) return '';
+  const c = keepsCache(a) ? coolOf(a.at) : '';
+  return `<span class="dk-when${keepsCache(a) ? ' dk-cache' : ''}" data-at="${a.at}" data-tiny${c ? ` data-cool="${c}" title="${esc(COOL_TIP[c])}"` : ''}>${text ? tiny(a.at) : ''}</span>`;
+}
+export async function cacheFlip(a: Agent, over: HTMLElement | null) {
+  const res = await api('POST', '/api/chats/cachewarn', { chat: a.id, on: !!a.cacheOff }, a.pid ?? S.pid).catch(showErr);
+  if (!res) return;
+  a.cacheOff = !res.cacheWarn;
+  tell(over, { title: res.cacheWarn ? 'Cache notices on for this chat' : 'No cache notices for this chat', ms: 2000, ok: true });
+}
+export const cacheRow = (a: Agent) => (a.kind === 'chat' && a.program === 'claude' && a.status !== 'ended' && pref('cache:notice') ? miRow('data-oc-cw', icon('history'), a.cacheOff ? 'cache notices for this chat' : 'no cache notices for this chat', '', a.cacheOff ? "No notice comes before this chat's cache runs out. Click to get one again, 15 minutes before." : "A notice comes 15 minutes before this chat's cache runs out. Click to stop it for this chat.") : '');
 every(6000, () => {
   for (const e of document.getElementsByClassName('dk-when') as HTMLCollectionOf<HTMLElement>) put(e, e.hasAttribute('data-tiny') ? tiny(+e.dataset.at!) : sinceShort(+e.dataset.at!));
+  coolAll();
 });
 export function tiny(ms: number) {
   const s = Math.max(0, (Date.now() - ms) / 1000), d = s / 864e2;
@@ -128,12 +160,12 @@ export function markItems(a: Agent) {
     const name = n ? markName(n) : 'no mark';
     return `<button class="mk-c${n === now ? ' on' : ''}" data-mk="${n}" aria-label="${esc(name)}" aria-pressed="${n === now}"><i class="mk-d m${n}">${ICONS['mark' + n]}</i></button>`;
   };
-  return `<div class="mk-strip" role="group" aria-label="mark">${[0, 1, 2, 3].map(cell).join('')}</div>`;
+  return `<div class="mk-strip" role="group" aria-label="mark">${[0, ...MARK_NOS].map(cell).join('')}</div>`;
 }
 export function markFly(a: Agent, fly: string) {
   const now = markNo(a);
   const cell = (n: number) => `<button class="sw-mk${n ? ` fmk mk-d m${n}` : ' dft'}${n === now ? ' on' : ''}" data-mk="${n}" aria-label="${esc(n ? markName(n) : 'None: no mark. The default.')}">${n ? ICONS['mark' + n] : '<i class="pk-ic"><i class="pk-none"></i></i>'}</button>`;
-  return colorRow({ k: 'mk', label: 'mark', tip: 'a sign on the chat, in the agents list and its header', ic: ICONS.mark2, chip: now ? `<i class="pk-ic mk-d m${now}">${ICONS['mark' + now]}</i>` : '<i class="pk-ic"><i class="pk-none"></i></i>', now: now ? markName(now) : 'none', attr: 'mk', cls: '', dfltCls: '', dfltTip: '', dfltStyle: '', style: () => '', icon: '', grid: [0, 1, 2, 3].map(cell).join('') }, now ? String(now) : null, fly);
+  return colorRow({ k: 'mk', label: 'mark', tip: 'a sign on the chat, in the agents list and its header', ic: ICONS.mark2, chip: now ? `<i class="pk-ic mk-d m${now}">${ICONS['mark' + now]}</i>` : '<i class="pk-ic"><i class="pk-none"></i></i>', now: now ? markName(now) : 'none', attr: 'mk', cls: '', dfltCls: '', dfltTip: '', dfltStyle: '', style: () => '', icon: '', grid: [0, ...MARK_NOS].map(cell).join('') }, now ? String(now) : null, fly);
 }
 export const renameItem = (a: Agent) => (a.kind === 'chat' ? `<button class="mi" data-rename><i class="tb-ic">${ICONS.rename}</i><span class="mi-n">rename…</span></button>` : '');
 export async function renameAsk(a: Agent) {
@@ -167,7 +199,7 @@ export function agentRow(a: Agent, o: RowOpts): Row {
   const build = (text: string, t: number) => `<div class="dk-row dk-one${two ? ' dk-two' : ''}${o.cls ? ' ' + o.cls : ''}${shut ? ' subs-shut' : ''}"${o.benched ? ' data-bench' : ''} data-st="${a.status}" ${o.attr}="${esc(a.id)}"${gemStyle(a.id)}${a.title ? ` title="${esc(a.title)}" data-tip-cut=".dk-topic"` : ''} role="button" tabindex="0">
         <i class="dk-tile">${tileOf(a)}${rc ? `<b class="dk-short">${code}</b>` : ''}${n ? `<i class="dk-bd m${n}">${ICONS['mark' + n]}</i>` : ''}${nb}${a.report ? `<i class="dk-rp">${ICONS.bell}</i>` : ''}${subCount(subs)}</i>
         <span class="dk-rt"><span class="dk-r1">${rc ? codeOf(a.id, '', false) : ''}<b class="dk-topic">${topic}</b></span>${info ? `<span class="dk-r2">${a.model ? `<span class="dk-md" title="${esc(modelTip(a.model))}" data-tip-icon="model">${esc(a.model)}</span>` : `<i class="dk-provider">${esc(who)}</i>`}<span class="dk-line">${esc(text)}</span></span>` : ''}</span>${o.pre || ''}
-        <span class="dk-slot">${t ? `<span class="dk-when" data-at="${t}" data-tiny>${tiny(t)}</span>` : ''}<span class="dk-acts">${o.mark ? markBtn(a, 'mk-row') : ''}<button class="dk-x" data-dk-end="${esc(a.id)}" title="${esc(o.xTip || (a.kind === 'chat' ? 'Close\nEnds this chat. A busy one asks first.' : 'Close\nStops the terminal and what runs in it.'))}" data-tip-keys="${esc(o.xKeys || '=shift+click:close without asking')}" aria-label="close">×</button></span></span></div>`;
+        <span class="dk-slot">${whenSpan(a)}<span class="dk-acts">${o.mark ? markBtn(a, 'mk-row') : ''}<button class="dk-x" data-dk-end="${esc(a.id)}" title="${esc(o.xTip || (a.kind === 'chat' ? 'Close\nEnds this chat. A busy one asks first.' : 'Close\nStops the terminal and what runs in it.'))}" data-tip-keys="${esc(o.xKeys || '=shift+click:close without asking')}" aria-label="close">×</button></span></span></div>`;
   const strip = subsBlock(a, subs), html = build(text, a.at) + strip;
   return { key: 'r:' + a.id, html, cmp: steady(html), shape: steady(build('', a.at ? 1 : 0)) + strip, text, at: a.at, a: null };
 }
@@ -192,6 +224,7 @@ function placeUnits(list: HTMLElement, was: Map<string, Placed>, units: Row[], c
       if (w && u.at !== o.at) {
         w.dataset.at = u.at as unknown as string;
         w.textContent = tiny(u.at);
+        if (w.classList.contains('dk-cache')) cool(w);
       }
       now.set(u.key, { ...u, nodes: o.nodes });
       continue;

@@ -5,15 +5,16 @@ import { tell } from '../base/notify.ts';
 import { esc } from '../base/util.ts';
 
 export type Ask = { ask: string; kind: string; q?: string; what?: string; why?: string; message?: string; options?: { id: string; name: string }[]; fields?: { key: string; title: string; choices: string[] | null }[] };
-export type Got = { id: string; chat: string; title: string; agent?: string; status: string; am: number; pid: string; wid?: string; report: boolean; text: string; asked: string; asks: Ask[] };
-export type Why = 'done' | 'error' | 'asks';
+export type Got = { id: string; chat: string; title: string; agent?: string; status: string; am: number; pid: string; wid?: string; report: boolean; cacheOff?: boolean; text: string; asked: string; asks: Ask[] };
+export type Why = 'done' | 'error' | 'asks' | 'cold';
 export type NoticeHooks = { close(): void; go(): void };
 
-const WORD: Record<Why, string> = { done: 'is ready', error: 'failed', asks: 'asks you' };
+const WORD: Record<Why, string> = { done: 'is ready', error: 'failed', asks: 'asks you', cold: 'runs out of cache' };
 const ARROW = '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h10M9.5 4.5 13 8l-3.5 3.5"/></svg>';
 const askLine = (k: Ask) => (k.kind === 'form' ? k.message || '' : [k.q, k.what].filter(Boolean).join(' '));
 const fence = (t: string) => (/^\s*`{3}/.test(t) ? '' : t);
 const plain = (t: string) => t.replace(/```[^\n]*\n?([\s\S]*?)```/g, ' $1 ').replace(/^\s*(?:[-*+]|\d+[.)])\s+/gm, '').replace(/[`*_#>|]/g, '').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/\s+/g, ' ').trim();
+const coldTip = (code: string, on: boolean) => (on ? `Cache notices from ${code}: on\nA notice like this one before ${code}'s cache runs out. Click to stop them for this chat.` : `Cache notices from ${code}: off\nNo cache notices come from ${code}. Click to turn them on again.`);
 const bellTip = (code: string, on: boolean) => (on ? `Notices from ${code}: on\nYou get notices like this one from ${code}. Click to stop them.` : `Notices from ${code}: off\nNo notices come from ${code}. Click to turn them on again.`);
 
 async function call(method: string, url: string, g: Got, body?: unknown) {
@@ -28,9 +29,10 @@ async function call(method: string, url: string, g: Got, body?: unknown) {
 export function noticeCard(g: Got, why: Why, line: string, hooks: NoticeHooks): HTMLElement {
   const k = g.asks[0];
   if (k) why = 'asks';
-  const peek = why === 'asks' ? (k ? askLine(k) : '') || fence(line) : why === 'error' ? fence(line) || 'something went wrong' : plain(g.text) || fence(line) || 'finished';
+  const peek = why === 'asks' ? (k ? askLine(k) : '') || fence(line) : why === 'error' ? fence(line) || 'something went wrong' : why === 'cold' ? line : plain(g.text) || fence(line) || 'finished';
   const ended = g.status === 'ended';
-  let on = g.report;
+  const cold = why === 'cold';
+  let on = cold ? !g.cacheOff : g.report;
   const el = document.createElement('div');
   el.className = 'nc';
   el.dataset.why = why;
@@ -46,7 +48,7 @@ export function noticeCard(g: Got, why: Why, line: string, hooks: NoticeHooks): 
     if (!bell) return;
     bell.classList.toggle('on', on);
     bell.setAttribute('aria-pressed', String(on));
-    bell.title = bellTip(g.chat, on);
+    bell.title = (cold ? coldTip : bellTip)(g.chat, on);
   };
   paint();
   let seq = 0;
@@ -55,8 +57,8 @@ export function noticeCard(g: Got, why: Why, line: string, hooks: NoticeHooks): 
     on = want;
     paint();
     try {
-      const r = await call('POST', '/api/chats/report', g, { chat: g.id, on: want });
-      if (n === seq) on = !!r.report;
+      const r = await call('POST', cold ? '/api/chats/cachewarn' : '/api/chats/report', g, { chat: g.id, on: want });
+      if (n === seq) on = !!(cold ? r.cacheWarn : r.report);
     } catch (e) {
       if (n === seq) on = !want;
       tell(bell, { title: 'not changed', line: (e as Error).message, ms: 2500 });

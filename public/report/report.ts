@@ -36,7 +36,8 @@ export function ringCard(r: ReportRing) {
   n.onclick = null;
   n.onmouseleave = null;
   cards.set(r.id, n);
-  holds.set(r.id, { st: r.why === 'asks' ? 'asks' : 'done', met: agents.all.get(r.id)?.status === (r.why === 'asks' ? 'asks' : 'done') });
+  const st = r.why === 'asks' ? 'asks' : r.why === 'cold' ? agents.all.get(r.id)?.status || 'idle' : 'done';
+  holds.set(r.id, { st, met: agents.all.get(r.id)?.status === st });
   const was = n.close!;
   n.close = () => (cards.get(r.id) === n && (cards.delete(r.id), holds.delete(r.id)), was());
   const a = agents.all.get(r.id);
@@ -81,3 +82,6 @@ desk?.onUnring?.((id) => cards.get(id)?.close?.());
 const screenNow = () => desk?.noticeScreen?.(pref('notice:screen'));
 screenNow();
 onPref('notice:screen', screenNow);
+const cacheNow = () => desk?.cacheNotice?.(!!pref('cache:notice'));
+cacheNow();
+onPref('cache:notice', cacheNow);

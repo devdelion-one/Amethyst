@@ -20,7 +20,7 @@ export class Raw {
   }
 }
 export const raw = (body: Uint8Array, file: string, csp: string, { type = 'application/octet-stream', ...head }: Record<string, string> = {}) =>
-  new Raw(body, { 'content-type': TYPES[path.extname(file).toLowerCase()] || type, 'content-security-policy': csp, 'cache-control': 'no-cache', ...head });
+  new Raw(body, { 'content-type': TYPES[path.extname(file).toLowerCase()] || type, 'content-security-policy': csp, 'x-content-type-options': 'nosniff', 'cache-control': 'no-cache', ...head });
 const SAFE = {
   'content-security-policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self'; frame-src http: https: file:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'",
   'x-content-type-options': 'nosniff',

@@ -5,12 +5,31 @@ import { tokens } from '../base/words.ts';
 import { when } from './shape.ts';
 
 type Item = { name: string; tokens: number; kind?: string };
-type Context = { model: string; used: number; size: number; parts: Item[]; memory: { path: string; tokens: number }[]; mcp: Item[] };
+type Memory = { path: string; tokens: number; kind?: string; name?: string; real?: string; shared?: boolean };
+type Context = { model: string; used: number; size: number; parts: Item[]; memory: Memory[]; mcp: Item[] };
 type Seen = { busy?: boolean; context?: Context; at?: number };
 
 const HUES = ['var(--accent)', 'var(--ok)', 'var(--warn)', 'var(--danger)', 'var(--text-dim)', 'color-mix(in srgb, var(--accent) 50%, var(--ok))', 'color-mix(in srgb, var(--warn) 50%, var(--danger))'];
 const TOP = 5;
 let open: { box: HTMLElement; ring: HTMLElement; off: () => void; again: ReturnType<typeof setTimeout> | 0 } | null = null;
+
+const memoryName = (m: Memory) => {
+  const n = m.name || '';
+  switch (m.kind) {
+    case 'global': return 'Your global instructions';
+    case 'global-rule': return `Your global rule ${n}`;
+    case 'project': return "This project's instructions";
+    case 'project-local': return "This project's private instructions";
+    case 'project-rule': return `This project's rule ${n}`;
+    case 'folder': return `Instructions for ${n}`;
+    case 'auto': return 'Auto memory for this project';
+    default: return m.path.split(/[\\/]/).pop() || m.path;
+  }
+};
+export const memoryRow = (m: Memory) => {
+  const name = memoryName(m);
+  return { name, tokens: m.tokens, tip: `${name}\n${m.real || m.path}${m.shared ? '\n\nShared with your main account: the same file.' : ''}`, mono: true };
+};
 
 const share = (n: number, of: number) => {
   const p = of ? (n / of) * 100 : 0;
@@ -35,7 +54,7 @@ function body(s: Seen) {
     + used.map((p, i) => row(p, HUES[i % HUES.length])).join('')
     + (held.length ? '<div class="cx-sep"></div>' + held.map((p) => row(p, p.kind === 'free' ? 'transparent' : 'var(--line)')).join('') : '')
     + (deferred.length ? `<div class="cx-sub">Not loaded yet</div>` + deferred.map((p) => row(p, 'transparent')).join('') : '')
-    + list('Largest memory files', c.memory.map((m) => ({ name: m.path.split(/[\\/]/).slice(-2).join('/'), tokens: m.tokens, tip: `${m.path}\nWhere this memory file is.`, mono: true })))
+    + list('Largest memory files', c.memory.map(memoryRow))
     + list('Largest MCP servers', c.mcp);
 }
 

@@ -2,6 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import { execFile } from 'child_process';
 import { HttpError } from '../base/routes.ts';
+import { isUser } from '../base/user.ts';
+import * as runs from '../base/runs.ts';
 import type { Routes } from '../../public/base/types.ts';
 import { startDap } from './dap.ts';
 import type { Dap } from './dap.ts';
@@ -21,8 +23,8 @@ export const init = (h: Partial<Hooks>) => void (hooks = { ...hooks, ...h });
 
 export function whoOf(body: Msg, root: string | null): Who {
   const by = String(body?.by || '');
-  if (by === 'cli') return { agent: false, chat: '', root, outside: true };
-  if (!by || by === 'you') return { agent: false, chat: '', root, outside: false };
+  if (by === 'cli') return { agent: !isUser(), chat: '', root, outside: true };
+  if (!by || by === 'you') return { agent: !isUser(), chat: '', root, outside: false };
   if (by === 'agent') return { agent: true, chat: '', root, outside: false };
   const c = hooks.chatOf(body);
   if (!c) throw new HttpError(403, 'the debugger answers chats Amethyst started, the amethyst command and the page');
@@ -33,7 +35,7 @@ const READING = 'Reading still works: amethyst debug status, amethyst debug stac
 export function allow(w: Who, what: string, more = '') {
   if (w.agent && !hooks.control()) throw new HttpError(403, `${what} is refused: the user turned off "agents can control the debugger" (Settings → Agents → Amethyst tools).${more} ${READING}`);
 }
-const changes = (e: string) => /\(|\+\+|--|(^|[^=!<>])=($|[^=])/.test(e);
+export const changes = (e: string) => /\(|\+\+|--|<<=|>>=|(^|[^=!<>])=($|[^=])|\b(new|delete|throw)\b/.test(e);
 
 export interface Config {
   name: string;
@@ -856,13 +858,13 @@ const ROUTES: Routes = {
   },
   'POST /api/debug/engine': async () => engineState(),
   'POST /api/debug/install': async (body) => {
-    if (whoOf(body, null).agent) throw new HttpError(403, "only the user downloads the debugger: it comes with Microsoft's licence to accept (Settings → Unreal → debugger)");
+    if (!isUser()) throw new HttpError(403, "only the user downloads the debugger: it comes with Microsoft's licence to accept (Settings → Unreal → debugger)");
     const r = await install(body || {});
     for (const [key] of subs) send(key, { type: 'engine', engine: r });
     return r;
   },
   'POST /api/debug/uninstall': async (body) => {
-    if (whoOf(body, null).agent) throw new HttpError(403, 'only the user removes the debugger (Settings → Unreal → debugger)');
+    if (!isUser()) throw new HttpError(403, 'only the user removes the debugger (Settings → Unreal → debugger)');
     const busy = [...sessions.values()].find(alive);
     if (busy) throw new HttpError(409, `stop debugging ${busy.config.name} first: the debugger is in use`);
     const r = await uninstall();
@@ -963,7 +965,11 @@ const ROUTES: Routes = {
   },
   'POST /api/debug/eval': async (body, _, root: string | null) => {
     const w = whoOf(body, root), b = { ...(body || {}) }, e = String(b.expr ?? '').trim();
-    if (changes(e)) allow(w, 'An evaluate with a call or an assignment', ' It could change the program.');
+    if (changes(e)) {
+      allow(w, 'An evaluate with a call or an assignment', ' It could change the program.');
+      const call = /\(/.test(e), shown = e.length > 80 ? e.slice(0, 79) + '…' : e;
+      await runs.mayRun(body, (who) => ({ title: `Allow ${call ? 'a call' : 'a change'} in the program you're debugging?`, text: `${who} wants to evaluate ${shown}, which ${call ? 'calls a function' : 'changes a value'}.` }));
+    }
     if (w.agent) b.context = 'watch';
     if (b.frame != null && !b.frameId) b.frameId = await frameAt(w.root, b.frame);
     const r = await evaluate(w.root, b);

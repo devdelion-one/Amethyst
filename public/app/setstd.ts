@@ -4,7 +4,8 @@ import { esc, setSave } from '../base/util.ts';
 
 export type At = { place: string; key: string; id?: string; on?: () => boolean; tip?: () => string; set?: (v: boolean) => void; def?: boolean; fix?: boolean; why?: string };
 export type Pick = { get: () => string; set: (v: string) => void; def: string; choices: () => [string, string, string][]; reset: string };
-export type Row = { id: string; key: string; at: At[]; name?: string; linked?: boolean; choice?: boolean; blocked?: () => string; pick?: Pick; prep?: string; tail?: string; note?: () => string; here?: (a: At) => string; keep?: boolean; adv?: boolean };
+export type Own = { label: string; desc?: string; find?: string };
+export type Row = { id: string; key: string; at: At[]; name?: string; linked?: boolean; choice?: boolean; blocked?: () => string; pick?: Pick; prep?: string; tail?: string; note?: () => string; here?: (a: At) => string; keep?: boolean; adv?: boolean; own?: Own; state?: () => string; alt?: () => string; ctl?: () => string; sw?: 'onoff' | 'none'; plain?: boolean; reset?: () => void; changed?: () => boolean; noReset?: boolean; noPic?: boolean };
 export type Kit = { rsBtn: (tok: string, on: boolean) => string; redraw: () => void };
 export type StdKit = Kit & { fold: (key: string, rows: string) => { cls: string; more: string } };
 export type Part = {
@@ -24,10 +25,11 @@ let kit: StdKit | null = null;
 export const addPart = (p: Part) => (PARTS.push(p), p);
 export const selectRow = (id: string) => { selectedRow = id; };
 
-export const fixed = (a: At) => !!a.fix || (!a.id && !!PREFS[a.key].fixed);
+export const fixed = (a: At) => !!a.fix || (!a.id && !!PREFS[a.key]?.fixed);
 export const isOn = (a: At) => (a.on ? a.on() : fixed(a) || (a.id ? !isOff(a.key, a.id) : !!pref(a.key, a.place)));
 const setOn = (a: At, v: boolean) => (a.set ? (a.set(v), kit?.redraw()) : a.id ? setOff(a.key, a.id, !v) : setAt(a.key, a.place, v));
 const defOf = (a: At) => a.def ?? (a.id ? !PREFS[a.key].def.includes(a.id) : PREFS[a.key].def);
+const ownWords = (o: Own) => ({ label: o.label, on: '', off: '', fixed: '', desc: o.desc || '', offWhen: undefined, blocked: undefined });
 export const tokOf = (a: At) => `${a.key}|${a.place}${a.id ? '|' + a.id : ''}`;
 const atOfTok = (t: string): At => {
   const [key, place, id] = t.split('|');
@@ -40,7 +42,10 @@ export function wordsOf(key: string, id?: string, name?: string) {
   const w = e.each?.[id];
   return { label: w?.label || name || id, on: keyed(w?.on || e.on || ''), off: keyed(w?.off || e.off || ''), fixed: keyed(w?.fixed || ''), desc: keyed(e.tips?.[id] || ''), offWhen: w?.offWhen, blocked: w?.blocked };
 }
-const wordsAt = (a: At, r?: Row) => wordsOf(a.key, a.id, r?.name);
+const wordsAt = (a: At, r?: Row) => {
+  const o = (r || (PREFS[a.key] ? undefined : rowOfAt(tokOf(a))))?.own;
+  return o ? ownWords(o) : wordsOf(a.key, a.id, r?.name);
+};
 
 export const tipOf = (a: At, all = false, r?: Row) => a.tip ? a.tip() : `${wordsAt(a, r).label}: ${fixed(a) ? "always shown\nThis one can't be hidden." : all || rowOfAt(tokOf(a))?.linked ? (isOn(a) ? 'shown\nClick to hide it in every place.' : 'hidden\nClick to show it in every place.') : isOn(a) ? `shown ${prepOf(a)} ${PLACES[a.place][0]}\nClick to hide it there.` : `hidden ${prepOf(a)} ${PLACES[a.place][0]}\nClick to show it there.`}`;
 export function mark(html: string, ats: At[], sel: (a: At) => string, ring: At | null = null, all = false) {
@@ -118,7 +123,7 @@ const noteOf = (r: Row) => {
   return n ? ` <span class="q">${esc(n)}</span>` : '';
 };
 function stateOf(r: Row) {
-  return stateWords(r) + noteOf(r);
+  return (r.state ? esc(r.state()) : stateWords(r)) + noteOf(r);
 }
 function stateWords(r: Row) {
   const w = wordsAt(r.at[0], r), on = r.at.filter(isOn), off = r.at.filter((a) => !isOn(a));
@@ -134,6 +139,7 @@ function stateWords(r: Row) {
   return `Shown ${p} ${esc(names(on))}. <span class="h">Hidden ${p} ${esc(names(off))}.${r.tail ? ' ' + esc(r.tail) : ''}</span>`;
 }
 function resetTok(r: Row) {
+  if (r.reset) return `s:${r.id}`;
   if (r.pick) return r.pick.reset;
   const ats = r.at.filter((a) => !fixed(a));
   if (ats.some((a) => a.set)) return `s:${r.id}`;
@@ -143,24 +149,30 @@ function resetTok(r: Row) {
     return !all || all.every((p) => mine.includes(p)) ? `p:${k}` : `a:${k}|${mine.join(',')}`;
   }).join(' ');
 }
-const changed = (r: Row) => (r.pick ? r.pick.get() !== r.pick.def : r.choice ? r.at.some((a) => pref(a.key) !== PREFS[a.key].def) : r.at.some((a) => !fixed(a) && isOn(a) !== defOf(a)));
-export const resetRow = (id: string) => rowById(id)?.at.forEach((a) => a.set?.(defOf(a)));
+const changed = (r: Row) => (r.changed ? r.changed() : r.pick ? r.pick.get() !== r.pick.def : r.choice ? r.at.some((a) => pref(a.key) !== PREFS[a.key].def) : r.at.some((a) => !fixed(a) && isOn(a) !== defOf(a)));
+export const resetRow = (id: string) => {
+  const r = rowById(id);
+  if (r?.reset) return r.reset();
+  r?.at.forEach((a) => a.set?.(defOf(a)));
+};
+export const ownChanged = () => allRows().filter((r) => r.reset && changed(r)).map((r) => `s:${r.id}`);
 export const resetItem = (tok: string) => {
   const [k, id] = tok.split('|');
   setOff(k, id, PREFS[k].def.includes(id));
 };
 
-const findOf = (r: Row, w: ReturnType<typeof wordsOf>) => [w.desc, ...(r.pick ? r.pick.choices().flat() : [w.on, w.off, w.blocked?.[1], w.offWhen?.[1], ...choicesOf(r.at[0].key).flat()])].filter(Boolean).join(' ');
+const findOf = (r: Row, w: ReturnType<typeof wordsOf>) => r.own ? [w.desc, r.own.find].filter(Boolean).join(' ') : [w.desc, ...(r.pick ? r.pick.choices().flat() : [w.on, w.off, w.blocked?.[1], w.offWhen?.[1], ...choicesOf(r.at[0].key).flat()])].filter(Boolean).join(' ');
 const pickSeg = (r: Row, p: Pick) => `<span class="seg hr-seg">${p.choices().map(([v, label, t]) => `<button class="chip${p.get() === v ? ' on' : ''}" data-hr-pk="${esc(`${r.id}|${v}`)}" aria-pressed="${p.get() === v}" title="${esc(`${label}
 ${t}`)}">${esc(label)}</button>`).join('')}</span>`;
 const allSeg = (r: Row) => segOf(same(r) ? pref(r.at[0].key) : null, (v) => `data-hr-chall="${esc(`${r.id}|${v}`)}"`, (t) => `${t}${r.at.length > 1 ? '\nSets both lists.' : ''}`, r.at[0].key);
 export function rowHtml(r: Row) {
   const w = wordsAt(r.at[0], r), on = r.choice ? r.at : r.pick ? (r.pick.get() === 'hid' ? [] : r.at) : r.at.filter(isOn), off = r.choice || r.pick ? [] : r.at.filter((a) => !isOn(a));
   const many = !r.linked && r.at.filter((a) => !fixed(a)).length > 1;
-  const sw = r.pick ? pickSeg(r, r.pick) : r.choice ? allSeg(r) : r.at.every(fixed) ? '' : `<button class="set-sw${off.length ? (on.length ? ' mix' : '') : ' on'}" role="switch" aria-checked="${off.length ? (on.length ? 'mixed' : 'false') : 'true'}" data-hr-sw="${esc(r.id)}" aria-label="${esc(w.label)}"${many ? ' title="Every place&#10;Turns it on or off in every place at once."' : ''}><span class="sw-o">Hidden</span><span class="sw-i">Shown</span></button>`;
-  return `<div class="set-row hr-row${r.choice || r.pick ? ' hr-ch' : ''}${selectedRow === r.id ? ' active' : ''}${on.length ? '' : ' hid'}${r.adv ? ' set-adv' : ''}${lit === r.id ? ' lit' : ''}" data-row="${esc(r.id)}" data-hr="${esc(r.id)}" data-hr-keys="${esc([...new Set(r.at.map((a) => a.key))].join(' '))}" data-find="${esc(findOf(r, w))}">` +
-    `<button class="sr-t hr-fold" data-hr-fold="${esc(r.id)}"><span class="lbl">${esc(w.label)}</span><span class="hr-state">${stateOf(r)}</span></button>` +
-    `${kit!.rsBtn(resetTok(r), changed(r))}<span class="set-opts">${sw}</span></div>`;
+  const [no, yes] = r.sw === 'onoff' ? ['Off', 'On'] : ['Hidden', 'Shown'];
+  const sw = r.pick ? pickSeg(r, r.pick) : r.choice ? allSeg(r) : r.sw === 'none' || r.at.every(fixed) ? '' : `<button class="set-sw${off.length ? (on.length ? ' mix' : '') : ' on'}" role="switch" aria-checked="${off.length ? (on.length ? 'mixed' : 'false') : 'true'}" data-hr-sw="${esc(r.id)}" aria-label="${esc(w.label)}"${many ? ' title="Every place&#10;Turns it on or off in every place at once."' : ''}><span class="sw-o">${no}</span><span class="sw-i">${yes}</span></button>`;
+  return `<div class="set-row hr-row${r.choice || r.pick ? ' hr-ch' : ''}${selectedRow === r.id ? ' active' : ''}${on.length || r.plain ? '' : ' hid'}${r.adv ? ' set-adv' : ''}${lit === r.id ? ' lit' : ''}" data-row="${esc(r.id)}" data-hr="${esc(r.id)}" data-hr-keys="${esc([...new Set(r.at.map((a) => a.key))].join(' '))}" data-find="${esc(findOf(r, w))}">` +
+    `<button class="sr-t hr-fold" data-hr-fold="${esc(r.id)}"><span class="lbl">${esc(w.label)}</span>${r.alt ? `<span class="hr-st"><span class="hr-state">${stateOf(r)}</span><span class="hr-state hr-alt" aria-hidden="true">${esc(r.alt()) + noteOf(r)}</span></span>` : `<span class="hr-state">${stateOf(r)}</span>`}</button>` +
+    `${r.noReset ? '<span class="sr-rs-no"></span>' : kit!.rsBtn(resetTok(r), changed(r))}<span class="set-opts">${r.ctl?.() || ''}${sw}</span></div>`;
 }
 export function railHtml(root: ParentNode): string {
   const rows = [...root.querySelectorAll<HTMLElement>('.hr-row:not(.set-miss)')];
@@ -177,7 +189,7 @@ export function railHtml(root: ParentNode): string {
   return `<div class="rail-kicker">Visual reference</div>` +
     `<div class="rail-title">${esc(w.label)}</div>` +
     (w.desc ? `<div class="rail-desc">${esc(w.desc)}</div>` : '') +
-    `<div class="rail-where">${examples(r, p)}</div>` +
+    `<div class="rail-where">${r.noPic ? '' : examples(r, p)}</div>` +
     `<div class="rail-ro">Previews are read-only. Use the controls on the left to change settings.</div>`;
 }
 export function box(id: string, title: string, inner: string, sub = '') {
@@ -192,7 +204,7 @@ export const stdKeys = (): string[] => [...new Set(allRows().flatMap((r) => r.at
 export const homeOf = (k: string) => PARTS.find((p) => p.rows().some((r) => r.id === k || r.key === k || r.at.some((a) => a.key === k)))?.home || '';
 const rowById = (id: string) => allRows().find((r) => r.id === id);
 const rowOfAt = (tok: string) => allRows().find((r) => r.at.some((a) => tokOf(a) === tok));
-const say = (r: Row, v: boolean, many: boolean) => setSave(`${wordsAt(r.at[0], r).label}: ${v ? 'shown' : 'hidden'}${many ? ' everywhere' : ''}`);
+const say = (r: Row, v: boolean, many: boolean) => setSave(`${wordsAt(r.at[0], r).label}: ${r.sw === 'onoff' ? (v ? 'on' : 'off') : v ? 'shown' : 'hidden'}${many ? ' everywhere' : ''}`);
 const pickSay = (r: Row, v: string, where: string) => setSave(`${wordsAt(r.at[0], r).label}: ${(r.pick ? r.pick.choices() : choicesOf(r.at[0].key)).find(([c]) => c === v)?.[1] || v}${where}`);
 const pickTo = (r: Row, v: string) => (r.pick!.set(v), pickSay(r, v, ''), true);
 export function stdClick(t: Element): boolean {

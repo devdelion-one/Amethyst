@@ -251,7 +251,7 @@ function cleanUe(o: any) {
 
 function cleanMarks(o: unknown) {
   const out: Record<string, number> = {};
-  for (const [session, n] of Object.entries<any>(o && typeof o === 'object' ? o : {})) if (session && [1, 2, 3].includes(n)) out[session] = n;
+  for (const [session, n] of Object.entries<any>(o && typeof o === 'object' ? o : {})) if (session && [1, 2, 3, 4, 5, 6].includes(n)) out[session] = n;
   return out;
 }
 
@@ -329,7 +329,7 @@ function gitignore(text: string | null, caseless: boolean) {
 }
 
 const META_KEYS = ['pin', 'ring', 'seen', 'color', 'mark'];
-const STYLE_OK: Record<string, (v: unknown) => boolean> = { color: (v) => typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v), mark: (v) => [1, 2, 3].includes(v as number) };
+const STYLE_OK: Record<string, (v: unknown) => boolean> = { color: (v) => typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v), mark: (v) => [1, 2, 3, 4, 5, 6].includes(v as number) };
 const pickMeta = (m: Record<string, any> = {}) =>
   Object.fromEntries(
     Object.entries(m)

@@ -48,6 +48,7 @@ interface AskOpts {
   main?: { label: string; value: unknown } | null;
 }
 
+export const MARK_NOS = [1, 2, 3, 4, 5, 6];
 export const markName = (n: number): string => pref('marks:names')[n - 1]?.trim() || `mark ${n}`;
 export const markBadge = (n: number | undefined): string => (n ? `<i class="fs-mk m${n}">${ICONS['mark' + n]}</i>` : '');
 export const agentsOn = (rel: string): string[] => (pref('agentMarks') ? agentsOf(rel).filter(chatOn) : []);
@@ -106,6 +107,9 @@ export const ICONS: Record<string, string> = {
   mark1: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v12M2.8 5l10.4 6M13.2 5 2.8 11"/></svg>',
   mark2: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 14V2.5M4 3h8l-2 3 2 3H4"/></svg>',
   mark3: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 2.5h7v11L8 10.5l-3.5 3z"/></svg>',
+  mark4: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5"/></svg>',
+  mark5: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2 14 8 8 14 2 8z"/></svg>',
+  mark6: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="m8 2 1.8 3.9 4.2.5-3.1 2.9.8 4.2L8 11.4l-3.7 2.1.8-4.2L2 6.4l4.2-.5z"/></svg>',
   foldAll: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3l3 3 3-3M5 13l3-3 3 3"/></svg>',
   unfoldAll: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 6l3-3 3 3M5 10l3 3 3-3"/></svg>',
   pin: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 2.5h4l-.5 4 2.5 2.5h-8l2.5-2.5zM8 9v4.5"/></svg>',
@@ -165,6 +169,7 @@ export const ICONS: Record<string, string> = {
   strip: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 2.5h11v11h-11zM6.5 2.5v11M3.75 5h1.5M3.75 7.5h1.5M3.75 10h1.5"/></svg>',
   fmtBar: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 2.5h13v6h-13zM4.5 4.5v2M7 4.5v2M9.5 4.5v2M12 4.5v2M3 12.5h10"/></svg>',
   sepAdd: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v11M3.5 8h1.5M11 8h1.5"/></svg>',
+  dash: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 13.5h11M4.5 11V8M8 11V4.5M11.5 11V6.5"/></svg>',
   bars: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 5.5h10M3 10.5h6"/></svg>',
   reset: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8a5 5 0 1 0 1.5-3.5M3 2v3h3"/></svg>',
   update: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v8M4.5 7.5 8 11l3.5-3.5M3 13.5h10"/></svg>',
@@ -619,7 +624,7 @@ const ownOf = (from: Element | null | undefined) => {
 };
 export const ROW_IC: Record<string, () => string> = {
   'bar:off:usage': () => ICONS.usage, 'bar:off:timer': () => gem('timer'), 'bar:off:windows': () => ICONS.window, 'bar:off:update': () => ICONS.update, 'bar:off:hitch': () => ICONS.bug, 'bar:off:clips': () => ICONS.clip, 'forget:on': () => ICONS.bang,
-  'chrow:off:attach': () => icon('image'), 'chrow:off:usage': () => ICONS.usageRing, 'chat:worktree': () => icon('branch'), 'chat:wtStrip': () => icon('branch'), 'chrow:off:mode': () => icon('default'), 'chat:hint': () => ICONS.at, 'chat:shrinkRow': () => icon('shrink'),
+  'chrow:off:attach': () => icon('image'), 'chrow:off:usage': () => ICONS.usageRing, 'chat:worktree': () => icon('branch'), 'chat:wtStrip': () => icon('branch'), 'chrow:off:mode': () => icon('default'), 'chat:mic': () => icon('mic'), 'chat:hint': () => ICONS.at, 'chat:shrinkRow': () => icon('shrink'),
   'tbar:off:split': () => ICONS.splitRow, 'tbar:off:gclose': () => ICONS.x,
   'act:off:explorer': () => ICONS.explorer, 'act:off:git': () => ICONS.git, 'act:off:github': () => ICONS.pr, 'act:off:agent setup': () => ICONS.setup, 'act:off:site': () => ICONS.site,
   'drafts:off:scratch': () => gem('scratch'), 'drafts:off:sketch': () => gem('sketch'), 'drafts:off:inbox': () => gem('inbox'),

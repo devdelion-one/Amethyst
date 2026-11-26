@@ -55,3 +55,5 @@ When you switch agents, Amethyst builds a structured handoff from the chat log a
 - A path to the full, uncut chat log on disk if the conversation was long enough to be trimmed to fit the handoff budget.
 
 The new agent is told to check files and `git status` on disk before relying on older state, and not to repeat the conversation back to you.
+
+For exactly what goes into the handoff, what is cut, and how Improved Handoff works, see [How handoff works, step by step](handoff.md).

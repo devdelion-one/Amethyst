@@ -16,6 +16,7 @@ These guides explain how Amethyst works and what to tell your coding agents when
 - [CLI and MCP server](cli-and-mcp.md): use the `amethyst` command from your terminal or scripts, and connect outside agents through `amethyst mcp`.
 - [Command and MCP reference](commands.md): complete auto-generated reference of every `amethyst` CLI command, flag, and MCP tool.
 - [Worktrees and context handoff](worktrees-and-handoff.md): isolate parallel chats in git worktrees, copy gitignored files with `.worktreeinclude`, and switch a chat from one agent to another mid-conversation.
+- [How handoff works, step by step](handoff.md): exactly what the next agent is given when a chat switches agents, what is left out or cut, where the full chat is saved, and what Improved Handoff does.
 
 ## Project tools
 

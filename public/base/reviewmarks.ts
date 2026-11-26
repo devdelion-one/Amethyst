@@ -20,6 +20,47 @@ export function markButton(type: 'accept' | 'reject', run: (btn: HTMLElement) =>
   return btn;
 }
 
+export function chunkMeta(L: any) {
+  const lines = (doc: any, from: number, to: number) => (to <= from ? 0 : doc.lineAt(Math.max(from, to - 1)).number - doc.lineAt(from).number + 1);
+  const paint = (view: EditorView) => {
+    const chunks = L.getChunks(view.state)?.chunks;
+    if (!chunks?.length) return;
+    const orig = L.getOriginalDoc(view.state);
+    for (const bar of view.contentDOM.querySelectorAll<HTMLElement>('.cm-deletedChunk > .cm-chunkButtons')) {
+      let pos: number;
+      try {
+        pos = view.posAtDOM(bar);
+      } catch {
+        continue;
+      }
+      const idx = chunks.findIndex((c: any) => pos >= c.fromB && pos <= Math.max(c.toB, c.fromB));
+      if (idx < 0) continue;
+      const c = chunks[idx];
+      const del = lines(orig, c.fromA, c.toA), add = lines(view.state.doc, c.fromB, c.toB);
+      let meta = bar.querySelector<HTMLElement>(':scope > .rv-ch-meta');
+      if (!meta) {
+        meta = document.createElement('span');
+        meta.className = 'rv-ch-meta';
+        bar.prepend(meta);
+      }
+      const sig = `${idx + 1}:${del}:${add}`;
+      if (meta.dataset.sig === sig) continue;
+      meta.dataset.sig = sig;
+      meta.innerHTML = `<span class="rv-ch-lbl">Change ${idx + 1}</span><span class="rv-ch-cnt">${del ? `<span class="c-del">-${del}</span>` : ''}${add ? `<span class="c-add">+${add}</span>` : ''}</span>`;
+    }
+  };
+  return L.ViewPlugin.fromClass(
+    class {
+      constructor(view: EditorView) {
+        queueMicrotask(() => paint(view));
+      }
+      update(u: any) {
+        paint(u.view);
+      }
+    },
+  );
+}
+
 export function reviewMarks(L: any, absOf: () => string | null, bar: (text: string) => void) {
   const comp = new L.Compartment();
   let view: EditorView | null = null, rev: Rev | null = null, post = 0, gen = 0, off: (() => unknown) | null = null;
@@ -28,7 +69,7 @@ export function reviewMarks(L: any, absOf: () => string | null, bar: (text: stri
     L.unifiedMergeView({
       original: base,
       gutter: true,
-      highlightChanges: true,
+      highlightChanges: false,
       syntaxHighlightDeletions: true,
       allowInlineDiffs: false,
       mergeControls: (type: 'accept' | 'reject') =>
@@ -98,7 +139,7 @@ export function reviewMarks(L: any, absOf: () => string | null, bar: (text: stri
   }
 
   return {
-    ext: [comp.of([]), follow, posted],
+    ext: [comp.of([]), follow, posted, chunkMeta(L)],
     attach(v: EditorView) {
       view = v;
       off ||= onEdits(() => sync());

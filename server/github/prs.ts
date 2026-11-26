@@ -7,6 +7,7 @@ import { gh, ghState } from '../base/ghcli.ts';
 import { filesOf, bothSides } from '../base/gitdiff.ts';
 import { branchWorktree } from '../base/worktrees.ts';
 import { nameFor } from '../base/branchnames.ts';
+import { free, keepOut } from '../base/agentfiles.ts';
 
 type Hands = { ask: (text: string, o: { system?: string; agent?: unknown; model?: unknown; clean?: (said: string) => string }) => Promise<string>; show: (dir: string, ev: Record<string, unknown>) => boolean; napIn: (dir: string) => Promise<unknown> };
 const hands: Hands = {
@@ -347,9 +348,14 @@ const ROUTES: Routes = {
     if (!hands.show(cwd, { what: 'pr', n: k })) throw new HttpError(409, 'No Amethyst window shows this project: open it, then try again.');
     return said(`shown in Amethyst: #${k}`);
   },
-  'POST /api/gh/pr/checkout': async ({ n, worktree }, _q, root: string | null) => {
+  'POST /api/gh/pr/checkout': async (body, _q, root: string | null) => {
+    const { n, worktree } = body;
     const cwd = inRepo(root), k = num(n), t = await target(cwd);
     await ready();
+    if (!free(body)) {
+      must(await gitLong(cwd, ['fetch', '--quiet', t.remote, `refs/pull/${k}/head`], { what: 'fetching the pull request' }));
+      await keepOut(body, cwd, 'HEAD', must(await git(cwd, ['rev-parse', '--verify', 'FETCH_HEAD^{commit}'])).trim());
+    }
     if (worktree) {
       const b = await nameFor('pr', cwd, { n: k });
       must(await gitLong(cwd, ['fetch', '--quiet', t.remote, `+refs/pull/${k}/head:refs/heads/${b}`], { what: 'fetching the pull request' }));

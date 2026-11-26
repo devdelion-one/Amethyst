@@ -1,4 +1,5 @@
 import { codeLib, lineNumbers } from '../base/textbox.ts';
+import { chunkMeta } from '../base/reviewmarks.ts';
 import { counts, editFile, editsOf, editsSoon, editTurns, keepBase, keepSome, loadEdits, noteReject, onEdits, rejectAll, rejectSome, rowLabel, rowTip, TIPS, turnFile, writeEdit } from '../base/edits.ts';
 import type { EditRow, Turn } from '../base/edits.ts';
 import { ICONS } from '../base/controls.ts';
@@ -79,7 +80,7 @@ export function reviewView(chat: string, o: Opts) {
   }
 
   const mergeOf = (b: Block, folded: boolean) =>
-    L!.unifiedMergeView({ original: b.base, mergeControls: b.ro ? false : (controls(b) as any), gutter: true, highlightChanges: true, syntaxHighlightDeletions: true, allowInlineDiffs: false, ...(folded ? { collapseUnchanged: { margin: 3, minSize: 5 } } : {}) });
+    L!.unifiedMergeView({ original: b.base, mergeControls: b.ro ? false : (controls(b) as any), gutter: true, highlightChanges: false, syntaxHighlightDeletions: true, allowInlineDiffs: false, ...(folded ? { collapseUnchanged: { margin: 3, minSize: 5 } } : {}) });
   function mount(b: Block, base: string | null, now: string | null) {
     if (!L || stopped) return;
     b.base = base ?? '';
@@ -93,7 +94,7 @@ export function reviewView(chat: string, o: Opts) {
       parent: host,
       state: L.EditorState.create({
         doc: b.text,
-        extensions: [L.codeSetup, lineNumbers(L, false), L.look, L.languageFor(name), L.EditorState.readOnly.of(true), b.merge.of(mergeOf(b, !(q && has(b)))), hitDeco(b)],
+        extensions: [L.codeSetup, lineNumbers(L, false), L.look, L.languageFor(name), L.EditorState.readOnly.of(true), b.merge.of(mergeOf(b, !(q && has(b)))), chunkMeta(L), hitDeco(b)],
       }),
     });
     selTo(b);

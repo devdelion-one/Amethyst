@@ -249,5 +249,5 @@ async function removeWorktree(root: string, dir: unknown, before: (w: Worktree) 
   return { ok: true, kept, held, path: w.path };
 }
 
-export { worktreesOf, makeWorktree, branchWorktree, removeWorktree, setHome, forgetWorktrees };
+export { worktreesOf, makeWorktree, branchWorktree, removeWorktree, setHome, forgetWorktrees, tagOf };
 export type { Worktrees };

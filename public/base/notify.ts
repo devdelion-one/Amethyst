@@ -46,7 +46,7 @@ export function tell(over: EventTarget | null | undefined, { title = '', line = 
   const top = y + h > innerHeight - 8 ? (at ? py - h - 10 : innerHeight - h - 8) : y;
   Object.assign(card.style, { left: Math.max(8, Math.min(x, innerWidth - w - 8)) + 'px', top: Math.max(8, top) + 'px' });
   card.classList.add('on');
-  hideAt = setTimeout(() => card!.classList.remove('on'), ms);
+  hideAt = setTimeout(() => card!.classList.remove('on'), Math.min(ms, Math.max(1500, 600 + 40 * (title.length + line.length))));
 }
 export function refuse(over: EventTarget | null | undefined, { title, line = '' }: { title: string; line?: string }) {
   if (over && pref('tell:on')) return tell(over, { title, line, ms: 2500 });

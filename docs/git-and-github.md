@@ -47,7 +47,7 @@ Run `amethyst help git` for every flag. Most commands accept `--repo <folder>` w
 - `amethyst git fetch` / `pull [--how rebase|merge]` / `push [--lease]` / `sync [--how rebase|merge]` — sync with the remote.
 - `amethyst git branch <name> [--create] [--from <ref>] [--changes stash]` — switch to or create a branch.
 - `amethyst git abort` / `continue` / `skip` — manage an in-progress merge, rebase, cherry-pick, or revert.
-- `amethyst git clone <url-or-owner/repo> [into] [--name <project>] [--no-add]` — clone with submodules and add as a project in the current workspace.
+- `amethyst git clone <url-or-owner/repo> [into] [--name <project>] [--no-add]` — clone with submodules and add as a project in the current workspace. While **chats answer other chats' permission asks** is off, a clone, pull, sync, branch switch, `pr checkout` or `issue start` by a chat, an agent outside Amethyst or a terminal is refused when it would bring in an agent's settings or hooks (such as `.claude/settings.local.json` or `.github/hooks/`); from Amethyst's window it works as always.
 - `amethyst git tag <name> [--at <ref>] [--message <text>] [--push]` — create and optionally push a tag.
 - `amethyst git release <tag> [--title <text>] [--notes <text>]` — publish a GitHub release for a tag.
 - `amethyst git log [path] [--q <query>] [--ref <ref>] [--skip <n>]` — search commits (supports `author:name` and `code:text`).

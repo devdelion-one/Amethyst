@@ -1,4 +1,4 @@
-import { ask, barMenu, rowIcons, colorTray, ICONS, markName, popMenu, resetBarOrder, setColorTray, sortable, swatches, TOPBAR } from '../base/controls.ts';
+import { ask, barMenu, rowIcons, colorTray, ICONS, MARK_NOS, markName, popMenu, resetBarOrder, setColorTray, sortable, swatches, TOPBAR } from '../base/controls.ts';
 import { BINDS, bound, is, show } from '../base/binds.ts';
 import { modelKeys, optFor, seenModels, setModelKey } from './composer.ts';
 import { icon } from '../base/icon.ts';
@@ -7,11 +7,11 @@ import { codeView } from '../base/textbox.ts';
 import { chatHeadHtml, headsInit, QUICK_LEAD, quickHtml, WIN2_LEAD, win2Html } from './setheads.ts';
 import { CHAT_LEAD, chatPartsHtml, ctrlpHtml, marksRowHtml } from './setchat.ts';
 import { LIST_LEAD, LIST_MOVED, listHtml } from './setlist.ts';
-import { fitLooks, homeOf, railHtml, resetItem, resetRow, selectRow, stdClick, stdHover, stdInit, stdKeys } from './setstd.ts';
+import { fitLooks, homeOf, ownChanged, railHtml, resetItem, resetRow, selectRow, stdClick, stdHover, stdInit, stdKeys } from './setstd.ts';
+import { GEN_LEAD, genClick, genHtml, genInit } from './setgen.ts';
 import { pinClick, pinHtml, pinInit } from './setpin.ts';
 import { writerLine, writerRowClick, writerRowHtml } from '../base/writer.ts';
-import { forgetColors, forgetListHere, forgetListOn, forgetListText, setForgetColor, setForgetListOn, setForgetListText } from '../forget/forget.ts';
-import { setStepsText, stepsText, useTheme } from './header.ts';
+import { useTheme } from './header.ts';
 import { dbgBarHtml, TOP_LEAD, topHtml, ueBarHtml } from './settop.ts';
 import { DOCK_LEAD, dockPartHtml } from './setdock.ts';
 import { FILES_LEAD, filesPartHtml } from './setfiles.ts';
@@ -26,9 +26,8 @@ import { chatOn, isChanged, isOff, onPref, pref, PREFS, resetPref, setAt, setOff
 import { shows } from './tabs.ts';
 import { addEngine, changeEngines, lookEngines, lookIndex, runUht, ueEngines, ueIndex, ueUht } from '../ue/ue.ts';
 import { downloadDebugger, engineNow, loadEngine, removeDebugger } from '../debug/debug.ts';
+import { loadVoice, MODEL_NAME, voiceGet, voiceNow, voiceRemove } from './voice.ts';
 import { mbOf } from '../debug/column.ts';
-import { openWelcome } from '../welcome/welcome.ts';
-import { openTour } from '../welcome/tutorial.ts';
 import { ACCENTS, BRIGHTS, CHAT_SIZES, CODE_LANGS, col, COLORS, theme as tokens, CODE_PRESETS, CODE_ROLES, CODE_SIZES, codeChanged, codePresetColor, codePresetOf, codeRole, codeVars, exportCode, FAR_LOOKS, farLook, FONTS, importCode, LOOK, lookOf, MONOS, resetCode, setCodePreset, setCodeRole, setFarLook, setLook, setSolid, solidLook, SOLIDS, STRENGTHS, themeName, THEMES } from '../base/theme.ts';
 import { $, esc, setSave, showErr, store } from '../base/util.ts';
 import { setToolsNow } from '../base/drive.ts';
@@ -351,10 +350,10 @@ function toolsRows() {
   if (!arch) api('GET', '/api/settings').then((r) => ((arch = r), renderSettings()), showErr);
   const t = arch?.tools || { chats: true, asks: false, path: true, debug: true };
   return (
-    row(TOOLS.chats, tg(t.chats, 'data-tools="chats"'), { desc: "When you tell a chat to, it can use the amethyst command from its own terminal to send the project's other chats work, wait for them, read their answers, answer their questions and set their model and options. Nothing is added to what agents see. @ in a chat's box lists the chats. Off: chats can't, from their next try, and @ lists only files." }) +
-    row(TOOLS.asks, tg(t.asks, 'data-tools="asks"'), { desc: "Off: only you, in Amethyst's own window, answer when a chat asks to run a command or edit a file, approve a plan so that it works without asking, or put a chat in a mode that does. Other chats, agents outside Amethyst and terminals can't. On: they can." }) +
+    row(TOOLS.chats, tg(t.chats, 'data-tools="chats"'), { desc: "When you tell a chat to, it can use the amethyst command from its own terminal to send the project's other chats work, wait for them, read their answers, answer their questions and set their model and options. It can also start its own subagents with it. Agents outside Amethyst and terminals use the same commands. Nothing is added to what agents see. @ in a chat's box lists the chats. Off: only you, in Amethyst's own window, start and drive chats; chats, agents outside Amethyst and terminals can't, from their next try, and @ lists only files. An agent's own built-in subagents still work." }) +
+    row(TOOLS.asks, tg(t.asks, 'data-tools="asks"'), { desc: "Off: only you, in Amethyst's own window, answer when a chat asks to run a command or edit a file, approve a plan so that it works without asking, or put a chat in a mode that does. Other chats, agents outside Amethyst and terminals can't, and what they send to a chat in such a mode waits for you to allow it. When they build, open or debug a project, run a repo's hooks or call code in the debugged program, Amethyst asks you first, and they can't bring in a repo's files that let chats skip asking. On: they can, without asking." }) +
     row(TOOLS.path, tg(t.path, 'data-tools="path"'), { desc: `amethyst <feature> <action> in a new terminal, and amethyst mcp add for agents outside Amethyst. ${arch?.cli || ''}`.trim() }) +
-    row(TOOLS.debug, tg(t.debug, 'data-tools="debug"'), { desc: "When you tell a chat to, it can use the amethyst command from its own terminal to start and stop the debugger, step, continue, pause, set the next statement, set and remove breakpoints and change values; you see each one in the debug column, marked as an agent's. Ending Unreal Editor needs them to say so outright. Off: they can still read where it stopped, the stack and the variables, and evaluate expressions without calls." })
+    row(TOOLS.debug, tg(t.debug, 'data-tools="debug"'), { desc: "When you tell a chat to, it can use the amethyst command from its own terminal to start and stop the debugger, step, continue, pause, set the next statement, set and remove breakpoints and change values; you see each one in the debug column, marked as an agent's. Ending Unreal Editor needs them to say so outright. Off: they can still read where it stopped, the stack and the variables, and evaluate expressions without calls or assignments. Agents outside Amethyst and the amethyst command in terminals are held to it too: only you, in Amethyst's own window, always control the debugger." })
   );
 }
 async function setTools(k: keyof Tools) {
@@ -379,7 +378,7 @@ function browserRow() {
   );
 }
 
-const SOURCE_URL = 'https://github.com/devdelion-one/Amethyst.exe';
+const SOURCE_URL = 'https://github.com/devdelion-one/Amethyst';
 const DOCS_URL = `${SOURCE_URL}/blob/main/docs`;
 const LICENSE_URL = 'https://amethyst.run/license';
 const DOC_GROUPS: [string, [string, string, string][]][] = [
@@ -543,7 +542,7 @@ const pictured = () => new Set([...topRows().map((r) => r.k), ...stdKeys()]);
 const showCards = (part: string, pre: [string, string][] = [], post: [string, string][] = []) =>
   prefCards('show', { part, pre, post, skip: pictured() });
 const SHOW_PARTS: { id: string; name: string; lead: string; html: () => string }[] = [
-  { id: 'chat', name: 'Chat', lead: CHAT_LEAD, html: () => chatHeadHtml() + chatPartsHtml() + showCards('chat') },
+  { id: 'chat', name: 'Chat', lead: CHAT_LEAD, html: () => chatHeadHtml() + chatPartsHtml() + showCards('chat', [], [['speech to text', voiceRow()]]) },
   { id: 'list', name: 'Agents list', lead: LIST_LEAD, html: () => listHtml() + showCards('list') },
   { id: 'win2', name: 'Window 2, 3…', lead: WIN2_LEAD, html: () => win2Html() + showCards('win2') },
   { id: 'quick', name: 'Quick windows', lead: QUICK_LEAD, html: () => quickHtml() + ueBarHtml() + showCards('quick') },
@@ -594,12 +593,13 @@ function lookBox() {
       row('text size of new chats', lookSel('chat', CHAT_SIZES, (n) => `a new chat's text at ${n} %`), { ...lk('chat'), desc: "a new chat's text; ctrl wheel changes one chat" }));
 }
 
-const markRow = () => row('marks', [1, 2, 3].map((n) => `<i class="mk-d m${n}">${ICONS['mark' + n]}</i><input data-mark-name="${n}" value="${esc(pref('marks:names')[n - 1])}" placeholder="${esc(markName(n))}" style="width: 110px" title="Mark name&#10;What this mark means to you, on chats, files and folders.">`).join(''), { desc: 'what each mark means to you, on chats, files and folders', rs: 'p:marks:names', on: isChanged('marks:names'), cls: 'wide', attrs: ' data-row="marks:names"' });
+const markRow = () => row('marks', MARK_NOS.map((n) => `<i class="mk-d m${n}">${ICONS['mark' + n]}</i><input data-mark-name="${n}" value="${esc(pref('marks:names')[n - 1] ?? '')}" placeholder="${esc(markName(n))}" style="width: 110px" title="Mark name&#10;What this mark means to you, on chats, files and folders.">`).join(''), { desc: 'what each mark means to you, on chats, files and folders', rs: 'p:marks:names', on: isChanged('marks:names'), cls: 'wide', attrs: ' data-row="marks:names"' });
 
 headsInit(el, { rsBtn, redraw: () => renderSettings() });
 stdInit({ rsBtn, redraw: () => renderSettings(), fold: foldAdv });
 popsInit({ rsBtn, head: secHead });
 pinInit(el);
+genInit(el);
 el.addEventListener('mouseover', (e: MouseEvent) => stdHover(el, e.target as Element));
 new ResizeObserver(() => fitLooks(el)).observe(el);
 document.fonts?.ready.then(() => fitLooks(el));
@@ -621,43 +621,6 @@ function accountsRow() {
 
 const writerRow = () => row('Writing helper', writerRowHtml(), { cls: 'wide', attrs: ' data-row="x:writer"', rs: 'p:writer:use', on: isChanged('writer:use'), desc: `${writerLine()} It writes commit messages and pull request descriptions when you click ✦.` });
 const agentsBox = () => prefCards('agents', { title: 'agents', skip: new Set(['marks:on']), pre: [['agents', ''], ['Pinned agent', pinHtml()], ['Writing helper', writerRow()]], post: [['the chat list', `<div class="set-row set-moved" data-row="x:moved"><div class="sr-t"><span class="lbl">${esc(LIST_MOVED)}</span></div><span class="sr-rs-no"></span><span class="set-opts"><button class="chip" data-set-go="show/list" title="Show and hide, Agents list&#10;Opens the section with the chat list's switches.">Open it</button></span></div>`], ['marks', markRow() + marksRowHtml()], ['worktrees and accounts', worktreesRow() + accountsRow()], ['Amethyst tools', toolsRows()]] });
-
-const generalBox = () =>
-  prefCards('windows', { title: 'windows', post: [['windows', trayRows()]] }) +
-  card("don't forget", listRow() + forgetColorsRow()) +
-  card('timer', row('timer steps', `<input data-timer-steps value="${esc(stepsText())}" style="width: 180px" title="Timer steps&#10;What each click on the timer goes through, after 0: like 15m 30m 1h 1d." aria-label="timer steps">`, { desc: 'what a click on the timer goes through, after 0: like 15m 30m 1h 1d' })) +
-  card('welcome page', row('first launch', `<button class="chip" data-welcome-open title="Show the welcome page again&#10;The basics or everything, theme, mode buttons, agents, your workspaces and projects, Unreal and keys.">show the welcome page again</button>`, { desc: 'start with the basics or everything, theme, where the mode buttons sit, which agents you use, your workspaces and projects, Unreal and a few keys' }) + row('easy tutorial', `<button class="chip" data-tour-open title="Start the tutorial&#10;A few steps to try, about a minute.">start the tutorial</button>`, { desc: 'a few steps to try: hide the bars, open the explorer and a new chat, then the editor, orchestration and agents tabs' }));
-
-let tray: { on: boolean; login: boolean } | null = null;
-function trayRows() {
-  if (!DESKTOP?.trayState) return '';
-  if (!tray) DESKTOP.trayState().then((s) => s && ((tray = s), renderSettings()));
-  const s = tray || { on: true, login: true };
-  return row('× keeps it in the tray', tg(s.on, `data-tray-on="${s.on ? '' : '1'}" aria-label="× keeps it in the tray"`), { desc: '× hides it in the tray and you quit from the tray icon; off: × quits Amethyst' }) +
-    row('start with windows', tg(s.login, `data-tray-login="${s.login ? '' : '1'}" aria-label="start with windows"`), { desc: 'starts in the tray when you sign in to Windows; off: only when you start it' });
-}
-async function setTray(c: { on?: boolean; login?: boolean }) {
-  tray = await DESKTOP!.traySet(c);
-  setSave('on' in c ? `× keeps it in the tray: ${tray!.on ? 'on' : 'off'}` : `start with windows: ${tray!.login ? 'on' : 'off'}`);
-  renderSettings();
-}
-
-function forgetColorsRow() {
-  const css = getComputedStyle(document.documentElement);
-  const hex = (n: number) => {
-    const v = css.getPropertyValue(`--fg-c${n}`).trim();
-    return /^#[0-9a-f]{6}$/i.test(v) ? v : '#888888';
-  };
-  return row("don't forget colors", [['!', 'normal', "a normal don't forget"], ['!!', 'soon', "a don't forget due soon"], ['!!!', 'urgent', "an urgent don't forget"]].map(([m, w, d], i) => `<input type="color" value="${hex(i + 1)}" data-forget-color="${i + 1}" title="${cap(w)}: ${m}&#10;The color of ${d}. Click to change it." aria-label="${w} color">`).join('') +
-    `<button class="quiet" data-forget-colors-reset ${forgetColors().some(Boolean) ? '' : 'style="visibility:hidden"'}>reset</button>`, { desc: '! normal, !! soon, !!! urgent' });
-}
-
-const listRow = () => {
-  const on = forgetListOn(), here = forgetListHere();
-  return row("don't forget list at", here
-    ? `<input data-forget-list value="${esc(forgetListText())}" style="width: 180px" title="Times&#10;This workspace's times: like 12:00, 12 16 20, or every 6h." aria-label="times">` + tg(on, `data-forget-list-on="${on ? '' : '1'}" aria-label="don't forget list at"`)
-    : `<span class="dim">${pref('forget:on') ? 'open a workspace' : "don't forget is off"}</span>`, { desc: "the whole list comes up at this workspace's times, like 12:00, 12 16 20 or every 6h; off: it never comes up by itself" });
-};
 
 const filesBox = () => prefCards('files', {
   title: 'files',
@@ -682,6 +645,21 @@ function uhtRow() {
   const what = x?.state === 'running' ? 'running…' : x?.state === 'queued' ? 'about to run' : why || last || 'runs after you save a header';
   const tip = "Epic's Unreal Header Tool over the project, writing nothing. A header added since the last build isn't in its list until the next build";
   return row('header tool', `<span class="ue-uht dim">${esc(what)}</span>${x?.state === 'running' ? '' : `<button class="chip" data-ue-uht>run</button>`}`, { desc: tip });
+}
+
+let voiceAsked = false;
+function voiceRow() {
+  const v = voiceNow();
+  if (!v && !voiceAsked) {
+    voiceAsked = true;
+    loadVoice().finally(() => (voiceAsked = false));
+  }
+  if (!v) return row('Downloaded', '<span class="dim">looking…</span>');
+  if (!v.os) return row('Downloaded', '<span class="dim">not on this system yet</span>');
+  const m = pref('voice:model') === 'base' ? 'base' : 'small', have = Object.entries(v.models).filter(([, x]) => x.have);
+  const what = v.installing ? `downloading, ${Math.round(v.got / 1e6)} of ${Math.round(v.total / 1e6) || v.models[m].mb} MB` : have.length ? `${have.map(([k]) => MODEL_NAME[k]).join(' and ')}, ${Math.round(v.bytes / 1e6)} MB` : 'nothing yet';
+  const btn = v.installing ? '' : v.bytes ? `<button class="chip" data-voice-remove title="Remove&#10;Deletes the speech models and Whisper. The mic asks to download again.">remove</button>` : `<button class="chip" data-voice-get title="Download&#10;Gets Whisper and the ${esc(MODEL_NAME[m].toLowerCase())} model, about ${v.models[m].mb + (v.program ? 0 : 10)} MB, from GitHub and Hugging Face.">download</button>`;
+  return row('Downloaded', `<span class="dim">${esc(what)}</span>${btn}`, { desc: "Whisper and its speech model, in Amethyst's own folder. The mic asks before the first download." });
 }
 
 function debuggerCard() {
@@ -733,7 +711,7 @@ const showSub = (id: string, group: string, label?: string): Sub => {
 const lookFullHtml = () => lookBox() + colorTrayBox() + card('set colors', `<div class="cc-help">click a number to change its color, drag it to change the order${pref('switch:place') === 'slots' ? '; with place: slots, new views take these in turn, or the one color with all the same' : ''}</div>` + SET_GROUPS.map(colorLine).join(''));
 const SVG = (d: string) => `<svg viewBox="0 0 16 16" aria-hidden="true">${d}</svg>`;
 const SECTIONS: Sec[] = [
-  { id: 'general', name: 'General', icon: '<path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4"/><circle cx="8" cy="8" r="2.6"/>', lead: "Windows, don't forget, the timer, the welcome page and the tutorial.", html: generalBox },
+  { id: 'general', name: 'General', icon: '<path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4"/><circle cx="8" cy="8" r="2.6"/>', lead: GEN_LEAD, html: genHtml },
   {
     id: 'look', name: 'Appearance', icon: '<circle cx="8" cy="8" r="6"/><path d="M8 2a6 6 0 0 0 0 12z" fill="currentColor"/>',
     subs: () => [
@@ -824,7 +802,7 @@ const EXTRA_PREFS = ['marks:names', 'writer:use', 'deck:foldOrder', 'modesHidden
 const tracked = () => Object.keys(PREFS).filter((k) => (PREFS[k].box || EXTRA_PREFS.includes(k)) && visible(k));
 const keyIds = () => [...new Set([...keyGroups().flatMap((g) => g.cards.flatMap(([, rows]) => rows.flatMap((r) => r[3] || []))), ...Object.keys(AGENT_NAME).filter(chatOn).flatMap((a) => [1, 2, 3, 4, 5].map((n) => `model.${a}.${n}`))])];
 function changedTokens(): string[] {
-  return [...tracked().filter(isChanged).map((k) => 'p:' + k), ...keyIds().filter(keyChanged).map((id) => 'k:' + id), ...Object.keys(LOOKS).filter((k) => LOOKS[k][1]()).map((k) => 'x:' + k)];
+  return [...tracked().filter(isChanged).map((k) => 'p:' + k), ...ownChanged(), ...keyIds().filter(keyChanged).map((id) => 'k:' + id), ...Object.keys(LOOKS).filter((k) => LOOKS[k][1]()).map((k) => 'x:' + k)];
 }
 let holding = false;
 function resetTokens(toks: string[]) {
@@ -999,7 +977,7 @@ export function renderSettings() {
     tellUpdate();
     return paintField();
   }
-  const top = el.scrollTop, ws = wordsOf(findQ), cur = sectionAt(store.get('settings:tab')), had = focusKey();
+  const top = el.scrollTop, ws = wordsOf(findQ), cur = sectionAt(store.get('settings:tab')), had = focusKey(), caret = caretOf();
   finding = ws.length > 0 || cur === 'changed';
   seenUpdate();
   found.clear();
@@ -1026,7 +1004,21 @@ export function renderSettings() {
   el.scrollTop = top;
   fitLooks(el);
   if (showRail) fitLooks(rail);
-  if (had) (el.querySelector(had) as HTMLElement | null)?.focus({ preventScroll: true });
+  if (had) refocus(had, caret);
+}
+function caretOf() {
+  const a = document.activeElement;
+  if (!(a instanceof HTMLInputElement || a instanceof HTMLTextAreaElement) || a.selectionStart == null) return null;
+  return { start: a.selectionStart, end: a.selectionEnd ?? a.selectionStart, atEnd: a.selectionEnd === a.value.length };
+}
+function refocus(had: string, caret: ReturnType<typeof caretOf>) {
+  const n = el.querySelector(had) as HTMLElement | null;
+  if (!n) return;
+  n.focus({ preventScroll: true });
+  if (!caret || !(n instanceof HTMLInputElement || n instanceof HTMLTextAreaElement) || n.selectionStart == null) return;
+  const len = n.value.length;
+  if (caret.atEnd) n.setSelectionRange(len, len);
+  else n.setSelectionRange(Math.min(caret.start, len), Math.min(caret.end, len));
 }
 function focusKey() {
   const a = document.activeElement as HTMLElement | null;
@@ -1095,6 +1087,7 @@ document.addEventListener('keydown', (e) => {
 el.addEventListener('click', async (e: MouseEvent) => {
   if (stdClick(e.target as Element)) return e.stopPropagation();
   if (pinClick(e.target as Element)) return e.stopPropagation();
+  if (genClick(e.target as Element)) return e.stopPropagation();
   if (writerRowClick(e.target as Element)) return e.stopPropagation();
   const fixed = (e.target as Element).closest<HTMLElement>('.kb.fixed, [data-fixed]');
   if (fixed) return tell(fixed, fixed.matches('.kb') ? { title: 'This key is fixed', line: 'it does the same everywhere and cannot be changed', ms: 2500 } : { title: 'This one always shows', line: 'the editor button stays in the top bar', ms: 2500 });
@@ -1116,25 +1109,13 @@ el.addEventListener('click', async (e: MouseEvent) => {
   if ('ueIndex' in d) return lookIndex(true);
   if ('ueUht' in d) return runUht();
   if (d.ueRemove) return changeEngines({ remove: d.ueRemove });
+  if ('voiceGet' in d) return voiceGet();
+  if ('voiceRemove' in d) return voiceRemove();
   if ('dbgGet' in d) return downloadDebugger();
   if ('dbgRemove' in d) return removeDebugger();
-  if ('welcomeOpen' in d) return openWelcome();
-  if ('tourOpen' in d) return openTour();
   if (updateClick(d)) return;
   if (countClick(d)) return;
   if (licenseClick(d)) return;
-  if ('trayOn' in d) return setTray({ on: !!d.trayOn });
-  if ('trayLogin' in d) return setTray({ login: !!d.trayLogin });
-  if ('forgetColorsReset' in d) {
-    [1, 2, 3].forEach((n) => setForgetColor(n, ''));
-    setSave("don't forget colors: the theme's");
-    return renderSettings();
-  }
-  if ('forgetListOn' in d) {
-    setForgetListOn(!!d.forgetListOn);
-    setSave(`don't forget list: ${d.forgetListOn ? 'on' : 'off'}`);
-    return renderSettings();
-  }
   if (d.ecDel) {
     const m = extColors();
     delete m[d.ecDel];
@@ -1269,24 +1250,14 @@ el.addEventListener('change', (e: Field) => {
   if (e.target.matches('[data-mark-name]')) {
     const names = pref('marks:names');
     names[(e.target.dataset.markName as unknown as number) - 1] = e.target.value.trim().slice(0, 40);
+    for (let i = 0; i < names.length; i++) names[i] ??= '';
     setPref('marks:names', names);
-    return renderSettings();
-  }
-  if (e.target.matches('[data-timer-steps]')) {
-    setStepsText(e.target.value);
-    setSave(`timer steps: ${stepsText()}`);
     return renderSettings();
   }
   if (ct.bn != null) return saveBn(ct.bn, e.target.value);
   if (e.target.matches('[data-hide]')) {
     hide.text = e.target.value;
     return saveHide(hideListOf());
-  }
-  if (e.target.matches('[data-forget-color]')) return setSave("don't forget colors");
-  if (e.target.matches('[data-forget-list]')) {
-    setForgetListText(e.target.value);
-    setSave(`don't forget list at: ${forgetListText()}`);
-    return renderSettings();
   }
   if (e.target.matches('select[data-pref-sel]')) {
     const k = e.target.dataset.pref!, e2 = PREFS[k];
@@ -1311,11 +1282,6 @@ el.addEventListener('change', (e: Field) => {
   } else if (e.target.matches('[data-cc-color]')) renderSettings();
 });
 el.addEventListener('input', (e: Field) => {
-  if (e.target.matches('[data-forget-color]')) {
-    setForgetColor(+e.target.dataset.forgetColor!, e.target.value);
-    el.querySelector('[data-forget-colors-reset]').style.visibility = '';
-    return;
-  }
   const c = e.target.closest<HTMLInputElement>('[data-cc-color]');
   if (!c) return;
   const name = ccName(), role = c.dataset.ccColor!;

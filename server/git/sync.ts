@@ -4,6 +4,7 @@ import type { Routes } from '../../public/base/types.ts';
 import { HttpError } from '../base/routes.ts';
 import { git, gitLong, must, why, reason, placeOf, doingIn, stopIn } from '../base/gitcli.ts';
 import type { Ran } from '../base/gitcli.ts';
+import { keepOut } from '../base/agentfiles.ts';
 import { inRepo, said, but, status, repoStatus, forget, fetchSaid, relArg, mineIsTheirs } from './status.ts';
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
@@ -65,7 +66,7 @@ async function stoppedOr(cwd: string, r: Ran) {
   return null;
 }
 
-async function pull(cwd: string, how?: unknown) {
+async function pull(cwd: string, how: unknown, body: Record<string, unknown>) {
   const st = await repoStatus(cwd);
   if (!st.remote) throw new HttpError(409, 'This project has no remote yet: put it on GitHub first.');
   if (st.detached) throw new HttpError(409, 'Not on a branch: switch to one first.');
@@ -76,6 +77,7 @@ async function pull(cwd: string, how?: unknown) {
   const was = await sha(cwd, 'HEAD'), up = '@{upstream}';
   const behind = was ? await count(cwd, `HEAD..${up}`) : 1, ahead = was ? await count(cwd, `${up}..HEAD`) : 0;
   if (!behind) return { pulled: 0, stopped: '', more: '', from: was, to: was };
+  await keepOut(body, cwd, 'HEAD', up, { since: true });
   let mode = 'ff';
   if (ahead) {
     const set = (await git(cwd, ['config', '--get', 'pull.rebase'])).out.trim().toLowerCase();
@@ -117,10 +119,10 @@ const ROUTES: Routes = {
       forget(cwd);
     }
   },
-  'POST /api/git/pull': async ({ how }, _q, root: string | null) => {
+  'POST /api/git/pull': async (body, _q, root: string | null) => {
     const cwd = inRepo(root);
     try {
-      const r = await pull(cwd, how);
+      const r = await pull(cwd, body.how, body);
       if (r.stopped) return but(r.stopped, { pulled: r.pulled, from: r.from, to: r.to });
       return said((r.pulled ? `pulled ${r.pulled}` : 'nothing to pull') + r.more, { pulled: r.pulled, from: r.from, to: r.to });
     } finally {
@@ -137,14 +139,14 @@ const ROUTES: Routes = {
       forget(cwd);
     }
   },
-  'POST /api/git/sync': async ({ how }, _q, root: string | null) => {
+  'POST /api/git/sync': async (body, _q, root: string | null) => {
     const cwd = inRepo(root);
     let st = await repoStatus(cwd);
     if (!st.remote) throw new HttpError(409, 'This project has no remote yet: put it on GitHub first.');
     let pulled = 0, more = '';
     try {
       if (st.upstream && st.commits) {
-        const r = await pull(cwd, how);
+        const r = await pull(cwd, body.how, body);
         if (r.stopped) return but(r.stopped, { pulled: r.pulled });
         ({ pulled, more } = r);
         forget(cwd);

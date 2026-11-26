@@ -16,8 +16,10 @@ import * as branchnames from './server/base/branchnames.ts';
 import * as setup from './server/setup/setup.ts';
 import * as ue from './server/ue/ue.ts';
 import * as debug from './server/debug/debug.ts';
+import * as voice from './server/voice/voice.ts';
 import * as clips from './server/clips/clips.ts';
 import * as welcome from './server/welcome/welcome.ts';
+import * as usage from './server/usage/routes.ts';
 import * as drive from './server/chat/drive/routes.ts';
 import { ACTIONS as CHAT_ACTS } from './server/chat/drive/actions.ts';
 import * as workers from './server/chat/workers/routes.ts';
@@ -38,6 +40,7 @@ import type { Project, RouteHandler, Routes } from './public/base/types.ts';
 import type { Live } from './server/base/live.ts';
 import { exists, isDir, replace, WIN } from './server/base/util.ts';
 import { asUser, gate } from './server/base/user.ts';
+import * as runs from './server/base/runs.ts';
 
 type Root = ReturnType<typeof openRoot> & { ROOT: string };
 interface WsEntry {
@@ -95,21 +98,49 @@ const plainPath = (p: string) => {
   const s = p.replace(/[. ]+(?=[\\/]|$)/g, '');
   return WIN ? s.toLowerCase() : s;
 };
-function nodeDisk(ROOT: string): Disk & { abs: (rel: string) => string } {
-  const secrets = [plainPath(path.join(ROOT, DOT, 'agents.json')), plainPath(path.join(ROOT, DOT, 'agents.json.tmp'))];
+async function realOf(p: string): Promise<string> {
+  let rest = '';
+  for (let q = p; ; ) {
+    try {
+      return path.join(await fsp.realpath(q), rest);
+    } catch (e) {
+      if (!['ENOENT', 'ENOTDIR'].includes((e as NodeJS.ErrnoException).code!)) throw e;
+      if (await fsp.lstat(q).catch(() => null)) throw new HttpError(400, 'path outside root');
+      const up = path.dirname(q);
+      if (up === q) return p;
+      rest = path.join(path.basename(q), rest);
+      q = up;
+    }
+  }
+}
+async function realInside(root: string, p: string, own = false) {
+  const base = await realOf(root);
+  const real = own && !same(p, root) ? path.join(await realOf(path.dirname(p)), path.basename(p)) : await realOf(p);
+  if (!within(real, base)) throw new HttpError(400, 'path outside root');
+  return { real, base };
+}
+function nodeDisk(ROOT: string): Disk & { abs: (rel: string) => string; real: (rel: string, own?: boolean) => Promise<string> } {
+  const hidden = (root: string, p: string) => [path.join(root, DOT, 'agents.json'), path.join(root, DOT, 'agents.json.tmp')].map(plainPath).includes(plainPath(p));
   const at = (rel: string) => {
     const p = path.resolve(ROOT, rel);
     const r = path.relative(ROOT, p);
     if (r.startsWith('..') || path.isAbsolute(r)) throw new HttpError(400, 'path outside root');
-    if (secrets.includes(plainPath(p))) throw new HttpError(400, 'hidden path');
+    if (hidden(ROOT, p)) throw new HttpError(400, 'hidden path');
+    return p;
+  };
+  const real = async (rel: string, own = false) => {
+    const p = at(rel);
+    const { real, base } = await realInside(ROOT, p, own);
+    if (hidden(base, real)) throw new HttpError(400, 'hidden path');
     return p;
   };
   return {
     caseless: WIN,
     abs: at,
-    read: (rel: string) => fsp.readFile(at(rel), 'utf8').catch((e) => (e.code === 'ENOENT' ? null : Promise.reject(e))),
+    real,
+    read: async (rel: string) => fsp.readFile(await real(rel), 'utf8').catch((e) => (e.code === 'ENOENT' ? null : Promise.reject(e))),
     async bytes(rel: string, n: number) {
-      const fh = await fsp.open(at(rel), 'r');
+      const fh = await fsp.open(await real(rel), 'r');
       try {
         const buf = Buffer.alloc(n);
         return buf.subarray(0, (await fh.read(buf, 0, n, 0)).bytesRead);
@@ -118,21 +149,21 @@ function nodeDisk(ROOT: string): Disk & { abs: (rel: string) => string } {
       }
     },
     async write(rel: string, text: string, { fresh = false, atomic = false } = {}) {
-      const p = touch(at(rel));
+      const p = touch(await real(rel));
       await fsp.mkdir(path.dirname(p), { recursive: true });
       if (!atomic) return fsp.writeFile(p, text, fresh ? { flag: 'wx' } : undefined);
       await replace(p, text);
     },
-    stat: (rel: string) => fsp.stat(at(rel)).then((s) => ({ dir: s.isDirectory(), size: s.size, mtime: s.mtimeMs }), () => null),
-    list: async (rel: string) => (await fsp.readdir(at(rel), { withFileTypes: true })).map((e) => ({ name: e.name, dir: e.isDirectory(), file: e.isFile() })),
+    stat: (rel: string) => real(rel).then((p) => fsp.stat(p)).then((s) => ({ dir: s.isDirectory(), size: s.size, mtime: s.mtimeMs }), () => null),
+    list: async (rel: string) => (await fsp.readdir(await real(rel), { withFileTypes: true })).map((e) => ({ name: e.name, dir: e.isDirectory(), file: e.isFile() })),
     async mkdir(rel: string) {
-      const p = at(rel);
+      const p = await real(rel);
       if (!(await fsp.stat(p).catch(() => null))) touch(p);
       const made = await fsp.mkdir(p, { recursive: true });
       if (made) touch(made);
     },
-    move: (rel: string, dest: string) => fsp.rename(touch(at(rel)), touch(at(dest))),
-    remove: (rel: string) => fsp.rm(touch(at(rel)), { recursive: true, force: true }),
+    move: async (rel: string, dest: string) => fsp.rename(touch(await real(rel, true)), touch(await real(dest, true))),
+    remove: async (rel: string) => fsp.rm(touch(await real(rel, true)), { recursive: true, force: true }),
   };
 }
 
@@ -194,8 +225,8 @@ function archiveStore(dir: string): ArchiveStore {
     list: (r: string) => at().list(r),
     mkdir: (r: string) => at().mkdir(r),
     remove: (r: string) => at().remove(r),
-    take: (r: string, dest: string) => moveAcross(own.abs(r), at().abs(dest)),
-    give: (r: string, dest: string) => moveAcross(at().abs(r), own.abs(dest)),
+    take: async (r: string, dest: string) => moveAcross(await own.real(r, true), at().abs(dest)),
+    give: async (r: string, dest: string) => moveAcross(at().abs(r), await own.real(dest, true)),
   };
 }
 
@@ -238,6 +269,15 @@ const projectAt = (dir: string) => {
   }
   return best;
 };
+const projectsOf = (dir: string) => {
+  for (const w of wsList()) {
+    if (!fs.existsSync(w.path)) continue;
+    const list = (wsRoot(w).meta.projects as Project[]).map((p) => p.path);
+    if (within(dir, w.path) || list.some((p) => within(dir, p))) return list;
+  }
+  return [dir];
+};
+usage.init({ dataDir: path.join(WS_DIR, DOT), projectsOf, worktreesDir, claudeDirs: agents.accountDirs });
 branchnames.setStore({
   get: (dir) => {
     const p = projectAt(dir);
@@ -309,6 +349,7 @@ debug.init({
   },
   control: () => toolsNow().debug,
 });
+runs.init({ free: (b) => drive.freeToRun((b || {}) as Record<string, unknown>), who: (b) => drive.askerOf((b || {}) as Record<string, unknown>) });
 workers.init();
 drive.init({
   url: `http://127.0.0.1:${PORT}`,
@@ -797,6 +838,7 @@ const WS_ROUTES: Routes = {
     const R = projectRoot(W, String(project));
     const into = path.resolve(R.ROOT, String(dir)), top = path.relative(R.ROOT, into).split(path.sep)[0];
     if (!within(into, R.ROOT) || top === DOT || top === '.git') throw new HttpError(400, 'outside the project');
+    await realInside(R.ROOT, into);
     if (!(await fsp.stat(into).catch(() => null))?.isDirectory()) throw new HttpError(404, 'no such folder');
     const { name, ext } = path.parse(abs);
     let to = path.join(into, name + ext);
@@ -810,6 +852,7 @@ const WS_ROUTES: Routes = {
     const R = projectRoot(W, String(project));
     const into = path.resolve(R.ROOT, String(dir)), top = path.relative(R.ROOT, into).split(path.sep)[0];
     if (!within(into, R.ROOT) || top === DOT || top === '.git') throw new HttpError(400, 'outside the project');
+    await realInside(R.ROOT, into);
     if (!(await fsp.stat(into).catch(() => null))?.isDirectory()) throw new HttpError(404, 'no such folder');
     const sources: string[] = [];
     for (const it of items) {
@@ -953,8 +996,8 @@ function readBody(req: IncomingMessage) {
   });
 }
 
-const APP_TABLES = [APP_ROUTES, clips.ROUTES, welcome.ROUTES];
-const PART_TABLES = [agents.ROUTES, drive.ROUTES, workers.ROUTES, terms.ROUTES, live.ROUTES, git.ROUTES, github.ROUTES, setup.ROUTES, ue.ROUTES, debug.ROUTES];
+const APP_TABLES = [APP_ROUTES, clips.ROUTES, welcome.ROUTES, runs.ROUTES];
+const PART_TABLES = [agents.ROUTES, drive.ROUTES, workers.ROUTES, terms.ROUTES, live.ROUTES, git.ROUTES, github.ROUTES, setup.ROUTES, ue.ROUTES, debug.ROUTES, voice.ROUTES, usage.ROUTES];
 const routeIn = (tables: Routes[], key: string): RouteHandler | undefined => tables.find((t) => t[key])?.[key];
 if (args.includes('--routes')) {
   const routes = [...new Set([...[...APP_TABLES, WS_ROUTES, ...PART_TABLES, HOME_ROOT.ROUTES as Routes].flatMap((t) => Object.keys(t)), 'GET /api/stream', 'POST /api/stream'])];
@@ -973,7 +1016,7 @@ const serve = async (req: IncomingMessage, res: ServerResponse) => {
     if (key !== 'GET /api/stream' && key !== 'POST /api/chats/wait') inFlight(key, res);
     if (req.method === 'GET' && url.pathname === '/api/stream') return live.stream(url.searchParams.get('c'), req, res);
     let handler = routeIn(APP_TABLES, key), extra = null, root = HOME_ROOT, pid = '';
-    if (key === 'POST /api/stream') handler = (b) => live.follow(b, { chat: agents.follow, term: terms.follow, scope: () => scopeIn(req, url), files: (out: Out) => watchFiles(whereIn(req, url).R, out), path: watchExt, ue: (out: Out) => ue.follow(whereIn(req, url).R.ROOT, out), debug: (out: Out) => debug.follow(whereIn(req, url).R.ROOT, out) });
+    if (key === 'POST /api/stream') handler = (b) => live.follow(b, { chat: agents.follow, term: terms.follow, scope: () => scopeIn(req, url), files: (out: Out) => watchFiles(whereIn(req, url).R, out), path: watchExt, ue: (out: Out) => ue.follow(whereIn(req, url).R.ROOT, out), ueask: (out: Out) => ue.followAsks(out), runask: (out: Out) => runs.follow(out), debug: (out: Out) => debug.follow(whereIn(req, url).R.ROOT, out) });
     if (!handler) {
       const W = wsById(widOf(req, url));
       pid = pidOf(req, url);
@@ -995,7 +1038,7 @@ const serve = async (req: IncomingMessage, res: ServerResponse) => {
     res.once('close', () => res.writableFinished || hungUp.abort());
     try {
       const run = handler;
-      out = await asUser(user, () => run(body, url.searchParams, extra, pid, root, amIn(req), hungUp.signal));
+      out = await asUser(user, () => runs.during(hungUp.signal, () => run(body, url.searchParams, extra, pid, root, amIn(req), hungUp.signal)));
     } finally {
       if (GIT_MOVES.has(key)) root.tree.changed(null);
     }

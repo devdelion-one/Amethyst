@@ -75,7 +75,7 @@ export const ACTIONS: Act[] = [
   {
     name: 'debug eval',
     tool: 'debug_evaluate',
-    about: "Evaluate a C++ expression in a frame while stopped, e.g. Health, this->Weapon or Items.Num. Returns its value and type, and its members when it has some. An expression with a call or an assignment could change the program: that needs the user's \"agents can control the debugger\".",
+    about: "Evaluate a C++ expression in a frame while stopped, e.g. Health, this->Weapon or Items.Num. Returns its value and type, and its members when it has some. An expression with a call or an assignment could change the program: that needs the user's \\\"agents can control the debugger\\\". While the user has \"chats answer other chats' permission asks\" off, an expression with a call or an assignment first waits for their OK in Amethyst's window.",
     args: [
       { name: 'expr', type: 'string', pos: true, rest: true, required: true, about: 'The expression' },
       FRAME,

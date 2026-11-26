@@ -1,15 +1,16 @@
 import { pinDefault, pinsHtml, quickKinds, togglePin } from './header.ts';
 import { MODES, PLUS } from './modes.ts';
+import { placeBtn } from './modeplace.ts';
 import { UE_ICON, ueBars } from '../ue/ue.ts';
 import { dbarHtml } from '../debug/column.ts';
 import { modeOrder, TOPBAR } from '../base/controls.ts';
 import { modeGem, workMark } from '../base/kinds.ts';
 import { atWs } from '../base/model.ts';
-import { BTN_OF, isOff, pref, PREFS } from '../base/prefs.ts';
+import { BTN_OF, isOff, pref, PREFS, setPref } from '../base/prefs.ts';
 import { TAB_ICON } from '../base/topbar.ts';
 import { esc } from '../base/util.ts';
 import { addPart, bigPic, box, isOn, mark, pic, rowHtml, subh, wordsOf } from './setstd.ts';
-import type { At, Row } from './setstd.ts';
+import type { At, Pick, Row } from './setstd.ts';
 
 export const TOP_LEAD = 'What shows in the top bar. Click a switch, or a button in the picture, to hide or show it. Right-clicking the top bar does the same.';
 type Tray = (typeof TOPBAR)[number];
@@ -38,6 +39,15 @@ const barAt = (r: TopRow): At => ({ key: r.k, place: 'top', ...(r.id ? { id: r.i
 const barRow = (r: TopRow): Row => ({ id: r.id ? `${r.k}:${r.id}` : r.k, key: r.k, at: [barAt(r)] });
 const barRows = () => trays().flatMap((t) => t.rows.map(barRow));
 
+const PLACE = 'switch:place';
+const placeChoices = (): [string, string, string][] => PREFS[PLACE].choices!.map(([v, label, tip]) => [String(v), String(label), String(tip).split('\n').slice(1).join('\n')]);
+const placePick: Pick = { get: () => String(pref(PLACE)), set: (v) => setPref(PLACE, v), def: String(PREFS[PLACE].def), reset: `p:${PLACE}`, choices: placeChoices };
+const placeRow = (): Row => ({ id: PLACE, key: PLACE, pick: placePick, keep: true, at: placeChoices().map(([v]) => ({ key: PLACE, place: `mp-${v}`, on: () => pref(PLACE) === v })) });
+const placePic = (a: At) => {
+  const v = a.place.slice(3), [, label, tip] = PREFS[PLACE].choices!.find(([c]) => c === v)!;
+  return `<div class="hr-cm hr-pl"><div class="pl-row">${placeBtn(v, String(label), String(tip), pref(PLACE) === v)}</div></div>`;
+};
+
 const pinned = (k: string) => !!quickKinds().find((q) => q[0] === k)?.[2];
 const pinAt = (k: string): At => ({
   key: 'quick:pins', place: 'make', id: k,
@@ -57,7 +67,7 @@ const dbgRows = (): Row[] => (pref('ue:on') && pref('debug:on') ? items('debug:o
 
 const WK_SEL: Record<string, string> = { edWork: '.sets[data-kind=editor] .ly-wk', 'switch:wkOn': '.sets[data-kind=chat] .ly-wk', 'bar:showTab': '#bar-tab' };
 const topSel = (a: At) => TOPBAR.flatMap((g) => g.rows).find((r) => r.k === a.key && (r.id || '') === (a.id || ''))?.sel || '';
-const sel = (a: At) => WK_SEL[a.key] || (a.place === 'top' ? topSel(a) : a.key === 'quick:pins' ? `#quick [data-qk="${a.id}"]` : BTN_OF[`${a.key}:${a.id}`] || '');
+const sel = (a: At) => (a.key === PLACE ? '.pl' : '') || WK_SEL[a.key] || (a.place === 'top' ? topSel(a) : a.key === 'quick:pins' ? `#quick [data-qk="${a.id}"]` : BTN_OF[`${a.key}:${a.id}`] || '');
 
 const frag = (html: string) => {
   const t = document.createElement('template');
@@ -128,6 +138,7 @@ const dbgBar = () => {
 };
 
 function example(a: At) {
+  if (a.key === PLACE) return pic(mark(placePic(a), [a], sel, isOn(a) ? a : null), a.place, ' hr-fig');
   if (a.place === 'top') return pic(mark(barHtml(), barRows().map((r) => r.at[0]), sel, a), 'top', ' hr-ex hr-tbar');
   if (a.place === 'make') return pic(mark(makeTray(), pinRows().map((r) => r.at[0]), sel, a), 'make', ' hr-ex hr-fig');
   if (a.place === 'edbtn' || a.place === 'modebtn') return pic(mark(wkPic(a.place, isOn(a)), [a], sel, a), a.place, ' hr-ex hr-fig');
@@ -163,7 +174,7 @@ function lookOf(r: Row) {
   return html.replace(/<button /g, '<button tabindex="-1" ').replace(/ title="[^"]*"/g, '').replace(/ draggable="true"/g, '');
 }
 
-const topRows = () => [...barRows(), ...pinRows()];
+const topRows = () => [placeRow(), ...barRows(), ...pinRows()];
 addPart({ rows: () => [...topRows(), ...alsoRows()], sel, look: lookOf, example, home: 'show/top' });
 addPart({ rows: ueRows, sel, look: lookOf, example, home: 'show/quick' });
 addPart({ rows: dbgRows, sel, look: lookOf, example, home: 'show/edit' });
@@ -175,7 +186,7 @@ export function topHtml() {
   const big = bigPic(pic(mark(barHtml(), barRows().map((r) => r.at[0]), sel, null, true), 'top', ' hr-tbar'), BIG_CAP);
   let rows = '';
   for (const t of trays()) {
-    rows += subh(TRAYS[t.g][0]) + sub(TRAYS[t.g][1]) + t.rows.map((r) => rowHtml(barRow(r))).join('');
+    rows += subh(TRAYS[t.g][0]) + sub(TRAYS[t.g][1]) + (t.g === 'modes' ? rowHtml(placeRow()) : '') + t.rows.map((r) => rowHtml(barRow(r))).join('');
     if (t.g === 'make' && pinRows().length) rows += subh('Pinned beside new ▾') + sub('Buttons that make one thing in one click. They sit just left of new ▾. Pick which ones.') + pinRows().map(rowHtml).join('');
   }
   return box('top', 'Top bar', big + rows, 'The bar along the top of the main window: the mode buttons at the left end, then trays of buttons up to the right end. Only Window 1 has one.') +

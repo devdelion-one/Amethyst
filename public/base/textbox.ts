@@ -14,7 +14,7 @@ import { span } from './hitch.ts';
 import { api, atWs, imgUrl, levelKey, projectOf, S, sizeOf } from './model.ts';
 import { page } from './page.ts';
 import { isOff, onPref, pref } from './prefs.ts';
-import { RUNS } from './files.ts';
+import { SAFE_OPEN } from './files.ts';
 import { follow } from './stream.ts';
 import { langOf } from './theme.ts';
 import { selHide, selShow } from './quote.ts';
@@ -657,7 +657,7 @@ export const projectRel = (abs: string, root = projectOf(S.pid)?.path) => relIn(
 
 export function fileCard(abs: string, { size, pic = '', note = '' }: { size?: number | null; pic?: string; note?: string }) {
   const name = abs.split(/[\\/]/).pop(), a = esc(abs);
-  const open = RUNS.test(abs) ? '' : `<button class="outline" data-card="open" data-abs="${a}">open with default app</button>`;
+  const open = SAFE_OPEN.test(abs) ? `<button class="outline" data-card="open" data-abs="${a}">open with default app</button>` : '';
   return `<div class="tx-view fcard">${pic}<p><b>${esc(name)}</b> <span class="dim">${esc([size != null && sizeOf(size), note].filter(Boolean).join(' · '))}</span></p><p class="dim" data-tip-mono data-tip-cut title="${a}">${a}</p><div class="fc-btns">${open}<button class="outline" data-card="show" data-abs="${a}">show in Explorer</button></div></div>`;
 }
 document.addEventListener('click', (e) => {

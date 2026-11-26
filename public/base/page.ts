@@ -43,6 +43,7 @@ export interface Page {
   chatTo: (id: string, to: any, how: { go: boolean; am: number; label: string; open: boolean }) => unknown;
   editorsOf: (am: number, pid: string) => { id: string; color?: string; on?: boolean; boxes?: [number, number, number, number, unknown?, unknown?][] }[];
   openSettings: (toggle?: boolean) => void;
+  openDash: () => void;
   openSettingsAt: (at: string) => void;
   settingsName: (at: string) => string;
   switchLevel: (pid: string, over?: Element) => Promise<void>;

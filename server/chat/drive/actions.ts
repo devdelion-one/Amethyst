@@ -13,7 +13,7 @@ export const ACTIONS: Act[] = [
   {
     name: 'chat new',
     tool: 'chat_new',
-    about: "Start a new chat in this project. It is a normal chat the user sees and can type into; it goes next to yours when your set has a free cell, else in the set given, else in the agents list. With text it gets that as its first message (or, with draft, finds it in its message box for the user to send). Returns its code. Give it more work with amethyst chat send. A mode that may work without asking is the user's to pick: a chat, an agent outside Amethyst or a terminal can't start one in it unless the user allowed chats to answer permission asks.",
+    about: "Start a new chat in this project. It is a normal chat the user sees and can type into; it goes next to yours when your set has a free cell, else in the set given, else in the agents list. With text it gets that as its first message (or, with draft, finds it in its message box for the user to send). Returns its code. Give it more work with amethyst chat send. A mode that may work without asking is the user's to pick: a chat, an agent outside Amethyst or a terminal can't start one in it unless the user allowed chats to answer permission asks. To a chat in a mode that may work without asking, its first message waits for the user to allow it, unless the user allowed chats to answer permission asks; that chat shows a permission ask with it.",
     args: [
       { name: 'agent', type: 'string', about: 'claude (the default), codex, antigravity, cursor, copilot or grok' },
       { name: 'model', type: 'string', about: 'A model it offers, e.g. opus or sonnet (amethyst chat options lists them)' },
@@ -22,7 +22,7 @@ export const ACTIONS: Act[] = [
       { name: 'set', type: 'string', about: 'Where to show it: a chat set (its id, or + for a new one), or an editor set (ed:<id>, or ed:new for a new one)' },
       { name: 'report', type: 'boolean', about: 'Notify me: the user gets a notification each time it is ready (amethyst chat report turns it off)' },
       { name: 'text', type: 'string', pos: true, rest: true, about: 'Its first message, sent at once' },
-      { name: 'attach', type: 'list', about: 'Files to send with the first message: pictures go as pictures, other files as @path' },
+      { name: 'attach', type: 'list', about: 'Files to send with the first message (files in this project): pictures go as pictures, other files as @path' },
       { name: 'draft', type: 'boolean', about: 'Put the text in its message box unsent, for the user to send' },
       { name: 'follow', type: 'boolean', about: 'Take the user to it (not from a chat: a chat never moves the user)' },
       { name: 'amethyst', type: 'number', about: 'The Amethyst (window) it opens in, 1 by default; it shows there when that Amethyst opens' },
@@ -33,11 +33,11 @@ export const ACTIONS: Act[] = [
   {
     name: 'chat send',
     tool: 'chat_send',
-    about: "Send a message to another chat, as if the user typed it (it shows as from you). If the chat is busy, the message waits in its queue. Returns the message's qid. When it finishes, you get a short message saying so (unless tell is false), or call amethyst chat wait; then amethyst chat read gives the answer.",
+    about: "Send a message to another chat, as if the user typed it (it shows as from you). If the chat is busy, the message waits in its queue. Returns the message's qid. When it finishes, you get a short message saying so (unless tell is false), or call amethyst chat wait; then amethyst chat read gives the answer. To a chat in a mode that may work without asking, the message waits for the user to allow it, unless the user allowed chats to answer permission asks; that chat shows a permission ask with it.",
     args: [
       CHAT,
       { name: 'text', type: 'string', pos: true, rest: true, required: true, about: 'The message' },
-      { name: 'attach', type: 'list', about: 'Files to attach: pictures go as pictures, other files as @path' },
+      { name: 'attach', type: 'list', about: 'Files to attach (files in this project): pictures go as pictures, other files as @path' },
       { name: 'now', type: 'boolean', about: 'If the chat is busy, put the message into its current turn instead of the queue (agents that can take it)' },
       { name: 'worktree', type: 'boolean', about: 'On a fresh chat: work in its own git worktree' },
       { name: 'tell', type: 'boolean', about: 'false: no message to you when it finishes (default true)' },
@@ -184,7 +184,7 @@ export const ACTIONS: Act[] = [
   {
     name: 'chat end',
     tool: 'chat_end',
-    about: 'End a chat and close it. A chat can end only the chats it started.',
+    about: 'End a chat and close it. Only the user ends a chat someone else started: a chat, or an agent outside Amethyst, ends only the chats it started.',
     args: [CHAT],
     route: 'POST /api/chats/end',
   },

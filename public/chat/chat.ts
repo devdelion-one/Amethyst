@@ -1,5 +1,5 @@
 import { bound, is, onTwice, show as keyName } from '../base/binds.ts';
-import { ask, barMenu, holdFocus, ICONS, offClasses, popMenu, viewImage } from '../base/controls.ts';
+import { ask, barMenu, holdFocus, ICONS, offClasses, popMenu, rowIcons, viewImage } from '../base/controls.ts';
 import { chatHere, shownEl } from '../base/chatat.ts';
 import { composerHtml, createComposer, keepModels } from '../app/composer.ts';
 import { copy } from '../base/chips.ts';
@@ -73,6 +73,7 @@ type ChatOpts = {
 
 offClasses('chpill:off', 'ch');
 offClasses('chat:off', 'chpart');
+rowIcons({ 'chat:holdStart': () => icon('toStart') });
 offClasses('chrow:off', 'ch');
 barMenu('.ch-row', 'chrow');
 barMenu('.ch-artifacts', 'artifacts');
@@ -88,6 +89,7 @@ onPref('chat:artifacts', () => document.querySelectorAll<ChatEl>('.chat').forEac
 onPref('chat:off', () => document.querySelectorAll<ChatEl>('.chat').forEach((c) => c.showParts?.()));
 onPref('chat:recent', (on) => !on && document.querySelectorAll<ChatEl>('.chat').forEach((c) => c.showAll?.()));
 
+const UP_TIP = 'Up to the start of a message&#10;Each click goes up one more message.';
 const QUIET = 20000;
 let agentList: { at: number; p: Promise<any>; v?: any } | null = null;
 function agentsSoon() {
@@ -216,7 +218,7 @@ function makeChat(tab: Tab, { saved, filesChanged, openFile, titled, openDiff = 
     <div class="ch-plan" hidden></div>
     <div class="ch-artifacts" hidden></div>
     <div class="ch-find-at"></div>
-    <div class="ch-rules" aria-hidden="true"></div><div class="ch-log"><div class="ch-flow"></div></div><div class="ch-marks" aria-hidden="true"></div>
+    <div class="ch-rules" aria-hidden="true"></div><div class="ch-log"><div class="ch-flow"></div></div><div class="ch-marks" aria-hidden="true"></div><button type="button" class="ch-up" title="${UP_TIP}" hidden>${icon('up')}</button>
     ${composerHtml({ chat: true })}`;
   const $ = <T extends HTMLElement = HTMLElement>(s: string) => el.querySelector<T>(s)!;
 
@@ -284,7 +286,7 @@ function makeChat(tab: Tab, { saved, filesChanged, openFile, titled, openDiff = 
   onShut(seen.stop);
 
   const flow = $('.ch-flow'), jump = $('.ch-jump');
-  const st = stick(log, flow, jump, { el, selected: () => isSelected(el), grew: (g: boolean) => marks(g) });
+  const st = stick(log, flow, jump, { el, selected: () => isSelected(el), grew: (g: boolean) => marks(g), up: $('.ch-up'), live: () => (busy ? text : null), hold: () => !!pref('chat:holdStart') });
   onShut(() => st.stop());
   const { pin, easeTo, atEnd, toEnd } = st;
   let finding: (() => boolean) | null = null;

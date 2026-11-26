@@ -21,12 +21,27 @@ export type Args = Record<string, any>;
 export let cfg: Init = { url: '', cli: { command: process.execPath, script: '', env: {}, dir: '' }, settings: () => ({ chats: true, asks: false }), projectName: () => 'another project', workspaceOf: () => '' };
 export const setCfg = (o: Init) => void (cfg = o);
 const keys = new Map<string, string>();
+const aliases = new Map<string, string>();
+
+export function alias(from: string, to: string) {
+  if (!from || !to || from === to) return;
+  for (const [k, v] of aliases) if (v === from) aliases.set(k, to);
+  aliases.set(from, to);
+}
+
+export function dropAliases(id: string) {
+  for (const [k, v] of aliases) if (k === id || v === id) aliases.delete(k);
+}
 
 const sameDir = (a: string, b: string) => {
   const x = path.resolve(a || ''), y = path.resolve(b || '');
   return WIN ? x.toLowerCase() === y.toLowerCase() : x === y;
 };
 export const codeOf = (id: string) => crystalOf(id).code;
+export const askerOf = (a: Args) => {
+  const who = knownCaller(a), c = who ? (live.get(who.id) as Live | undefined) : undefined;
+  return who ? `${codeOf(who.id)}${c?.title ? ` ${c.title}` : ''}` : 'An agent outside Amethyst or a terminal';
+};
 const nameOf = (a: Live) => `${codeOf(a.id)}${a.title ? ` · ${a.title}` : ''}`;
 export const ago = (t: number) => runTime(Math.max(0, Math.round((Date.now() - t) / 1000)));
 export const route = (key: string) => agents.ROUTES[key] as (...a: any[]) => Promise<any>;
@@ -74,14 +89,15 @@ export function knownCaller(a: Args): Caller {
   if (!by || by === 'cli') return null;
   const key = keys.get(by);
   if (!key || key !== String(a.key || '')) throw new HttpError(403, "that key isn't this chat's: Amethyst tools work only from the chat Amethyst started them for");
-  const me = live.get(by) as Live | undefined;
+  const id = aliases.get(by) || by;
+  const me = live.get(id) as Live | undefined;
   if (!me) throw new HttpError(404, 'the calling chat has ended');
-  return { id: by, pid: me.pid || '', root: me.cwd, am: me.am || 1 };
+  return { id, pid: me.pid || '', root: me.cwd, am: me.am || 1 };
 }
 
 export function callerOf(a: Args): Caller {
   const who = knownCaller(a);
-  if (who && !cfg.settings().chats) throw new HttpError(403, "Amethyst tools are off: the user turned off \"Chats can drive other chats\" in settings.");
+  if (!cfg.settings().chats && !byUser(who)) throw new HttpError(403, "Amethyst tools are off: the user turned off \"Chats can drive other chats\" in settings.");
   return who;
 }
 

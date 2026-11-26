@@ -1,11 +1,27 @@
 import { onSize } from '../base/measure.ts';
 
-export function stick(log: HTMLElement, inner: HTMLElement, jump: HTMLElement, { el = null, selected = null, grew = null }: { el?: HTMLElement | null; selected?: (() => boolean) | null; grew?: ((growing: boolean) => void) | null } = {}) {
+type StickOpts = { el?: HTMLElement | null; selected?: (() => boolean) | null; grew?: ((growing: boolean) => void) | null; up?: HTMLElement | null; live?: (() => HTMLElement | null) | null; hold?: (() => boolean) | null };
+const GAP = 6, HERE = 4, MSGS = '.ch-you, .ch-ai';
+export function stick(log: HTMLElement, inner: HTMLElement, jump: HTMLElement, { el = null, selected = null, grew = null, up = null, live = null, hold = null }: StickOpts = {}) {
+  let holding: HTMLElement | null = null;
+  const wasHeld = new WeakSet<HTMLElement>();
   let pinned = true, here = false, innerH = 0, line = 0, goal: number | null = null, ease = 0, trackpad = 0, top = 0, away = false, held = false, hand = -Infinity, wasSel = false;
   const off = new AbortController(), sig = { signal: off.signal };
   const atEnd = () => log.scrollHeight - log.scrollTop - log.clientHeight <= 2;
+  const yOf = (m: Element) => {
+    const k = inner.getBoundingClientRect().height / inner.offsetHeight || 1;
+    return log.scrollTop + (m.getBoundingClientRect().top - log.getBoundingClientRect().top - log.clientTop * k) / k;
+  };
+  const starts = () => [...inner.querySelectorAll<HTMLElement>(MSGS)].filter((m) => m.getClientRects().length).map((m) => Math.max(0, Math.round(yOf(m)) - GAP));
+  const showUp = () => {
+    if (!up) return;
+    const first = inner.querySelector<HTMLElement>(MSGS);
+    up.hidden = !first || log.scrollTop <= Math.max(0, yOf(first) - GAP) + HERE;
+  };
+  const touched = () => (holding = null);
   function pin(on: boolean) {
     pinned = on;
+    if (on) holding = null;
     here = !on && !!selected?.();
     jump.hidden = on;
     if (on) jump.classList.remove('new');
@@ -34,9 +50,11 @@ export function stick(log: HTMLElement, inner: HTMLElement, jump: HTMLElement, {
       const ch = log.clientHeight;
       if (!ch) return null;
       line = parseFloat(getComputedStyle(log.querySelector('.ch-msg') || log).lineHeight) || 20;
-      return { ch, ih: inner.offsetHeight, sh: log.scrollHeight, at: log.scrollTop };
+      const m = live?.() || null, first = up && inner.querySelector<HTMLElement>(MSGS);
+      const hy = m && m.isConnected && hold?.() && !wasHeld.has(m) && (pinned || holding) ? Math.max(0, Math.round(yOf(m)) - GAP) : null;
+      return { ch, ih: inner.offsetHeight, sh: log.scrollHeight, at: log.scrollTop, m, hy, fy: first ? Math.max(0, yOf(first) - GAP) : null, lt: up ? log.offsetTop : 0 };
     },
-    write: (r: { ch: number; ih: number; sh: number; at: number } | null) => {
+    write: (r: { ch: number; ih: number; sh: number; at: number; m: HTMLElement | null; hy: number | null; fy: number | null; lt: number } | null) => {
       if (!r) return void (away = true);
       const { ch, ih, sh } = r, back = away && !pinned;
       let at = r.at;
@@ -47,17 +65,33 @@ export function stick(log: HTMLElement, inner: HTMLElement, jump: HTMLElement, {
       const sel = !!selected?.();
       if (!pinned && here && wasSel && !sel) pin(true);
       wasSel = sel;
-      if (pinned) {
+      const moved = !!holding && ((!!r.m && r.m !== holding) || !hold?.());
+      if (r.hy != null && r.m && (pinned || moved) && r.hy < sh - ch) {
         stopEase();
+        pin(false);
+        here = false;
+        holding = r.m;
+        wasHeld.add(r.m);
+        log.scrollTop = at = top = r.hy;
+        if (more) jump.classList.add('new');
+      } else if (pinned || moved) {
+        stopEase();
+        if (!pinned) pin(true);
         log.scrollTop = sh;
+        at = sh - ch;
       } else if (more) jump.classList.add('new');
       jump.hidden = pinned || sh - at - ch <= 2;
+      if (up) {
+        up.style.top = `${r.lt + 6}px`;
+        up.hidden = r.fy == null || at <= r.fy + HERE;
+      }
       grew?.(more && !back);
     },
   });
-  if (el) for (const k of ['pointerdown', 'focusin']) el.addEventListener(k, () => (here = !pinned), sig);
+  if (el) for (const k of ['pointerdown', 'focusin']) el.addEventListener(k, () => (here = !pinned && !holding), sig);
   log.addEventListener('wheel', (e) => {
     if (e.ctrlKey) return;
+    touched();
     const dir = Math.sign(e.deltaY);
     for (let n = e.target as HTMLElement | null; n && n !== log; n = n.parentElement)
       if (n.scrollHeight > n.clientHeight && /auto|scroll/.test(getComputedStyle(n).overflowY)
@@ -84,13 +118,15 @@ export function stick(log: HTMLElement, inner: HTMLElement, jump: HTMLElement, {
     removeEventListener('pointercancel', release);
   };
   log.addEventListener('pointerdown', () => {
+    touched();
     stopEase();
     held = true;
     addEventListener('pointerup', release);
     addEventListener('pointercancel', release);
   }, sig);
-  for (const k of ['keydown', 'touchmove']) log.addEventListener(k, () => (hand = performance.now()), { passive: true, signal: off.signal });
+  for (const k of ['keydown', 'touchmove']) log.addEventListener(k, () => ((hand = performance.now()), touched()), { passive: true, signal: off.signal });
   log.addEventListener('scroll', () => {
+    if (log.clientHeight) showUp();
     if (goal != null || !log.clientHeight) return;
     top = log.scrollTop;
     const end = atEnd();
@@ -98,6 +134,12 @@ export function stick(log: HTMLElement, inner: HTMLElement, jump: HTMLElement, {
     else if (held || performance.now() - hand < 500) pin(false);
     jump.hidden = end;
   }, { passive: true, signal: off.signal });
+  up?.addEventListener('click', () => {
+    const from = Math.min(goal ?? log.scrollTop, log.scrollHeight - log.clientHeight), ys = starts().filter((y) => y < from - HERE);
+    touched();
+    pin(false);
+    easeTo(ys.length ? Math.max(...ys) : 0);
+  }, sig);
   return {
     pin,
     toEnd,

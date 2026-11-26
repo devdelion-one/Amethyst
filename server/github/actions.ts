@@ -30,7 +30,7 @@ export const ACTIONS: Act[] = [
   {
     name: 'pr create',
     tool: 'pr_create',
-    about: 'Open a pull request for the branch you are on (pushed first if needed); an issue number in the branch name is linked with "Fixes #N".',
+    about: "Open a pull request for the branch you are on (pushed first if needed); an issue number in the branch name is linked with \"Fixes #N\". While the user has \"chats answer other chats' permission asks\" off, and the repo has a git hook that would run, it first waits for their OK in Amethyst's window.",
     args: [
       { name: 'title', type: 'string', pos: true, rest: true, required: true, about: 'Its title' },
       { name: 'body', type: 'string', about: 'Its description, markdown' },
@@ -62,7 +62,7 @@ export const ACTIONS: Act[] = [
   {
     name: 'pr merge',
     tool: 'pr_merge',
-    about: 'Merge a pull request on GitHub, in a way the repository allows.',
+    about: "Merge a pull request on GitHub, in a way the repository allows. While the user has \"chats answer other chats' permission asks\" off, and the repo has a git hook that would run, it first waits for their OK in Amethyst's window.",
     args: [N, { name: 'how', type: 'string', required: true, about: 'squash, merge or rebase' }, { name: 'delete-branch', type: 'boolean', about: 'Delete its branch after' }, { name: 'auto', type: 'boolean', about: 'Merge by itself once what blocks it is done' }, REPO],
     route: 'POST /api/gh/pr/merge',
     example: 'amethyst pr merge 12 --how squash',
@@ -71,7 +71,7 @@ export const ACTIONS: Act[] = [
   {
     name: 'git release',
     tool: 'git_release',
-    about: 'Publish a GitHub release for a tag (pushed first if needed), with notes GitHub writes from the pull requests since the last one, or your own.',
+    about: "Publish a GitHub release for a tag (pushed first if needed), with notes GitHub writes from the pull requests since the last one, or your own. While the user has \"chats answer other chats' permission asks\" off, and the repo has a git hook that would run, it first waits for their OK in Amethyst's window.",
     args: [{ name: 'tag', type: 'string', pos: true, required: true, about: 'The tag, e.g. v1.2.0' }, { name: 'title', type: 'string', about: 'Its title; the tag by default' }, { name: 'notes', type: 'string', about: 'Your own notes instead' }, REPO],
     route: 'POST /api/gh/release',
     example: 'amethyst git release v1.2.0',
@@ -80,7 +80,7 @@ export const ACTIONS: Act[] = [
   {
     name: 'pr checkout',
     tool: 'pr_checkout',
-    about: "Switch the project's folder to a pull request's branch, or with --worktree open it in a folder of its own.",
+    about: "Switch the project's folder to a pull request's branch, or with --worktree open it in a folder of its own. While the user has \"chats answer other chats' permission asks\" off, and the repo has a git hook that would run, it first waits for their OK in Amethyst's window. While that setting is off, it refuses a change that brings in an agent's settings or hooks (like .claude/settings.local.json or .github/hooks/): that change is the user's to make.",
     args: [N, { name: 'worktree', type: 'boolean', about: 'In its own folder' }, REPO],
     route: 'POST /api/gh/pr/checkout',
     cli: true,
@@ -135,7 +135,7 @@ export const ACTIONS: Act[] = [
   {
     name: 'issue start',
     tool: 'issue_start',
-    about: 'Start on an issue: a branch named for it, linked to it on GitHub, and this folder switched to it; with --where folder, in a folder of its own instead.',
+    about: "Start on an issue: a branch named for it, linked to it on GitHub, and this folder switched to it; with --where folder, in a folder of its own instead. While the user has \"chats answer other chats' permission asks\" off, and the repo has a git hook that would run, it first waits for their OK in Amethyst's window. While that setting is off, it refuses a change that brings in an agent's settings or hooks (like .claude/settings.local.json or .github/hooks/): that change is the user's to make.",
     args: [N_ISSUE, { name: 'where', type: 'string', about: 'here (the default) or folder' }, REPO],
     route: 'POST /api/gh/issue/start',
     example: 'amethyst issue start 12',

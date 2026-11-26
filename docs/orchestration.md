@@ -80,11 +80,12 @@ Permission requests (running a command, editing a file) always stay with you, in
 
 - **Same project only:** a chat can only list, read, or drive chats in its own project.
 - **No self-calls:** a chat cannot send messages to itself, wait for itself, or end itself.
-- **Turn limit:** a chat can send at most 50 messages per turn before it must finish its turn or ask you.
+- **Turn limit:** a chat can send at most 50 messages per turn before it must finish its turn or ask you. Callers outside a chat (an agent outside Amethyst, a script, a terminal) share a limit of 50 messages a minute.
+- **Ending chats:** only you end a chat someone else started; a chat or an agent outside Amethyst ends only the chats it started.
 
 ## Settings
 
 Open **Settings -> Agents -> Amethyst tools** to control orchestration:
 
-- **chats can drive other chats** — turns chat orchestration and `@` chat mentions on or off.
-- **chats answer other chats' permission asks** — off by default; when off, permission prompts always wait for you, whoever tries to answer them: another chat, an agent outside Amethyst, a script or a terminal. They can't turn this setting on or pick a mode that doesn't ask either.
+- **chats can drive other chats** — turns chat orchestration, subagents started with `amethyst agent run` and `@` chat mentions on or off. Off holds for other chats, agents outside Amethyst and terminals, your own included: only you, in Amethyst's own window, start and drive chats. An agent's own built-in subagents still work.
+- **chats answer other chats' permission asks** — off by default; when off, permission prompts always wait for you, whoever tries to answer them: another chat, an agent outside Amethyst, a script or a terminal. They can't turn this setting on or pick a mode that doesn't ask either, and a message they send to a chat you put in such a mode shows in that chat as a permission ask: Allow sends it, Don't allow drops it. While it's off, Amethyst also asks you before it runs a project's code for them: an Unreal build, project files, Unreal Editor or debugging, a git action in a repo with hooks that would run, and an evaluate with a call or an assignment in the debugged program. And they can't clone, pull, switch or check out anything that brings in a repo's files that let chats skip asking (an agent's settings or hooks): you do that from Amethyst's window.

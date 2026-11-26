@@ -6,6 +6,7 @@ import { branchWorktree } from '../base/worktrees.ts';
 import { shown, setNames } from '../base/branchnames.ts';
 import { inRepo, said, but, repoStatus, forget, stateOf } from './status.ts';
 import { submodules, plural } from './sync.ts';
+import { keepOut } from '../base/agentfiles.ts';
 
 const KEPT = 'amethyst:';
 const branchName = async (cwd: string, name: unknown) => {
@@ -19,6 +20,11 @@ const commitAt = async (cwd: string, ref: unknown) => {
   return r;
 };
 const isLocal = async (cwd: string, n: string) => !(await git(cwd, ['show-ref', '--verify', '-q', `refs/heads/${n}`])).code;
+const switchTarget = async (cwd: string, n: string) => {
+  if (await isLocal(cwd, n)) return `refs/heads/${n}`;
+  const all = (await git(cwd, ['for-each-ref', '--format=%(refname)', `refs/remotes/*/${n}`])).out.split(/\r?\n/).filter(Boolean);
+  return all[0] || n;
+};
 
 async function stashes(cwd: string) {
   const r = await git(cwd, ['stash', 'list', '--format=%gd%x00%gs%x00%ct%x00%H']);
@@ -41,7 +47,8 @@ async function popped(cwd: string, id: string) {
   return '';
 }
 
-async function switchTo(cwd: string, st: any, n: string, changes: unknown) {
+async function switchTo(cwd: string, st: any, n: string, changes: unknown, body: Record<string, unknown>) {
+  await keepOut(body, cwd, 'HEAD', await switchTarget(cwd, n));
   const from = st.branch, keep = changes === 'stash' && st.files.length > 0 && !st.detached;
   if (keep) must(await git(cwd, ['stash', 'push', '-u', '-q', '-m', KEPT + from], { timeout: 120e3 }));
   const r = await gitLong(cwd, ['switch', '--progress', n], { what: 'switching' });
@@ -105,7 +112,8 @@ const ROUTES: Routes = {
     const tags = (await git(root, ['for-each-ref', '--sort=-creatordate', '--count=30', '--format=%(refname:short)', 'refs/tags'])).out.split(/\r?\n/).filter(Boolean);
     return { local: local.slice(0, 60), remote: remote.filter((x) => !here.has(x.slice(x.indexOf('/') + 1))).slice(0, 60), tags, stashes: (await stashes(root)).length };
   },
-  'POST /api/git/branch': async ({ name, create, do: what, from, to, changes, force }, _q, root: string | null) => {
+  'POST /api/git/branch': async (body, _q, root: string | null) => {
+    const { name, create, do: what, from, to, changes, force } = body;
     const cwd = inRepo(root), st = await repoStatus(cwd);
     const act = String(what || (create ? 'create' : 'switch'));
     if (st.state) throw new HttpError(409, `A ${st.state} is under way: finish it or abort it first.`);
@@ -113,6 +121,7 @@ const ROUTES: Routes = {
     try {
       if (act === 'create') {
         const n = await branchName(cwd, name), at = from ? [await commitAt(cwd, from)] : [];
+        if (at.length) await keepOut(body, cwd, 'HEAD', at[0]);
         must(await git(cwd, ['switch', '-c', n, ...at], { timeout: 60e3 }));
         return said(`on the new branch ${n}${from ? ` (from ${from})` : ''}`);
       }
@@ -123,7 +132,7 @@ const ROUTES: Routes = {
         must(await git(cwd, ['branch', '-f', st.branch, st.upstream]));
         return said(`${plural(st.ahead, 'commit')} moved to the new branch ${n} · ${st.branch} is back where the remote has it`);
       }
-      if (act === 'switch') return await switchTo(cwd, st, await branchName(cwd, name), changes);
+      if (act === 'switch') return await switchTo(cwd, st, await branchName(cwd, name), changes, body);
       if (act === 'rename') {
         const n = await branchName(cwd, name), now = await branchName(cwd, to);
         must(await git(cwd, ['branch', '-m', n, now]));
@@ -141,6 +150,7 @@ const ROUTES: Routes = {
       if (act === 'merge' || act === 'rebase') {
         const ref = await commitAt(cwd, name);
         if (st.detached) throw new HttpError(409, 'Not on a branch: switch to one first.');
+        await keepOut(body, cwd, 'HEAD', ref, { since: true });
         const r = await gitLong(cwd, act === 'merge' ? ['merge', '--no-edit', '--autostash', ref] : ['rebase', '--autostash', ref], { what: act === 'merge' ? 'merging' : 'rebasing', idle: 10 * 60e3, env: { GIT_EDITOR: 'true' } });
         if (r.code) {
           const place = await placeOf(cwd);

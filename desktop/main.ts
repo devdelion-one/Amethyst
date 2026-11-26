@@ -15,7 +15,7 @@ import hitch from './hitch.ts';
 import { ownedWindows, SITE } from './owned.ts';
 import { amIn, amOf, inEvery, intoView, kindIn, leftBehind, noticePlan, ownAddr, ownKey, portPlan, projIn, projOf, sizeBox, soloIn, stays, userKey, userUrls, WAIT, withUser, zoneBox, zoneOf } from './snap.ts';
 import type { NoticeAm } from './snap.ts';
-import type { BrowserWindowConstructorOptions, Point, Rectangle, UtilityProcess, WebContents } from 'electron';
+import type { BrowserWindowConstructorOptions, NativeImage, Point, Rectangle, UtilityProcess, WebContents } from 'electron';
 import type { AppUpdater, CancellationToken } from 'electron-updater';
 const require = createRequire(import.meta.url);
 
@@ -189,6 +189,37 @@ app.on('web-contents-created', (e, wc) => {
   });
   if (wc.getType() === 'webview') browsing(wc, () => wc.hostWebContents);
 });
+const SHELL_EXES: Record<string, string[]> = { PowerShell: ['pwsh.exe', 'powershell.exe'], 'Command Prompt': ['cmd.exe'] };
+const shellIcons = new Map<string, Promise<NativeImage | null>>();
+const whereExe = (exe: string) => new Promise<string | null>((done) => execFile('where', [exe], { windowsHide: true }, (err, out) => done(err ? null : String(out).split(/\r?\n/)[0].trim() || null)));
+async function badged(name: string) {
+  let file: string | null = null;
+  for (const exe of SHELL_EXES[name]) if ((file = await whereExe(exe))) break;
+  if (!file) return null;
+  const S = 32, B = 16;
+  const base = (await app.getFileIcon(file, { size: 'large' })).resize({ width: S, height: S });
+  const mark = nativeImage.createFromPath(ICON).resize({ width: B, height: B });
+  if (base.isEmpty() || mark.isEmpty()) return null;
+  const px = Buffer.from(base.toBitmap()), m = mark.toBitmap();
+  for (let y = 0; y < B; y++)
+    for (let x = 0; x < B; x++) {
+      const s = (y * B + x) * 4, d = ((S - B + y) * S + (S - B + x)) * 4, a = m[s + 3] / 255;
+      for (let c = 0; c < 4; c++) px[d + c] = Math.round(m[s + c] + px[d + c] * (1 - a));
+    }
+  return nativeImage.createFromBitmap(px, { width: S, height: S });
+}
+const shellIconed = new WeakSet<BrowserWindow>();
+async function iconFor(w: BrowserWindow, title: string) {
+  const name = Object.keys(SHELL_EXES).find((n) => new RegExp(`^(#\\d+ )?${n} · `).test(title));
+  if (!name) {
+    if (shellIconed.delete(w) && !w.isDestroyed()) w.setIcon(ICON);
+    return;
+  }
+  if (!shellIcons.has(name)) shellIcons.set(name, badged(name).catch(() => null));
+  const img = await shellIcons.get(name);
+  if (img && !w.isDestroyed()) w.setIcon(img), shellIconed.add(w);
+}
+if (process.platform === 'win32') app.on('browser-window-created', (e, w) => w.on('page-title-updated', (ev, title) => void iconFor(w, title)));
 const HARMLESS = new Set(['fullscreen', 'clipboard-sanitized-write']);
 app.whenReady().then(() => session.fromPartition('persist:browser').setPermissionRequestHandler((wc, what, answer) => answer(HARMLESS.has(what))));
 const ZOOMS = [0.25, 0.33, 0.5, 0.67, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4, 5];
@@ -715,16 +746,17 @@ ipcMain.on('forget-toast-act', (e, what) => {
   t.focus();
 });
 
-type Ring = { id: string; code: string; title: string; line: string; text: string; why: 'done' | 'error' | 'asks'; am: number; ask: { q: string; options: string[] } | null };
+type Ring = { id: string; code: string; title: string; line: string; text: string; why: 'done' | 'error' | 'asks' | 'cold'; am: number; ask: { q: string; options: string[] } | null };
 const RING_ID = /^[a-z0-9]{1,24}$/;
 const cut = (v: unknown, n: number) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, n);
 function ringOf(r: any): Ring | null {
   if (!r || !RING_ID.test(String(r.id))) return null;
-  const why = r.why === 'asks' || r.why === 'error' ? r.why : 'done';
+  const why = r.why === 'asks' || r.why === 'error' || r.why === 'cold' ? r.why : 'done';
   const ask = r.ask && typeof r.ask === 'object' ? { q: cut(r.ask.q, 300), options: (Array.isArray(r.ask.options) ? r.ask.options : []).slice(0, 8).map((o: unknown) => cut(o, 40)).filter(Boolean) } : null;
   return { id: String(r.id), code: cut(r.code, 12), title: cut(r.title, 80), line: cut(r.line, 300), text: String(r.text ?? '').slice(0, 1200), why, am: Math.max(1, Math.floor(+r.am) || 1), ask };
 }
-const RING_WORD = { done: 'is ready', error: 'failed', asks: 'asks you' };
+const RING_WORD = { done: 'is ready', error: 'failed', asks: 'asks you', cold: 'runs out of cache' };
+let cacheNotice = true;
 const rings = new Map<string, Notification>();
 const ringWins = new Map<string, Set<BrowserWindow>>();
 const ringAm = new Map<BrowserWindow, number>();
@@ -766,7 +798,7 @@ function lookOf(n: number): NoticeAm & { w: BrowserWindow | null } {
 }
 function ringReport(raw: unknown) {
   const r = ringOf(raw);
-  if (!r) return;
+  if (!r || (r.why === 'cold' && !cacheNotice)) return;
   unring(r.id, false);
   const ams = [lookOf(r.am)];
   const send = (q: boolean) => {
@@ -781,7 +813,7 @@ function ringReport(raw: unknown) {
 }
 function ringToast(r: Ring, n: number, disp: number) {
   const q = new URLSearchParams({ id: r.id, w: r.why, l: r.line, c: r.code, t: r.title, am: String(n) });
-  const w = toast(null, r.why === 'asks' || r.text ? NOTICE.h : 80, 0, q.toString(), `${r.code} ${RING_WORD[r.why]} · Amethyst`, { page: '/notice.html', width: NOTICE.w, focusable: true, sized: true, disp, force: true });
+  const w = toast(null, r.why === 'asks' || r.why === 'cold' || r.text ? NOTICE.h : 80, 0, q.toString(), `${r.code} ${RING_WORD[r.why]} · Amethyst`, { page: '/notice.html', width: NOTICE.w, focusable: true, sized: true, disp, force: true });
   if (!w) return false;
   const set = ringWins.get(r.id) || ringWins.set(r.id, new Set()).get(r.id)!;
   set.add(w);
@@ -794,6 +826,9 @@ function ringToast(r: Ring, n: number, disp: number) {
   return true;
 }
 const ringOfWin = (w: BrowserWindow | null) => [...ringWins].find(([, x]) => !!w && x.has(w))?.[0] || '';
+ipcMain.on('cache-notice', (e, v) => {
+  if (ours(e.senderFrame?.url || '')) cacheNotice = v !== false;
+});
 ipcMain.on('notice-screen', (e, v) => {
   if (!ours(e.senderFrame?.url || '')) return;
   const main = v === 'main';
@@ -1013,6 +1048,11 @@ ipcMain.handle('focus-pid', (e, pid) => {
   const ps = `$p = Get-Process -Id ${n} -ErrorAction SilentlyContinue; if ($p -and $p.MainWindowHandle -ne 0) { ${FRONT}; if ([AmFront.W]::IsIconic($p.MainWindowHandle)) { [void][AmFront.W]::ShowWindowAsync($p.MainWindowHandle, 9) }; [void][AmFront.W]::SetForegroundWindow($p.MainWindowHandle) }`;
   return new Promise((res) => execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', ps], { windowsHide: true, timeout: 10000 }, (err) => res(!err)));
 });
+ipcMain.handle('flash-frame', (e) => {
+  if (!ours(e.senderFrame?.url || '')) return;
+  const w = BrowserWindow.fromWebContents(e.sender);
+  if (w && !w.isDestroyed() && !w.isFocused()) w.flashFrame(true);
+});
 ipcMain.handle('window-back', (e, kind, focus) => {
   if (!ours(e.senderFrame?.url || '')) return;
   const from = BrowserWindow.fromWebContents(e.sender), w = kind ? away.get(ownKey(String(kind), projFrom(from))) : from;
@@ -1191,7 +1231,7 @@ ipcMain.on('window-drag', (e, phase, color) => {
   w.emit('resized');
 });
 
-const FEED = { provider: 'github' as const, owner: 'devdelion-one', repo: 'Amethyst.exe' };
+const FEED = { provider: 'github' as const, owner: 'devdelion-one', repo: 'Amethyst' };
 const NOTES = `https://github.com/${FEED.owner}/${FEED.repo}/releases/tag/v`;
 const OFTEN = 10 * 60 * 1000, MINUTE = 60 * 1000;
 const DAY = 24 * 60 * 60 * 1000;

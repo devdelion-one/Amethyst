@@ -2,7 +2,7 @@ import { HttpError } from '../../base/routes.ts';
 import { fieldsOf } from '../../../public/base/asks.ts';
 import * as agents from '../agents.ts';
 import { chatOf, codeOf, mayAnswer, quote, route } from './caller.ts';
-import { heldOption, planOpen } from './modes.ts';
+import { heldOption, heldQids, planOpen } from './modes.ts';
 import type { Args, Caller } from './caller.ts';
 import type { Live } from '../../base/live.ts';
 import type { Chat } from '../agents.ts';
@@ -64,6 +64,7 @@ export function answerOf(c: Chat, qid: string | null, full: boolean) {
   const i = qid ? evs.findIndex((e) => e.type === 'you' && e.qid === qid) : evs.findLastIndex((e) => e.type === 'you');
   if (qid && i < 0) {
     if (c.queue.some((m) => m.qid === qid)) return { status: 'queued', all: '' };
+    if (heldQids.has(qid)) return { status: 'held', all: '' };
     throw new HttpError(404, `the message ${qid} isn't in ${codeOf(c.id)}'s chat`);
   }
   const end = evs.findIndex((e, j) => j > i && e.type === 'you');

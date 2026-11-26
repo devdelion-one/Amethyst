@@ -3,6 +3,7 @@ import { HttpError } from '../base/routes.ts';
 import { git, gitLong, must } from '../base/gitcli.ts';
 import { branchWorktree } from '../base/worktrees.ts';
 import { nameFor } from '../base/branchnames.ts';
+import { keepOut } from '../base/agentfiles.ts';
 import { target, ready, ghRun, ghJson, gh, num, said, inRepo, login, repoInfo, names, listArg, hands } from './prs.ts';
 import type { Target } from './prs.ts';
 
@@ -19,10 +20,13 @@ async function defaultBranch(cwd: string, t: Target) {
   return (await repoInfo(cwd, t)).defaultBranchRef?.name || 'main';
 }
 
-async function makeBranch(cwd: string, t: Target, n: number, title: string) {
+async function makeBranch(cwd: string, t: Target, n: number, title: string, check: (ref: string) => Promise<void>) {
   const name = await branchOf(cwd, n, title);
   const base = await defaultBranch(cwd, t);
-  if (!(await git(cwd, ['show-ref', '--verify', '-q', `refs/heads/${name}`])).code) return { name, linked: false, had: true };
+  if (!(await git(cwd, ['show-ref', '--verify', '-q', `refs/heads/${name}`])).code) {
+    await check(`refs/heads/${name}`);
+    return { name, linked: false, had: true };
+  }
   let linked = false;
   if (!t.fork) {
     const r = await gh(cwd, ['issue', 'develop', String(n), '-R', t.repo, '--name', name, '--base', base], { timeout: 60e3 });
@@ -30,6 +34,7 @@ async function makeBranch(cwd: string, t: Target, n: number, title: string) {
   }
   must(await gitLong(cwd, ['fetch', '--quiet', t.remote, ...(linked ? [`+refs/heads/${name}:refs/remotes/${t.remote}/${name}`] : []), `+refs/heads/${base}:refs/remotes/${t.remote}/${base}`], { what: 'fetching' }));
   const from = linked ? `${t.remote}/${name}` : `${t.remote}/${base}`;
+  await check(`refs/remotes/${from}`);
   must(await git(cwd, ['branch', ...(linked ? ['--track'] : ['--no-track']), name, from]));
   return { name, linked, had: false };
 }
@@ -119,14 +124,15 @@ const ROUTES: Routes = {
     const who = names(b.addAssignees);
     return said(who.length ? `#${k} is assigned to ${who.join(', ').replace('@me', 'you')}` : `#${k} is changed`);
   },
-  'POST /api/gh/issue/start': async ({ n, where }, _q, root: string | null) => {
+  'POST /api/gh/issue/start': async (body, _q, root: string | null) => {
+    const { n, where } = body;
     const cwd = inRepo(root), k = num(n), place = String(where || 'here');
     if (!['here', 'folder'].includes(place)) throw new HttpError(400, 'Start here or in its own folder.');
     await ready();
     const t = await target(cwd);
     const i = await ghJson(cwd, ['issue', 'view', String(k), '-R', t.repo, '--json', 'title,state']);
     if (i.state !== 'OPEN') throw new HttpError(409, `#${k} is closed.`);
-    const b = await makeBranch(cwd, t, k, i.title);
+    const b = await makeBranch(cwd, t, k, i.title, (ref) => keepOut(body, cwd, 'HEAD', ref));
     const how = b.had ? 'already here' : b.linked ? 'made and linked to the issue on GitHub' : 'made here (not linked on GitHub)';
     if (place === 'folder') {
       const w = await branchWorktree(cwd, b.name);

@@ -6,7 +6,7 @@ import type { Got, Why } from './card.ts';
 const desk = window.amethyst?.report;
 const q = new URLSearchParams(location.search);
 const id = q.get('id') || '';
-const why = (['done', 'error', 'asks'].includes(q.get('w') || '') ? q.get('w') : 'done') as Why;
+const why = (['done', 'error', 'asks', 'cold'].includes(q.get('w') || '') ? q.get('w') : 'done') as Why;
 const line = q.get('l') || '';
 const am = Math.max(1, Number(q.get('am')) || 1);
 

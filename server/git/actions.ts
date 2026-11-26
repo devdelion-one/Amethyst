@@ -21,7 +21,7 @@ export const ACTIONS: Act[] = [
   {
     name: 'git commit',
     tool: 'git_commit',
-    about: 'Commit the changed files, as the commit button does: what is staged in git if anything is, otherwise every change (secrets left out). Prints what was committed.',
+    about: "Commit the changed files, as the commit button does: what is staged in git if anything is, otherwise every change (secrets left out). Prints what was committed. While the user has \"chats answer other chats' permission asks\" off, and the repo has a git hook that would run, it first waits for their OK in Amethyst's window.",
     args: [
       { name: 'message', type: 'string', pos: true, rest: true, about: 'The commit message' },
       { name: 'push', type: 'boolean', about: 'Push after the commit' },
@@ -37,7 +37,7 @@ export const ACTIONS: Act[] = [
   {
     name: 'git fetch',
     tool: 'git_fetch',
-    about: 'Ask the remote for new commits now. Prints how many there are to pull and to push.',
+    about: "Ask the remote for new commits now. Prints how many there are to pull and to push. While the user has \"chats answer other chats' permission asks\" off, and the repo has a git hook that would run, it first waits for their OK in Amethyst's window.",
     args: [REPO],
     route: 'POST /api/git/fetch',
     cli: true,
@@ -45,7 +45,7 @@ export const ACTIONS: Act[] = [
   {
     name: 'git pull',
     tool: 'git_pull',
-    about: 'Pull the remote’s commits into this branch. When both sides have new commits it follows git’s pull.rebase setting, or --how.',
+    about: "Pull the remote’s commits into this branch. When both sides have new commits it follows git’s pull.rebase setting, or --how. While the user has \"chats answer other chats' permission asks\" off, and the repo has a git hook that would run, it first waits for their OK in Amethyst's window. While that setting is off, it refuses a change that brings in an agent's settings or hooks (like .claude/settings.local.json or .github/hooks/): that change is the user's to make.",
     args: [{ name: 'how', type: 'string', about: 'rebase or merge, when both sides have new commits' }, REPO],
     route: 'POST /api/git/pull',
     example: 'amethyst git pull --how rebase',
@@ -54,7 +54,7 @@ export const ACTIONS: Act[] = [
   {
     name: 'git push',
     tool: 'git_push',
-    about: 'Push this branch; the first time, publish it.',
+    about: "Push this branch; the first time, publish it. While the user has \"chats answer other chats' permission asks\" off, and the repo has a git hook that would run, it first waits for their OK in Amethyst's window.",
     args: [{ name: 'lease', type: 'boolean', about: 'Push over the remote’s old version of commits changed here (force with lease)' }, REPO],
     route: 'POST /api/git/push',
     cli: true,
@@ -62,7 +62,7 @@ export const ACTIONS: Act[] = [
   {
     name: 'git sync',
     tool: 'git_sync',
-    about: 'Pull, then push.',
+    about: "Pull, then push. While the user has \"chats answer other chats' permission asks\" off, and the repo has a git hook that would run, it first waits for their OK in Amethyst's window. While that setting is off, it refuses a change that brings in an agent's settings or hooks (like .claude/settings.local.json or .github/hooks/): that change is the user's to make.",
     args: [{ name: 'how', type: 'string', about: 'rebase or merge, when both sides have new commits' }, REPO],
     route: 'POST /api/git/sync',
     cli: true,
@@ -70,7 +70,7 @@ export const ACTIONS: Act[] = [
   {
     name: 'git branch',
     tool: 'git_branch',
-    about: 'Switch to a branch, or make one with --create.',
+    about: "Switch to a branch, or make one with --create. While the user has \"chats answer other chats' permission asks\" off, and the repo has a git hook that would run, it first waits for their OK in Amethyst's window. While that setting is off, it refuses a change that brings in an agent's settings or hooks (like .claude/settings.local.json or .github/hooks/): that change is the user's to make.",
     args: [
       { name: 'name', type: 'string', pos: true, required: true, about: 'The branch' },
       { name: 'create', type: 'boolean', about: 'Make it and switch to it; the changes come along' },
@@ -99,7 +99,7 @@ export const ACTIONS: Act[] = [
   {
     name: 'git abort',
     tool: 'git_abort',
-    about: 'Undo the merge or rebase that is under way.',
+    about: "Undo the merge or rebase that is under way. While the user has \"chats answer other chats' permission asks\" off, and the repo has a git hook that would run, it first waits for their OK in Amethyst's window.",
     args: [REPO],
     route: 'POST /api/git/abort',
     cli: true,
@@ -107,7 +107,7 @@ export const ACTIONS: Act[] = [
   {
     name: 'git skip',
     tool: 'git_skip',
-    about: 'Leave out the commit that clashes and go on with the rebase, cherry-pick or revert under way.',
+    about: "Leave out the commit that clashes and go on with the rebase, cherry-pick or revert under way. While the user has \"chats answer other chats' permission asks\" off, and the repo has a git hook that would run, it first waits for their OK in Amethyst's window.",
     args: [REPO],
     route: 'POST /api/git/skip',
     cli: true,
@@ -115,7 +115,7 @@ export const ACTIONS: Act[] = [
   {
     name: 'git clone',
     tool: 'git_clone',
-    about: 'Copy a repository onto this PC, with its submodules, and add it as a project to the workspace it is run from (a chat or terminal in one of its projects). Run outside a workspace, it only copies. Prints where it went.',
+    about: "Copy a repository onto this PC, with its submodules, and add it as a project to the workspace it is run from (a chat or terminal in one of its projects). Run outside a workspace, it only copies. Prints where it went. While the user has \"chats answer other chats' permission asks\" off, it refuses a repository that has an agent's settings or hooks (like .claude/settings.local.json or .github/hooks/): that clone is the user's to make.",
     args: [
       { name: 'url', type: 'string', pos: true, required: true, about: 'Its address, or owner/repo for GitHub' },
       { name: 'into', type: 'string', pos: true, about: 'The folder (new or empty); by default the repository’s name, here' },
@@ -129,7 +129,7 @@ export const ACTIONS: Act[] = [
   {
     name: 'git tag',
     tool: 'git_tag',
-    about: 'Tag the commit you are on (or --at another), and with --push send the tag to the remote.',
+    about: "Tag the commit you are on (or --at another), and with --push send the tag to the remote. While the user has \"chats answer other chats' permission asks\" off, and the repo has a git hook that would run, it first waits for their OK in Amethyst's window.",
     args: [
       { name: 'name', type: 'string', pos: true, required: true, about: 'The tag, usually a version: v1.2.0' },
       { name: 'at', type: 'string', about: 'A branch, tag or commit to tag instead' },
@@ -190,7 +190,7 @@ export const ACTIONS: Act[] = [
   {
     name: 'git continue',
     tool: 'git_continue',
-    about: 'Go on with the merge or rebase that is under way, once its conflicts are fixed.',
+    about: "Go on with the merge or rebase that is under way, once its conflicts are fixed. While the user has \"chats answer other chats' permission asks\" off, and the repo has a git hook that would run, it first waits for their OK in Amethyst's window.",
     args: [REPO],
     route: 'POST /api/git/continue',
     cli: true,

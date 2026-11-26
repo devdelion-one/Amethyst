@@ -243,6 +243,7 @@ export interface AgentInfo {
   draft?: ChatDraft;
   review?: ChatReview;
   report?: boolean;
+  cacheOff?: boolean;
   note?: string;
   rang?: { at: number; why: string } | null;
   pid: string;
@@ -359,7 +360,7 @@ interface UsageBridge {
   set(o: { on?: boolean | null; asked?: boolean }): Promise<UsageNow>;
 }
 
-export type ReportRing = { id: string; code: string; title: string; line: string; text?: string; why: 'done' | 'error' | 'asks'; am: number; ask: { q: string; options: string[] } | null };
+export type ReportRing = { id: string; code: string; title: string; line: string; text?: string; why: 'done' | 'error' | 'asks' | 'cold'; am: number; ask: { q: string; options: string[] } | null };
 interface ReportBridge {
   onRing(fn: (r: ReportRing) => void): void;
   onGo(fn: (id: string) => void): void;
@@ -368,6 +369,7 @@ interface ReportBridge {
   seen?(id: string): void;
   onUnring?(fn: (id: string) => void): void;
   noticeScreen?(v: string): void;
+  cacheNotice?(on: boolean): void;
 }
 
 export interface LicenseNow {
@@ -433,6 +435,7 @@ interface DesktopBridge {
   soloFront?(kind: string): Promise<number>;
   showWindow(kind?: string, focus?: boolean): Promise<any>;
   focusPid?(pid: number): Promise<any>;
+  flash?(): Promise<any>;
   onAway(fn: (kinds: string[]) => void): void;
   sizeWindow(k: number): Promise<any>;
   zoomWindow(): Promise<any>;

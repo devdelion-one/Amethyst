@@ -29,11 +29,13 @@ import { chatUse, shrinkSkip, type Use } from './shrink.ts';
 import { subagents, nameOf as subName } from '../../public/chat/subagents.ts';
 import { askCard } from '../../public/base/asks.ts';
 import { crystalOf } from '../../public/base/codes.ts';
+import './cachewarn.ts';
 import { placeOf } from '../base/gitcli.ts';
 import { makeWorktree, removeWorktree } from '../base/worktrees.ts';
 import type { StartFrom } from '../base/worktrees.ts';
 import * as accts from '../base/accounts.ts';
 import type { Account, Share } from '../base/accounts.ts';
+import { memoryFile } from './memoryfiles.ts';
 import type { ChildProcess, ChildProcessWithoutNullStreams } from 'child_process';
 import type { ChatEvent, ChatPlace, Routes } from '../../public/base/types.ts';
 import { firstLine, replaceSync, stamp, TAIL, WIN } from '../base/util.ts';
@@ -322,10 +324,12 @@ type Mark = (c: Chat, u: any) => any;
 const seen: Seen[] = [];
 const marks: Mark[] = [];
 let shellOf: (c: Chat) => { env: Record<string, string>; bin: string; cli?: { command: string; script: string; env: Record<string, string> } } | null = () => null;
+let aliasOf: (from: string, to: string) => void = () => {};
 const onEvent = (fn: Seen) => void seen.push(fn);
 const onUpdate = (fn: Mark) => void marks.push(fn);
 const tellSeen = (c: Chat, ev: Ev) => seen.forEach((fn) => fn(c, ev));
 const setShell = (fn: typeof shellOf) => void (shellOf = fn);
+const setAlias = (fn: typeof aliasOf) => void (aliasOf = fn);
 function withShell(c: Chat, env: NodeJS.ProcessEnv) {
   const s = c.quiet && !spares.some((x) => x.c === c) ? null : shellOf(c);
   if (!s) return env;
@@ -396,6 +400,7 @@ function pinAm(am: number) {
   if (am > 1 && !a.ams?.[am]) writeAuth({ ams: { ...a.ams, [am]: accountNow(a).id } });
 }
 const amOf = (c: Chat): number => live.get(c.id)?.am || 1;
+const accountDirs = () => accountsOf().flatMap((a) => (a.dir ? [a.dir] : []));
 const accountEnv = (acc: Account) => (acc.dir ? { CLAUDE_CONFIG_DIR: acc.dir } : {});
 const repairs = new Map<string, accts.Ready>();
 const runsOn = (id: string) => [...chats.values()].filter((c) => c.acct === id && !c.ended && c.proc && c.proc.exitCode == null).length + claudeTermsOn(id);
@@ -1071,6 +1076,10 @@ function report(c: Chat, ev: Ev) {
     const wait = c.agent === 'antigravity' && r === 'end_turn' && !ev.own ? agysubs.waiting(c) : '';
     if (wait) return live.set(c.id, { status: 'working', line: wait });
     if (r === 'cancelled') return live.set(c.id, { status: 'idle', line: 'stopped' });
+    if (c.asks.size) {
+      live.set(c.id, { status: 'asks', line: firstLine(c.asks.values().next().value?.toolCall?.title) || 'asks to go on', ask: firstCard(c) });
+      return ring(c, 'asks', live.get(c.id).line);
+    }
     const line = r === 'end_turn' ? lastLine(c.said) || 'finished' : r === 'error' ? firstLine(ev.text) || 'something went wrong' : r === 'refusal' ? 'declined to go on' : r.replace(/_/g, ' ');
     live.set(c.id, { status: 'done', line });
     if (r === 'error' || !c.queue.length) ring(c, r === 'error' ? 'error' : 'done', line);
@@ -1694,13 +1703,13 @@ function modeNow(c: Chat) {
 
 function entryNow(c: Chat) {
   const a = live.get(c.id) || {};
-  return { id: c.id, session: c.sessionId || null, agent: c.agent, program: a.program, cwd: c.cwd, pid: a.pid, title: a.title, named: c.named, ...(c.mine ? { mine: c.mine } : {}), ...(c.auto ? { auto: c.auto } : {}), model: a.model, line: a.line, status: a.status, at: a.at, started: a.started, am: a.am, spoke: !!c.spoke, images: [...c.images], ...(c.agent === 'codex' ? { codex: { model: c.codexModel, effort: c.codexEffort, mode: c.codexMode } } : {}), ...(c.agySkip ? { agySkip: true } : {}), ...(c.agySandbox ? { agySandbox: true } : {}), ...(c.cursorForce ? { cursorForce: true } : {}), ...(c.copilotModel || c.copilotEffort ? { copilot: { model: c.copilotModel || '', effort: c.copilotEffort || '' } } : {}), ...(c.grokMode ? { grokMode: c.grokMode } : {}), ...(c.sessions && Object.keys(c.sessions).length ? { sessions: c.sessions } : {}), ...(c.carry ? { carry: c.carry } : {}), ...(c.wt ? { wt: c.wt } : {}), ...(c.points?.length ? { points: c.points, lastAi: c.lastAi || null } : {}), ...(c.review && Object.keys(c.review.files).length ? { review: c.review } : {}), ...(a.report ? { report: true } : {}), ...(a.note ? { note: a.note } : {}) };
+  return { id: c.id, session: c.sessionId || null, agent: c.agent, program: a.program, cwd: c.cwd, pid: a.pid, title: a.title, named: c.named, ...(c.mine ? { mine: c.mine } : {}), ...(c.auto ? { auto: c.auto } : {}), model: a.model, line: a.line, status: a.status, at: a.at, started: a.started, am: a.am, spoke: !!c.spoke, images: [...c.images], ...(c.agent === 'codex' ? { codex: { model: c.codexModel, effort: c.codexEffort, mode: c.codexMode } } : {}), ...(c.agySkip ? { agySkip: true } : {}), ...(c.agySandbox ? { agySandbox: true } : {}), ...(c.cursorForce ? { cursorForce: true } : {}), ...(c.copilotModel || c.copilotEffort ? { copilot: { model: c.copilotModel || '', effort: c.copilotEffort || '' } } : {}), ...(c.grokMode ? { grokMode: c.grokMode } : {}), ...(c.sessions && Object.keys(c.sessions).length ? { sessions: c.sessions } : {}), ...(c.carry ? { carry: c.carry } : {}), ...(c.wt ? { wt: c.wt } : {}), ...(c.points?.length ? { points: c.points, lastAi: c.lastAi || null } : {}), ...(c.review && Object.keys(c.review.files).length ? { review: c.review } : {}), ...(a.report ? { report: true } : {}), ...(a.cacheOff ? { cacheOff: true } : {}), ...(a.note ? { note: a.note } : {}) };
 }
 function sleeper(e: any) {
   if (!AGENTS[e.agent]) return;
   const { model, effort, mode } = e.codex || {};
   chats.set(e.id, newChat({ id: e.id, agent: e.agent, cwd: e.cwd, sessionId: e.session, named: !!e.named, mine: typeof e.mine === 'string' && e.mine ? e.mine : undefined, auto: typeof e.auto === 'string' ? e.auto : e.mine ? undefined : e.title || undefined, spoke: !!e.spoke, images: new Set(e.images || []), asleep: true, kept: true, codexModel: model, codexEffort: effort, codexMode: mode, agySkip: !!e.agySkip, agySandbox: !!e.agySandbox, cursorForce: !!e.cursorForce, copilotModel: e.copilot?.model || undefined, copilotEffort: e.copilot?.effort || undefined, grokMode: typeof e.grokMode === 'string' && GROK_MODES.has(e.grokMode) ? e.grokMode : undefined, sessions: e.sessions && typeof e.sessions === 'object' ? e.sessions : undefined, carry: e.carry?.from ? e.carry : null, wt: e.wt?.root ? e.wt : null, points: Array.isArray(e.points) ? e.points : [], lastAi: e.lastAi || null, review: e.review?.files ? e.review : null }));
-  live.set(e.id, { kind: 'chat', program: e.program, cwd: e.wt?.root || e.cwd, pid: e.pid, ...(e.wt?.path && !e.wt.gone ? { wt: e.wt.path } : {}), title: e.title || '', model: e.model || '', line: e.line || '', session: e.session, status: e.status === 'done' ? 'done' : 'idle', started: e.started || e.at, am: e.am, ...(e.report ? { report: true } : {}), ...(e.note ? { note: String(e.note) } : {}) });
+  live.set(e.id, { kind: 'chat', program: e.program, cwd: e.wt?.root || e.cwd, pid: e.pid, ...(e.wt?.path && !e.wt.gone ? { wt: e.wt.path } : {}), title: e.title || '', model: e.model || '', line: e.line || '', session: e.session, status: e.status === 'done' ? 'done' : 'idle', started: e.started || e.at, am: e.am, ...(e.report ? { report: true } : {}), ...(e.cacheOff ? { cacheOff: true } : {}), ...(e.note ? { note: String(e.note) } : {}) });
   live.get(e.id).at = e.at || Date.now();
 }
 function hydrate(c: Chat) {
@@ -1744,7 +1753,9 @@ function wake(c: Chat) {
   hydrate(c);
   const spare = spares.length && !c.agySkip && !c.agySandbox && !(c.agent === 'copilot' && c.copilotEffort) ? take(c.agent, c.agent === 'claude' ? auth(amOf(c)) : null) : null;
   if (spare) {
+    const wasId = spare.id;
     const { id, cwd, sessionId, events, state, clients, images, named, mine, auto, spoke, wt, sessions, carry, review, points: marks, lastAi, copilotModel, copilotEffort, grokMode, agySteps } = c;
+    aliasOf(wasId, id);
     Object.assign(spare, { id, cwd, sessionId, events, state, clients, images, named, mine, auto, spoke, wt, sessions, carry, review, points: marks, lastAi, copilotModel, copilotEffort, grokMode, agySteps, kept: true, hydrated: true });
     chats.set(id, spare);
     c = spare;
@@ -2364,7 +2375,8 @@ async function shrinkThen(c: Chat, config: any) {
 }
 
 const byTokens = (a: { tokens: number }, b: { tokens: number }) => b.tokens - a.tokens;
-function contextShape(u: any) {
+function contextShape(u: any, c: Chat) {
+  const acc = accountsOf().find((x) => x.id === c.acct) || accountNow();
   const servers = new Map<string, number>();
   for (const t of u.mcp_tools || []) servers.set(String(t.server_name), (servers.get(String(t.server_name)) || 0) + (Number(t.tokens) || 0));
   return {
@@ -2372,7 +2384,7 @@ function contextShape(u: any) {
     used: Number(u.total_tokens) || 0,
     size: Number(u.raw_max_tokens) || 0,
     parts: (u.categories || []).filter((x: any) => Number(x.tokens) > 0).map((x: any) => ({ name: String(x.name), tokens: Number(x.tokens), kind: String(x.kind || 'used') })),
-    memory: (u.memory_files || []).map((x: any) => ({ path: String(x.path), tokens: Number(x.tokens) || 0 })).sort(byTokens),
+    memory: (u.memory_files || []).map((x: any) => memoryFile(String(x.path), Number(x.tokens) || 0, home(c) || null, acc)).sort(byTokens),
     mcp: [...servers].map(([name, tokens]) => ({ name, tokens })).sort(byTokens),
   };
 }
@@ -2396,7 +2408,7 @@ async function peekContext(c: Chat) {
     if (next) prompt(c, next).catch(() => {});
   }
   if (!peek.got) throw new HttpError(502, peek.said.trim() ? 'This Claude Code is too old to split its context into parts. Update Claude Code, or type /context in the chat to see it as a table.' : 'Claude did not answer with its context.');
-  return (c.ctxSeen = { context: contextShape(peek.got), at: Date.now() });
+  return (c.ctxSeen = { context: contextShape(peek.got, c), at: Date.now() });
 }
 
 function cancel(c: Chat) {
@@ -2795,7 +2807,10 @@ const ROUTES: Routes = {
     if (under && !parent) throw new HttpError(404, 'the chat to start it under has ended');
     const wantId = typeof id === 'string' && /^[a-z0-9]{6,24}$/i.test(id) && !chats.has(id) ? id : null;
     const c = (parent ? null : take(agent, how)) || newChat({ ...(wantId ? { id: wantId } : {}), agent });
-    if (wantId && c.id !== wantId) c.id = wantId;
+    if (wantId && c.id !== wantId) {
+      aliasOf(c.id, wantId);
+      c.id = wantId;
+    }
     c.cwd = root;
     const named = typeof from === 'string' ? chats.get(from) : null;
     const copy = named?.forked?.copy && !resume && named.agent === agent ? named : null;
@@ -2826,7 +2841,7 @@ const ROUTES: Routes = {
     going.finally(() => c.woken === going && (c.woken = null)).catch(() => {});
     return { id: c.id, name: a.name };
   },
-  'POST /api/agent/send': async ({ id, prompt: text, images, ctx, cancel: stopTurn, unqueue: qid, now, ask, optionId, content, mode, config, worktree, points: keep, from }) => {
+  'POST /api/agent/send': async ({ id, prompt: text, images, ctx, cancel: stopTurn, unqueue: qid, now, ask, optionId, content, mode, config, worktree, points: keep, from, qid: asQid }) => {
     const c1 = chatOf(id);
     if (c1.agent === 'copilot' && config?.id === 'reasoning_effort') {
       if (c1.asleep) hydrate(c1);
@@ -2878,7 +2893,7 @@ const ROUTES: Routes = {
       if (!c.sessionId) throw new HttpError(409, 'the agent is not ready yet');
       c.pointsOff = keep === false;
       if ((worktree === true || (worktree && typeof worktree === 'object')) && !c.spoke && !c.wt && !c.busy && !c.homing) c.wantWt = worktree === true ? {} : { from: typeof worktree.from === 'string' ? worktree.from : undefined, carry: worktree.carry === true };
-      const msg = { qid: Math.random().toString(36).slice(2, 10), text: String(text || '').trim().slice(0, 100000), images: saveImages(c, images), ctx: contextOf(c, ctx), ...(typeof from === 'string' && /^[\w-]{1,40}$/.test(from) ? { from } : {}) };
+      const msg = { qid: typeof asQid === 'string' && /^[a-z0-9]{1,12}$/.test(asQid) ? asQid : Math.random().toString(36).slice(2, 10), text: String(text || '').trim().slice(0, 100000), images: saveImages(c, images), ctx: contextOf(c, ctx), ...(typeof from === 'string' && /^[\w-]{1,40}$/.test(from) ? { from } : {}) };
       if (!c.busy) prompt(c, msg).catch(() => {});
       else {
         c.queue.push(msg);
@@ -3329,4 +3344,4 @@ function chatFor(id: string, full = true) {
 }
 
 export type { Chat };
-export { init, ROUTES, renameChat, follow, stopAll, leave, slimOld, warmUp, ask, claudeAccount, napIn, touchedIn, onEvent, onUpdate, emitSub, addAsk, dropAsk, setShell, sessionMeta, chatFor, NAMES };
+export { init, ROUTES, accountDirs, renameChat, follow, stopAll, leave, slimOld, warmUp, ask, claudeAccount, napIn, touchedIn, onEvent, onUpdate, emitSub, addAsk, dropAsk, setShell, setAlias, sessionMeta, chatFor, NAMES };

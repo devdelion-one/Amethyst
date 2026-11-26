@@ -1,7 +1,7 @@
 {
   "name": "amethyst-desktop",
   "productName": "Amethyst",
-  "version": "0.2.5",
+  "version": "0.2.7",
   "private": true,
   "description": "Amethyst for Windows: windows around the app (server.ts and public/ one folder up).",
   "main": "boot.ts",
@@ -23,7 +23,7 @@
     "publish": {
       "provider": "github",
       "owner": "devdelion-one",
-      "repo": "Amethyst.exe"
+      "repo": "Amethyst"
     },
     "directories": {
       "output": "dist",

@@ -34,14 +34,15 @@ const boxRows = (): Row[] => [
   one('chat:worktree', 'box'),
   one('chat:wtStrip', 'box'),
   item('chrow:off', 'mode', 'box'),
+  one('chat:mic', 'box'),
 ];
-const msgRows = (): Row[] => [one('chat:artifacts', 'art'), one('quote:on', 'sel'), one('liveCmds', 'cmd'), item('chat:off', 'compact', 'comp'), item('chat:off', 'notice', 'notice'), item('chat:off', 'time', 'time'), one('chatMarks', 'scroll'), one('edits:strip', 'edits')];
+const msgRows = (): Row[] => [one('chat:artifacts', 'art'), one('quote:on', 'sel'), one('liveCmds', 'cmd'), item('chat:off', 'compact', 'comp'), item('chat:off', 'notice', 'notice'), item('chat:off', 'time', 'time'), one('chatMarks', 'scroll'), item('chat:off', 'up', 'up'), one('chat:holdStart', 'hold'), one('edits:strip', 'edits')];
 const marksRows = (): Row[] => [one('marks:on', 'marks')];
 const ctrlpRows = (): Row[] => [one('palette:chats', 'ctrlp')];
 
 const SEL: Record<string, string> = {
-  'chat:hint': '.ch-ta .hr-ph', 'chrow:off:attach': '.ch-attach', 'chrow:off:usage': '.ch-usage', 'chrow:off:mode': '.ch-mode', 'chat:shrinkRow': '[data-ch="shrink"]', 'chat:off:color': '.ch-usage', 'chat:worktree': '.ch-wt', 'chat:wtStrip': '.ch-wtstrip',
-  'chat:artifacts': '.ch-artifacts', 'quote:on': '.quote-bar', liveCmds: '.ch-io:has(pre.term)', 'chat:off:compact': '.st.compact', 'chat:off:notice': '.st.ch-notice', 'chat:off:time': '.ch-time', chatMarks: '.ch-marks', 'edits:strip': '.ch-edits',
+  'chat:hint': '.ch-ta .hr-ph', 'chrow:off:attach': '.ch-attach', 'chrow:off:usage': '.ch-usage', 'chrow:off:mode': '.ch-mode', 'chat:shrinkRow': '[data-ch="shrink"]', 'chat:off:color': '.ch-usage', 'chat:worktree': '.ch-wt', 'chat:mic': '.ch-mic', 'chat:wtStrip': '.ch-wtstrip',
+  'chat:artifacts': '.ch-artifacts', 'quote:on': '.quote-bar', liveCmds: '.ch-io:has(pre.term)', 'chat:off:compact': '.st.compact', 'chat:off:notice': '.st.ch-notice', 'chat:off:time': '.ch-time', chatMarks: '.ch-marks', 'chat:off:up': '.ch-up', 'chat:holdStart': '.hr-hold', 'edits:strip': '.ch-edits',
   'marks:on': '[data-dk-mark]:not(.mk-sign)', 'palette:chats': '.hr-pal ul',
 };
 const sel = (a: At) => (a.key === 'chrow:chips' ? `[data-pick="${CSS.escape(a.id!)}"]` : SEL[a.id ? `${a.key}:${a.id}` : a.key]);
@@ -87,10 +88,13 @@ const M = {
   comp: () => compactHtml('completed', 182000, 41000),
   note: () => noticeHtml('warning', 'You are close to your usage limit'),
   edits: () => `<div class="ch-edits">${editsBar('3 files', counts(24, 6))}</div>`,
+  up: () => `<button type="button" class="ch-up">${icon('up')}</button>`,
+  hold: () => `<div class="ch-ai hr-hold"><p>Here is the whole plan, from the first step.</p><p>1. Set the token before the form posts.</p><p>2. Test it on a small screen.</p></div>`,
+  more: () => `<span class="ch-jump new hr-new">${icon('down')}<span>new</span></span>`,
   marks: () => `<div class="ch-marks" aria-hidden="true"><i class="you" style="top:6%"></i><i style="top:20%"></i><i style="top:44%"></i><i class="you" style="top:70%"></i><i style="top:84%"></i></div>`,
 };
 const chat = (top: string, flow: string, under = '') => `<div class="chat hr-msgs">${top}<div class="ch-log"><div class="ch-flow">${flow}</div></div>${under}</div>`;
-const allMsgs = () => chat(M.art(), M.you() + M.quote() + M.ai('Let me run the tests.') + M.cmd() + M.comp() + M.note() + M.timed('The tests pass now.'), M.marks() + M.edits() + '<div class="hr-msg">Message…</div>');
+const allMsgs = () => chat(M.art(), M.you() + M.quote() + M.ai('Let me run the tests.') + M.cmd() + M.comp() + M.note() + M.timed('The tests pass now.'), M.marks() + M.up() + M.edits() + '<div class="hr-msg">Message…</div>');
 function msgEx(k: string) {
   if (k === 'chat:artifacts') return chat(M.art(), M.you('Make a plan for the login fix.'));
   if (k === 'quote:on') return chat('', M.quote());
@@ -98,6 +102,8 @@ function msgEx(k: string) {
   if (k === 'chat:off:compact') return chat('', M.ai('Here is what I found so far.') + M.comp());
   if (k === 'chat:off:notice') return chat('', M.ai('Let me run the tests.') + M.note());
   if (k === 'chat:off:time') return chat('', M.you() + M.timed('The form posts before the token is set.'));
+  if (k === 'chat:off:up') return chat('', M.you() + M.ai('The form posts before the token is set.') + M.you('Can you fix it?'), M.marks() + M.up());
+  if (k === 'chat:holdStart') return chat('', M.hold(), M.more());
   if (k === 'chatMarks') return chat('', M.you() + M.ai('The form posts before the token is set.') + M.you('Can you fix it?'), M.marks());
   return chat('', M.ai('The tests pass now.'), M.edits() + '<div class="hr-msg">Message…</div>');
 }
@@ -130,6 +136,7 @@ function example(a: At) {
 let looks: Record<string, string> = {};
 function lookOf(r: Row) {
   if (looks[r.id] != null) return looks[r.id];
+  if (r.id === 'chat:holdStart') return (looks[r.id] = `<span class="chat hr-lkmsg"><i class="tb-ic">${icon('toStart')}</i></span>`);
   const a = r.at[0], p = a.place, t = document.createElement('template');
   t.innerHTML = p === 'box' ? chatBox(r.id === 'chat:off:color') : p === 'marks' ? marksEx() : p === 'ctrlp' ? ctrlp() : allMsgs();
   const el = t.content.querySelector<HTMLElement>(sel(a));

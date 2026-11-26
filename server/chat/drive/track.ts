@@ -3,9 +3,9 @@ import path from 'path';
 import * as live from '../../base/live.ts';
 import * as agents from '../agents.ts';
 import { HttpError } from '../../base/routes.ts';
-import { ago, codeOf, mayAnswer, quote, route } from './caller.ts';
+import { ago, byUser, chatOf, codeOf, mayAnswer, quote, route } from './caller.ts';
 import { askOut, optionsLine, permissionLike, setOption } from './answer.ts';
-import { heldText } from './modes.ts';
+import { asksIn, heldQids, heldText } from './modes.ts';
 import type { Live } from '../../base/live.ts';
 import type { Chat } from '../agents.ts';
 import type { Caller } from './caller.ts';
@@ -47,6 +47,7 @@ const sent = new Map<string, Sent>();
 const current = new Map<string, string>();
 export const started = new Map<string, string>();
 const turnSends = new Map<string, number>();
+let nameless: number[] = [];
 const wantWt = new Set<string>();
 const reported = new Map<string, string>();
 const waiters = new Set<Waiter>();
@@ -78,7 +79,7 @@ export function seeEvent(c: Chat, ev: any) {
       if (s && s.state === 'queued') Object.assign(s, { state: 'done', reason: 'unsent', end: Date.now() }), changed(s);
     }
   } else if (t === 'end') {
-    for (const s of sent.values()) if (s.worker === c.id && s.state !== 'done' && s.state !== 'ended') Object.assign(s, { state: 'ended', reason: ev.why || 'ended', end: Date.now() }), changed(s);
+    for (const s of sent.values()) if (s.worker === c.id && s.state !== 'done' && s.state !== 'ended') heldQids.delete(s.qid), Object.assign(s, { state: 'ended', reason: ev.why || 'ended', end: Date.now() }), changed(s);
   } else return;
   poke();
   recheck();
@@ -104,6 +105,7 @@ function lineOf(s: Sent) {
   }
   if (s.state === 'ended') return `${code} ended (${s.reason || 'closed'}) before it answered.`;
   if (s.reason === 'cancelled') return `${code} was stopped (${took}).`;
+  if (s.reason === 'refused') return `${code} didn't take your message: the user didn't allow it.`;
   if (s.reason === 'unsent') return `${code} didn't take your message: it was taken back from its queue.`;
   if (s.reason === 'error') return `${code} failed (${took}): ${s.tool === 'agent' ? `${read} gives what it said` : `read what it said with ${read}`}.`;
   return `${code} finished (${took}): ${s.tool === 'agent' ? `${read} gives its answer` : `read it with ${read}`}.`;
@@ -176,7 +178,7 @@ function result(w: Waiter, id: string, r: NonNullable<ReturnType<typeof readyOf>
   if ('s' in r && r.s) {
     r.s.seen = true;
     recheck();
-    const status = r.s.state === 'ended' ? 'ended' : r.s.reason === 'cancelled' ? 'stopped' : r.s.reason === 'error' ? 'failed' : r.s.reason === 'unsent' ? 'unsent' : 'done';
+    const status = r.s.state === 'ended' ? 'ended' : r.s.reason === 'cancelled' ? 'stopped' : r.s.reason === 'error' ? 'failed' : r.s.reason === 'unsent' ? 'unsent' : r.s.reason === 'refused' ? 'refused' : 'done';
     return { ...base, status, qid: r.s.qid, took: ago(r.s.at), text: lineOf(r.s) };
   }
   if ('asks' in r && a?.ask) {
@@ -203,14 +205,38 @@ function poke() {
   }
 }
 
-export async function attachOf(list: unknown, base: string) {
+export type AttachGuard = { roots?: string[] };
+
+export async function attachOf(list: unknown, base: string, guard?: AttachGuard) {
   const images: { name: string; mimeType: string; data: string }[] = [], refs: string[] = [];
-  for (const p of (Array.isArray(list) ? list : list ? [list] : []).map(String)) {
+  const entries = (Array.isArray(list) ? list : list ? [list] : []).map(String);
+  if (!entries.length) return { images, refs };
+  if (live.network(base)) throw new HttpError(400, 'network paths are not attached');
+  const resolved = entries.map((p) => {
+    if (live.network(p)) throw new HttpError(400, 'network paths are not attached');
     const abs = path.resolve(base, p);
-    const st = await fs.promises.stat(abs).catch(() => null);
+    if (live.network(abs)) throw new HttpError(400, 'network paths are not attached');
+    return abs;
+  });
+  const rawRoots = guard?.roots ? guard.roots.filter(Boolean).map((r) => path.resolve(r)) : null;
+  const roots = rawRoots ? await Promise.all(rawRoots.map((r) => fs.promises.realpath(r).catch(() => r))) : null;
+  for (const abs of resolved) {
+    let file = abs;
+    if (roots) {
+      const real = await fs.promises.realpath(abs).catch(() => null);
+      if (!real) {
+        if (!roots.some((r) => live.within(abs, r)) && !rawRoots!.some((r) => live.within(abs, r))) {
+          throw new HttpError(400, 'only files inside the project can be attached');
+        }
+        throw new HttpError(404, `not a file: ${abs}`);
+      }
+      if (!roots.some((r) => live.within(real, r))) throw new HttpError(400, 'only files inside the project can be attached');
+      file = real;
+    }
+    const st = await fs.promises.stat(file).catch(() => null);
     if (!st?.isFile()) throw new HttpError(404, `not a file: ${abs}`);
-    const mime = IMAGES[path.extname(abs).toLowerCase()];
-    if (mime) images.push({ name: path.basename(abs), mimeType: mime, data: (await fs.promises.readFile(abs)).toString('base64') });
+    const mime = IMAGES[path.extname(file).toLowerCase()];
+    if (mime) images.push({ name: path.basename(file), mimeType: mime, data: (await fs.promises.readFile(file)).toString('base64') });
     else refs.push('@' + (/\s/.test(abs) ? `"${abs}"` : abs));
   }
   return { images, refs };
@@ -238,7 +264,7 @@ export async function startChat(o: Start) {
 }
 
 type Picture = { name: string; mimeType: string; data: string } | { path: string };
-type Send = { who: Caller; a: Live; text: string; attach?: unknown; images?: Picture[]; base: string; worktree?: boolean; now?: boolean; tell?: boolean; by: string; tool?: Tool };
+type Send = { who: Caller; a: Live; text: string; attach?: unknown; images?: Picture[]; base: string; root?: string; worktree?: boolean; now?: boolean; tell?: boolean; by: string; tool?: Tool };
 
 export async function sendTo(o: Send) {
   const { who, a } = o, code = codeOf(a.id);
@@ -249,17 +275,63 @@ export async function sendTo(o: Send) {
     const n = (turnSends.get(who.id) || 0) + 1;
     if (n > MAX_TURN) throw new HttpError(429, `that is ${MAX_TURN} messages in this turn, the most one turn sends: end the turn (or ask the user) before sending more`);
     turnSends.set(who.id, n);
+  } else if (!byUser(who)) {
+    const now = Date.now();
+    nameless = nameless.filter((at) => now - at < 60_000);
+    if (nameless.length >= MAX_TURN) throw new HttpError(429, `that is ${MAX_TURN} messages in a minute from outside a chat, the most allowed: wait a minute before sending more`);
+    nameless.push(now);
   }
   if (a.status === 'ended') throw new HttpError(410, `${code} has ended`);
-  const { images, refs } = await attachOf(o.attach, o.base);
+  const roots = byUser(who) ? undefined : [o.root || who?.root || '', who ? (live.get(who.id) as Live | undefined)?.wt || '' : ''].filter(Boolean);
+  const { images, refs } = await attachOf(o.attach, o.base, roots ? { roots } : undefined);
   const prompt = [o.text, ...refs].filter(Boolean).join(' ');
-  const r = await route('POST /api/agent/send')({ id: a.id, prompt, images: [...images, ...(o.images || [])], worktree: o.worktree === true || wantWt.has(a.id), ...(o.by ? { from: o.by } : {}) }, new URLSearchParams());
+  const all = [...images, ...(o.images || [])], worktree = o.worktree === true || wantWt.has(a.id);
   wantWt.delete(a.id);
+  if (!mayAnswer(who) && !(await asksNow(a.id))) return hold(o, a, prompt, all, worktree);
+  return deliver(o, a, prompt, all, worktree);
+}
+
+async function asksNow(id: string) {
+  const c = agents.chatFor(id, false);
+  if (!c) return true;
+  if (!c.mode() && c.woken) await c.woken.catch(() => {});
+  return asksIn(c.agent, c.mode());
+}
+
+type Pics = unknown[];
+
+async function deliver(o: Send, a: Live, prompt: string, images: Pics, worktree: boolean, qid?: string) {
+  const code = codeOf(a.id);
+  const r = await route('POST /api/agent/send')({ id: a.id, prompt, images, worktree, ...(o.by ? { from: o.by } : {}), ...(qid ? { qid } : {}) }, new URLSearchParams());
   const st: State = current.get(a.id) === r.qid ? 'working' : 'queued';
-  sent.set(r.qid, { qid: r.qid, by: o.by || 'cli', worker: a.id, at: Date.now(), tell: o.tell !== false, tool: o.tool || 'chat', state: st, seen: false, told: false });
+  const s = sent.get(r.qid);
+  if (s) s.state = s.state === 'queued' ? st : s.state;
+  else sent.set(r.qid, { qid: r.qid, by: o.by || 'cli', worker: a.id, at: Date.now(), tell: o.tell !== false, tool: o.tool || 'chat', state: st, seen: false, told: false });
   if (o.now === true && r.queued) await route('POST /api/agent/send')({ id: a.id, now: r.qid }, new URLSearchParams()).catch(() => {});
   const how = r.queued && current.get(a.id) !== r.qid ? `queued: ${code} is busy, it takes it when its turn ends` : `${code} works on it now`;
-  return { qid: r.qid as string, queued: !!r.queued, how };
+  return { qid: r.qid as string, queued: !!r.queued, held: false, how };
+}
+
+function hold(o: Send, a: Live, prompt: string, images: Pics, worktree: boolean) {
+  const c = chatOf(a), code = codeOf(a.id), qid = Math.random().toString(36).slice(2, 10).padEnd(8, '0');
+  const sender = o.who ? codeOf(o.who.id) : 'An agent outside Amethyst';
+  const s: Sent = { qid, by: o.by || 'cli', worker: a.id, at: Date.now(), tell: o.tell !== false, tool: o.tool || 'chat', state: 'queued', seen: false, told: false };
+  sent.set(qid, s);
+  heldQids.add(qid);
+  const ask = `held-${qid}`;
+  const refuse = (reason: string) => {
+    heldQids.delete(qid);
+    if (s.state !== 'queued') return;
+    Object.assign(s, { state: 'done', reason, end: Date.now() });
+    changed(s);
+    poke();
+  };
+  agents.addAsk(c, ask, { toolCall: { toolCallId: ask, title: `${sender} sends you work`, rawInput: { command: prompt || '(pictures)', description: `${sender} sends you work. ${code} works without asking, so it waits for your OK.` } }, options: [{ optionId: 'allow', name: 'Allow', kind: 'allow_once' }, { optionId: 'deny', name: "Don't allow", kind: 'reject_once' }] }, (optionId) => {
+    if (optionId !== 'allow') return refuse('refused');
+    heldQids.delete(qid);
+    deliver(o, a, prompt, images, worktree, qid).then(() => poke(), () => refuse('error'));
+  });
+  return { qid, queued: true, held: true, how: `${code} works without asking, so the user is asked to allow your message first` };
 }
 
 type Wait = { who: Caller; by: string; ids: string[]; qid?: string | null; secs: number; asks?: boolean; again: string; gone?: AbortSignal };

@@ -4,7 +4,7 @@ import path from 'path';
 import url from 'url';
 import { execFile } from 'child_process';
 import { guard, HttpError } from './routes.ts';
-import { sortOf, RUNS } from '../../public/base/files.ts';
+import { sortOf, SAFE_OPEN } from '../../public/base/files.ts';
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { AgentInfo, AskCard, ChatDraft, ChatPlace, ChatReview, Routes, SubSummary } from '../../public/base/types.ts';
 import type { RootMeta } from './routes.ts';
@@ -37,6 +37,7 @@ interface Live {
   draft?: ChatDraft | null;
   review?: ChatReview | null;
   report?: boolean;
+  cacheOff?: boolean;
   note?: string;
   rang?: { at: number; why: string } | null;
   under?: string;
@@ -60,6 +61,8 @@ interface By {
   files: (out: Out) => Off;
   path: (file: string, out: Out) => Off;
   ue: (out: Out) => Off;
+  ueask: (out: Out) => Off;
+  runask: (out: Out) => Off;
   debug: (out: Out) => Off;
 }
 
@@ -67,7 +70,7 @@ const list = new Map<string, Live>();
 const subs = new Set<Sub>();
 const KEEP = 2 * 60e3;
 
-const pub = ({ id, kind, program, title, status, line, model, at, started, session, am, wt, subs, ask, place, draft, review, report, note, rang, step }: Live): Omit<AgentInfo, 'pid' | 'project'> => ({ id, kind, program, title, status, line, model, at, started, session, am, ...(step ? { step } : {}), ...(wt ? { wt } : {}), ...(subs?.length ? { subs } : {}), ...(ask ? { ask } : {}), ...(place ? { place } : {}), ...(draft ? { draft } : {}), ...(review ? { review } : {}), ...(report ? { report } : {}), ...(note ? { note } : {}), ...(rang ? { rang } : {}) });
+const pub = ({ id, kind, program, title, status, line, model, at, started, session, am, wt, subs, ask, place, draft, review, report, cacheOff, note, rang, step }: Live): Omit<AgentInfo, 'pid' | 'project'> => ({ id, kind, program, title, status, line, model, at, started, session, am, ...(step ? { step } : {}), ...(wt ? { wt } : {}), ...(subs?.length ? { subs } : {}), ...(ask ? { ask } : {}), ...(place ? { place } : {}), ...(draft ? { draft } : {}), ...(review ? { review } : {}), ...(report ? { report } : {}), ...(cacheOff ? { cacheOff } : {}), ...(note ? { note } : {}), ...(rang ? { rang } : {}) });
 const lastLine = (s: unknown, n = 140) => String(s || '').split('\n').map((l) => l.trim()).filter(Boolean).pop()?.slice(0, n) || '';
 
 function tell(a: Live) {
@@ -88,7 +91,7 @@ function set(id: string, patch: Partial<Live>) {
   const moved = a.status !== was;
   if (moved && !(was === 'done' && a.status === 'idle')) a.at = Date.now();
   if (moved && a.status === 'ended') a.gone = setTimeout(() => drop(id), KEEP);
-  if (fresh || moved || a.ask?.id !== asked || 'place' in patch || 'draft' in patch || 'review' in patch || 'report' in patch || 'note' in patch || 'step' in patch) {
+  if (fresh || moved || a.ask?.id !== asked || 'place' in patch || 'draft' in patch || 'review' in patch || 'report' in patch || 'cacheOff' in patch || 'note' in patch || 'step' in patch) {
     clearTimeout(a.due!);
     tell(a);
   } else if (!a.due) a.due = setTimeout(() => tell(a), CALM);
@@ -136,7 +139,7 @@ function stream(c: string | null, req: IncomingMessage, res: ServerResponse) {
   });
 }
 
-function follow({ c, f, chat, tools, term, agents, files, path: file, ue, debug, stop }: any, by: By) {
+function follow({ c, f, chat, tools, term, agents, files, path: file, ue, ueask, runask, debug, stop }: any, by: By) {
   const page = pages.get(String(c || ''));
   if (!page) throw new HttpError(409, 'no such stream');
   f = String(f || '').slice(0, 40);
@@ -144,7 +147,7 @@ function follow({ c, f, chat, tools, term, agents, files, path: file, ue, debug,
   page.follows.delete(f);
   if (stop) return { ok: true };
   const out = (e: Ev) => page.res.write(`data: ${JSON.stringify({ f, e })}\n\n`);
-  const off = chat ? by.chat(String(chat), out, { tools: tools === true }) : term ? by.term(String(term), out) : agents ? watch(by.scope(), out) : files ? by.files(out) : file ? by.path(file, out) : ue ? by.ue(out) : debug ? by.debug(out) : null;
+  const off = chat ? by.chat(String(chat), out, { tools: tools === true }) : term ? by.term(String(term), out) : agents ? watch(by.scope(), out) : files ? by.files(out) : file ? by.path(file, out) : ue ? by.ue(out) : ueask ? by.ueask(out) : runask ? by.runask(out) : debug ? by.debug(out) : null;
   if (off) page.follows.set(f, off);
   return { ok: true };
 }
@@ -199,7 +202,7 @@ async function browserExe() {
 
 async function openDefault(full: string) {
   const st = await onDisk(full);
-  if (st.isDirectory() || RUNS.test(full)) throw new HttpError(400, 'this file is not opened from Amethyst: it would run. Show it in the file manager instead');
+  if (st.isDirectory() || !SAFE_OPEN.test(full)) throw new HttpError(400, 'this file is not opened from Amethyst: it would run. Show it in the file manager instead');
   if (process.env.MIND_FAKE_EXPLORER) return fs.promises.appendFile(process.env.MIND_FAKE_EXPLORER, `default:${full}\n`).then(() => ({ ok: true }));
   execFile(process.platform === 'win32' ? 'explorer.exe' : process.platform === 'darwin' ? 'open' : 'xdg-open', [full], { windowsHide: false }, () => {});
   return { ok: true };
@@ -264,8 +267,8 @@ const ROUTES: Routes = {
     return { queue: queue(mine, pid || '').map((a) => ({ id: a.id, title: a.title, status: a.status, line: a.line, waiting: Math.max(0, now - a.at), am: a.am || 1, ask: a.ask || null })) };
   },
   'GET /api/raw': async (_, q, _root, _pid, R: RootMeta) => {
-    const p = R.disk.abs(guard(q!.get('path')!));
-    return raw(await fs.promises.readFile(p), p, "default-src 'none'; style-src 'unsafe-inline'; img-src data:", { type: 'text/plain; charset=utf-8' });
+    const p = await R.disk.real(guard(q!.get('path')!));
+    return raw(await fs.promises.readFile(p), p, "default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'; sandbox", { type: 'text/plain; charset=utf-8' });
   },
   'GET /api/img': async (_, q, root: string) => {
     const name = String(q!.get('name') || '');
@@ -275,7 +278,7 @@ const ROUTES: Routes = {
     if (!fs.existsSync(p)) p = path.join(dir, 'unused', name);
     return raw(await fs.promises.readFile(p), p, "default-src 'none'; img-src data:");
   },
-  'POST /api/reveal': async ({ path: rel }, _q, _root, _pid, R: RootMeta) => show(R.disk.abs(guard(rel))),
+  'POST /api/reveal': async ({ path: rel }, _q, _root, _pid, R: RootMeta) => show(await R.disk.real(guard(rel))),
   'POST /api/archive/show': async (_, _q, _root, _pid, R: RootMeta) => show(R.archivePlace()),
   'POST /api/show-path': async ({ path: p }, _, root: string | null) => show(cleanPath(p, root)),
   'POST /api/open-default': async ({ path: p }, _, root: string | null) => openDefault(cleanPath(p, root)),

@@ -517,7 +517,11 @@ export const stepsText = () => timerSteps().slice(1).map(spanText).join(' ');
 export function setStepsText(text: string) {
   const ms = parseSpans(text);
   if (ms.length) store.set('timer:steps', ms);
+  return ms.length > 0;
 }
+export const stepsShown = () => timerSteps().slice(1).map((m) => stepText(m * 60e3));
+export const stepsChanged = () => store.get('timer:steps', STEPS).join() !== STEPS.join();
+export const resetSteps = () => store.del('timer:steps');
 const stepText = (ms: number) => {
   const s = Math.ceil(ms / 1e3), h = Math.floor(s / 3600), d = Math.floor(h / 24);
   const two = (n: number) => String(n).padStart(2, '0');

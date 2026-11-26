@@ -5,7 +5,7 @@ import { busyNow, gem, workGem } from '../base/kinds.ts';
 import { crystalOf } from '../base/codes.ts';
 import { barMenu, ICONS, miRow, rowIcons, topRow } from '../base/controls.ts';
 import { toolSign, TOOL_IC } from '../base/tools.ts';
-import { markSign, noteFirst, NOTE_IC, tiny, took } from '../base/agentrow.ts';
+import { markSign, noteFirst, NOTE_IC, took, whenSpan } from '../base/agentrow.ts';
 import type { Row } from '../base/agentrow.ts';
 import { agents } from '../base/stream.ts';
 import { answers } from '../base/answer.ts';
@@ -55,9 +55,10 @@ const topic = (a: Agent) => `<span class="oc-t">${a.title ? esc(a.title) : `<i>$
 function icons(a: Agent, calm: boolean) {
   const note = !calm && a.kind === 'chat' && a.note ? `<i class="oc-ic" title="${esc(`Note\n${noteFirst(a)}`)}">${NOTE_IC}</i>` : '';
   const bell = !calm && a.report ? `<i class="oc-ic" title="Notifying you\nA notification each time it's ready.">${ICONS.bell}</i>` : '';
-  return `<span class="oc-ics">${markSign(a)}${note}${bell}</span>`;
+  const cold = !calm && a.cacheOff && a.program === 'claude' && pref('cache:notice') ? `<i class="oc-ic oc-cold" title="No cache notices&#10;No notice comes before this chat's cache runs out. Turn it back on from its menu.">${icon('history')}<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 2.5l11 11"/></svg></i>` : '';
+  return `<span class="oc-ics">${markSign(a)}${note}${bell}${cold}</span>`;
 }
-const when = (a: Agent, t: boolean) => (a.at ? `<span class="dk-when" data-at="${a.at}" data-tiny>${t ? tiny(a.at) : ''}</span>` : '');
+const when = (a: Agent, t: boolean) => whenSpan(a, t);
 const xBtn = (a: Agent) => `<button class="oc-x" data-dk-end="${esc(a.id)}" title="Close it\nIt asks where from. Shift+click closes without asking." aria-label="close it">${ICONS.x}</button>`;
 const slotEnd = (a: Agent, t: boolean, time: boolean) => `<span class="oc-slot">${time ? when(a, t) : ''}${xBtn(a)}</span>`;
 const subLine = (a: Agent, s: Sub, t: boolean) => `<div class="oc-sub" data-oc-sub="${esc(s.id)}" data-oc-of="${esc(a.id)}" role="button" tabindex="0" title="${esc(`${s.name}\nOpens Agent activity: every subagent of this chat.`)}">${slot('working')}<span class="n">${esc(s.name)}</span><span class="dk-tick" data-from="${s.start}">${t ? took(s) : ''}</span></div>`;

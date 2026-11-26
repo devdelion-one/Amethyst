@@ -2,7 +2,7 @@ import { is, show as keyName, bound } from '../base/binds.ts';
 import { agents, chatOfSession, onAgents } from '../base/stream.ts';
 import { amElse, amKey, chatTabOf, CHATS, esc, quietly, sinceShort, store, track, uid } from '../base/util.ts';
 import { addClosed, crystalOf, groupOf, onCleared, titleOf } from '../base/agentlook.ts';
-import { doneInner, fileDrag, markFly, markMenu, markPick, renameAsk, renameItem } from '../base/agentrow.ts';
+import { cacheFlip, cacheRow, doneInner, fileDrag, markFly, markMenu, markPick, renameAsk, renameItem } from '../base/agentrow.ts';
 import { createChatList, hideDrag, listMenu, listPrefs, orchHas, rowListBands, rowListPick } from '../app/chatlist.ts';
 import { page } from '../base/page.ts';
 import { queue } from '../base/queue.ts';
@@ -515,9 +515,10 @@ export function createOrch({ head, makeChat, makeTerm, filesChanged, openFile, c
     const move = chat ? `<button class="mi" data-oc-mv data-sub aria-haspopup="menu" aria-expanded="false"><i class="tb-ic">${icon('move')}</i><span class="mi-n">${esc(verb(a))}</span><span class="pk-ar">›</span></button>` : '';
     const pk = !chat || !foldersOn('orch') ? '' : canFile('orch', a) ? moveItem('orch', a) : `<button class="mi" disabled title="Move to folder&#10;A chat can go into a folder once it has its first message."><i class="tb-ic">${icon('folder')}</i><span class="mi-n">move to folder</span></button>`;
     const rep = chat && a.status !== 'ended' ? miRow('data-oc-rp', ICONS.bell, a.report ? 'stop notifying me' : 'notify me', '', a.report ? "A notification each time this chat is ready, while you aren't looking at it. Click to stop it." : "A notification each time this chat is ready, while you aren't looking at it. Click to turn it on.") : '';
+    const cw = cacheRow(a);
     const mk = chat && a.session && pref('marks:on') ? markFly(a, fly) : '';
     const group = (...g: string[]) => g.filter(Boolean).join('');
-    const actions = [group(renameItem(a), move, pk), miRow('data-oc-x', icon('close'), 'close', '', 'Asks where to close it from.'), group(rep, mk)].filter(Boolean).join('<div class="sep"></div>');
+    const actions = [group(renameItem(a), move, pk), miRow('data-oc-x', icon('close'), 'close', '', 'Asks where to close it from.'), group(rep, cw, mk)].filter(Boolean).join('<div class="sep"></div>');
     popMenu(x, y, top + bands({ actions, ...(chat ? rowListBands('orch') : {}) }), (b) => {
       const d = b.dataset;
       if (rowListPick('orch', b)) return;
@@ -526,6 +527,7 @@ export function createOrch({ head, makeChat, makeTerm, filesChanged, openFile, c
       if (d.mk != null) return (mark(a.session!, markPick(a, +d.mk)), redraw());
       if ('ocMv' in d) return moveOut(a, r, redraw, null, b);
       if ('ocRp' in d) return report(a, r);
+      if ('ocCw' in d) return void cacheFlip(a, r);
       if ('cfMv' in d) return moveSub('orch', a, b);
       if ('ocX' in d) return closeRow(a);
     });

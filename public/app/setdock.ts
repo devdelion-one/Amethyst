@@ -11,7 +11,7 @@ export const DOCK_LEAD = 'What shows in the dock, and in the windows its buttons
 const SEL: Record<string, string> = {
   'bar:off:windows': '#aw-dock', 'bar:off:hitch': '#st-hitch', 'bar:off:timer': '#btn-timer', 'bar:off:clips': '#btn-clips', 'bar:off:usage': '#st-usage', 'bar:off:update': '#st-update', 'bar:off:keys': '#btn-keys', 'bar:off:settings': '#btn-settings',
   'forget:on': '#fg-btn', 'usage:meter': '#st-usage', 'usage:left': '.um-s em', 'usage:name': '.um-n',
-  'usage:popBtn': '.uw-pop', 'usage:accounts': '.uw-acct', 'usage:wake': '.uw-wake', 'clips:add': '[data-cl-add]',
+  'usage:dashBtn': '.uw-dash', 'usage:popBtn': '.uw-pop', 'usage:accounts': '.uw-acct', 'usage:wake': '.uw-wake', 'clips:add': '[data-cl-add]',
   'hgbar:off:file': '[data-hgdir]', 'hgbar:off:snaps': '.hr-snaps', 'forget:popBtn': '[data-fgpop]', 'forget:info': '[data-fginfo]', 'forget:addLine': '#fg-form', 'forget:setBtn': '[data-fgset]',
 };
 const sel = (a: At) => SEL[a.id ? `${a.key}:${a.id}` : a.key] || '';
@@ -36,7 +36,7 @@ const meterRow = (): Row => ({
 const onlyBars = () => (pref('usage:meter') ? '' : 'Only shows with two bars.');
 const lookRows = (): Row[] => [meterRow(), one('usage:left', 'ubtn', { note: onlyBars }), one('usage:name', 'ubtn', { note: onlyBars })];
 const dockRows = (): Row[] => [...BEFORE.map(barRow), ...lookRows(), ...AFTER.map(barRow)];
-const uwinRows = (): Row[] => [one('usage:popBtn', 'uwin'), one('usage:accounts', 'uwin'), one('usage:wake', 'uacct')];
+const uwinRows = (): Row[] => [one('usage:dashBtn', 'uwin'), one('usage:popBtn', 'uwin'), one('usage:accounts', 'uwin'), one('usage:wake', 'uacct')];
 const clipsRows = (): Row[] => [one('clips:add', 'clips')];
 const hitchRows = (): Row[] => [item('hgbar:off', 'file', 'hitch'), item('hgbar:off', 'snaps', 'hitch')];
 const bellRows = (): Row[] => (shown('forget:popBtn') ? [one('forget:popBtn', 'fgwin')] : []);
@@ -86,11 +86,16 @@ function hitchHtml() {
   g.append(...snaps);
   return win(`${hgHead()}<div class="hg-body">${bar.outerHTML}</div>`, ' hr-hg');
 }
-function forgetHtml() {
+export function forgetHtml(list = '') {
   const w = cloneOf('#forget');
   if (!w) return '';
   for (const n of [w, ...w.querySelectorAll('*')]) for (const x of ['title', 'data-tip', 'data-tip-keys', 'data-tip-set']) n.removeAttribute(x);
-  for (const x of w.querySelectorAll('[data-rs], #fg-list')) x.remove();
+  for (const x of w.querySelectorAll(list ? '[data-rs]' : '[data-rs], #fg-list')) x.remove();
+  const rows = w.querySelector<HTMLElement>('#fg-list');
+  if (rows && list) {
+    rows.hidden = false;
+    rows.innerHTML = list;
+  }
   for (const x of w.querySelectorAll('.fg-mir, .fg-pv, .fg-hint')) x.replaceChildren();
   w.removeAttribute('style');
   w.removeAttribute('tabindex');
@@ -110,12 +115,13 @@ function example(a: At) {
   if (a.place === 'dock') return p(dockHtml(), dockAts());
   if (a.place === 'ugauge' || a.place === 'ubars') return p(usageBar({ meter: a.place === 'ubars', left: true, name: true }), [a], ring(a));
   if (a.place === 'ubtn') return p(usageBar({ meter: true, left: true, name: true }), lookRows().slice(1).map((r) => r.at[0]));
-  if (a.place === 'uwin') return p(uwinHtml(), uwinRows().slice(0, 2).map((r) => r.at[0]));
+  if (a.place === 'uwin') return p(uwinHtml(), uwinRows().slice(0, 3).map((r) => r.at[0]));
   if (a.place === 'uacct') return p(win(usageWakePic(), ' hr-uw'), [a]);
   if (a.place === 'clips') return p(clipsHtml(), [a]);
   if (a.place === 'hitch') return p(hitchHtml(), hitchRows().map((r) => r.at[0]));
   return p(forgetHtml(), [...bellRows(), ...fgwinRows()].map((r) => r.at[0]));
 }
+export const dockPic = (id: string) => example(barAt(id));
 const pick = (html: string, s: string) => {
   const el = s ? frag(html).querySelector<HTMLElement>(s) : null;
   if (!el) return null;

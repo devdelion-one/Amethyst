@@ -3,7 +3,7 @@ import { markMenu } from '../base/agentrow.ts';
 import { agentMenu, launchAgent, pinOf } from '../base/agentmenu.ts';
 import { ask, barMenu, flyFocus, ICONS, keepMenu, keyChip, menuHead, modeOrder, popMenu, setSwatches, sortable, sorting, TOPBAR, topBarMenu, topRow } from '../base/controls.ts';
 import { addSet, freeCell, setsHolding, agentLine, createDeck, dropSet, inCells, markSet, moveAway, moveSet, moveSetChats, cellsOf, chatsFromOrch, setChatsToOrch, nextColor, nextSet, orderHex, putInSet, restoreSet, swapInSet, setAgents, setAway, setColor, setInfo, setInfos, setOf, setOn, sets, setsMenu, setTurn, shareDeck, showSet, takeHere, toOrch } from '../decks/deck.ts';
-import { PLACE_AT, placePic } from './modeplace.ts';
+import { placeBtn } from './modeplace.ts';
 import { aim, freeAt, freeNear, moveRef, PITCH, placeAll, setSpan, slotDrag, slotDragIn, slotHtml, slotsOn, watchSlots } from './slots.ts';
 import type { SlotView } from './slots.ts';
 import type { MoveHow } from '../decks/deck.ts';
@@ -743,7 +743,7 @@ ${CLOSES[kind]}`)}"><i class="tb-ic">${X_ICON}</i><span class="mi-n">close</span
   const wk = (k: string) => `title="${esc(`${PREFS[k].item!.charAt(0).toUpperCase() + PREFS[k].item!.slice(1)}
 ${PREFS[k].desc}`)}"`;
   const work = atWs() ? '' : topRow(!!pref('edWork'), `data-edwork ${wk('edWork')}`, modeGem('editor'), PREFS.edWork.item!) + topRow(!!pref('switch:wkOn'), `data-wkon ${wk('switch:wkOn')}`, workGem(), PREFS['switch:wkOn'].item!);
-  const place = `<div class="pl-row">${PREFS['switch:place'].choices!.map(([v, label, tip]) => `<button class="pl${pref('switch:place') === v ? ' on' : ''}" data-place="${v}" title="${esc(tip)}"><i class="pl-pic">${placePic(String(v))}</i>${PLACE_AT[String(v)]?.[1] || esc(label)}</button>`).join('')}</div>`;
+  const place = `<div class="pl-row">${PREFS['switch:place'].choices!.map(([v, label, tip]) => placeBtn(String(v), String(label), String(tip), pref('switch:place') === v)).join('')}</div>`;
   topBarMenu(x, y, { tray: 'modes', head, acts, opts: work, pick: ['position', place], onPick: (p) => {
     const d = p.dataset;
     if (d.newv) return newView(d.newv, at);

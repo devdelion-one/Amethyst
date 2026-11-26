@@ -54,3 +54,5 @@ In **Settings -> Agents -> Amethyst tools**, you can toggle **agents can control
 
 - **On (default):** agents can start and stop debugging, set/remove breakpoints, step, continue, pause, set the next statement, and evaluate expressions with calls or assignments.
 - **Off:** agents can still read `debug status`, `debug stack`, `debug vars`, `debug wait`, list breakpoints (`debug break` with no arguments), and evaluate read-only expressions (no calls or assignments), but cannot change execution or state.
+
+The setting holds for agents outside Amethyst (over `amethyst mcp`) and for the `amethyst` command in any terminal too, since Amethyst can't tell your terminal from an agent's: only Amethyst's own window always has full control. Downloading or removing the debugger is only ever done from the window (Settings -> Unreal -> debugger).

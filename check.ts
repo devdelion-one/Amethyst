@@ -162,7 +162,7 @@ for (const f of modules) {
   });
 }
 
-const MOUNTS = ['actions', 'dnd', 'float', 'groups', 'header', 'keys', 'levels', 'main', 'modes', 'panel', 'setchat', 'setheads', 'setlist', 'setdock', 'setedit', 'setfiles', 'setpages', 'settings', 'settop', 'tabs', 'treemenu', 'views'].map((m) => `app/${m}.ts`);
+const MOUNTS = ['actions', 'dnd', 'float', 'groups', 'header', 'keys', 'levels', 'main', 'modes', 'panel', 'setchat', 'setheads', 'setlist', 'setdock', 'setedit', 'setfiles', 'setgen', 'setpages', 'settings', 'settop', 'tabs', 'treemenu', 'views'].map((m) => `app/${m}.ts`);
 const EXCEPTIONS: string[] = [];
 const folderOf = (f: string) => (f.includes('/') ? f.split('/')[0] : '');
 const rule = (from: string, to: string) => {

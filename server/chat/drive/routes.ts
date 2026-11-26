@@ -2,7 +2,7 @@ import * as live from '../../base/live.ts';
 import * as agents from '../agents.ts';
 import { HttpError } from '../../base/routes.ts';
 import { fieldsOf } from '../../../public/base/asks.ts';
-import { ago, argsOf, callerOf, cfg, chatById, chatOf, codeOf, find, inScope, listOf, mayAnswer, nameFor, quote, route, scopeOf, setCfg, shellFor } from './caller.ts';
+import { ago, alias, argsOf, askerOf, byUser, callerOf, knownCaller, cfg, chatById, chatOf, codeOf, dropAliases, find, inScope, listOf, mayAnswer, nameFor, quote, route, scopeOf, setCfg, shellFor } from './caller.ts';
 import { answerAsk, answerOf, askOut, optionsOf, setOption } from './answer.ts';
 import { heldText } from './modes.ts';
 import { markRead, seeEvent, sendTo, startChat, started, waitFor } from './track.ts';
@@ -29,6 +29,10 @@ function spotOf(v: unknown) {
 
 function markReport(a: Live, on: boolean) {
   live.set(a.id, { report: on });
+  agents.chatFor(a.id, false)?.saved();
+}
+function markCache(a: Live, off: boolean) {
+  live.set(a.id, { cacheOff: off || undefined });
   agents.chatFor(a.id, false)?.saved();
 }
 const NOTE_MAX = 2000;
@@ -72,8 +76,8 @@ const ROUTES: Routes = {
       return { chat: code, id: r.id, agent: r.name, am: n, text: `${head}, with your text in its message box, unsent.${notes.map((x) => ' ' + x).join('')}` };
     }
     if (text || body.attach) {
-      const sent = await sendTo({ who, a: live.get(r.id) as Live, text, attach: body.attach, base: String(body.cwd || s.root || root), worktree: body.worktree === true, by });
-      return { chat: code, id: r.id, agent: r.name, am: n, qid: sent.qid, text: `${head} and sent it your message (qid ${sent.qid}).${notes.map((x) => ' ' + x).join('')}` };
+      const sent = await sendTo({ who, a: live.get(r.id) as Live, text, attach: body.attach, base: String(body.cwd || s.root || root), root: s.root || root, worktree: body.worktree === true, by });
+      return { chat: code, id: r.id, agent: r.name, am: n, qid: sent.qid, text: `${head}${sent.held ? `. ${sent.how}` : ' and sent it your message'} (qid ${sent.qid}).${notes.map((x) => ' ' + x).join('')}` };
     }
     return { chat: code, id: r.id, agent: r.name, am: n, text: `${head}.${notes.map((x) => ' ' + x).join('')} Give it work with amethyst chat send ${code}.` };
   },
@@ -96,7 +100,7 @@ const ROUTES: Routes = {
   'POST /api/chats/send': async (body, _q, root, pid) => {
     const who = callerOf(body), s = scopeOf(who, root, pid), a = find(body.chat, s), code = codeOf(a.id);
     const by = nameFor(who, body.by);
-    const r = await sendTo({ who, a, text: String(body.text ?? '').trim(), attach: body.attach, base: String(body.cwd || s.root || root), worktree: body.worktree === true, now: body.now === true, tell: body.tell !== false, by });
+    const r = await sendTo({ who, a, text: String(body.text ?? '').trim(), attach: body.attach, base: String(body.cwd || s.root || root), root: s.root || root, worktree: body.worktree === true, now: body.now === true, tell: body.tell !== false, by });
     if (body.report === true) markReport(a, true);
     return { chat: code, id: a.id, qid: r.qid, queued: r.queued, text: `sent to ${code} (qid ${r.qid}): ${r.how}.` };
   },
@@ -129,7 +133,7 @@ const ROUTES: Routes = {
     const r = answerOf(c, x.qid ? String(x.qid) : null, x.full === true || x.full === 'true' || x.full === '1');
     markRead(who?.id || 'cli', a.id, r.qid, !x.qid);
     const from = Math.max(0, Number(x.from) || 0), piece = r.all.slice(from, from + MAX_TEXT), more = from + MAX_TEXT < r.all.length;
-    const head = r.status === 'working' ? `[${code} is still working on it; this is what it has said so far]\n\n` : r.status === 'queued' ? `[${code} hasn't started on it yet: it waits in its queue]` : r.status === 'none' ? `[${code} has no messages yet]` : '';
+    const head = r.status === 'working' ? `[${code} is still working on it; this is what it has said so far]\n\n` : r.status === 'queued' ? `[${code} hasn't started on it yet: it waits in its queue]` : r.status === 'held' ? `[${code} hasn't got it yet: the user is asked to allow it]` : r.status === 'none' ? `[${code} has no messages yet]` : '';
     const tail = more ? `\n\n[cut at ${from + MAX_TEXT} of ${r.all.length} characters: read on with amethyst chat read ${code} from=${from + MAX_TEXT}]` : '';
     return { chat: code, qid: r.qid, status: r.status, asked: r.asked, sentBy: r.sentBy, length: r.all.length, from, text: head + (piece || (r.status === 'done' ? '(no text in its answer)' : '')) + tail };
   },
@@ -197,6 +201,13 @@ const ROUTES: Routes = {
     return { chat: code, report: on, text: reportSaid(code, on) };
   },
 
+  'POST /api/chats/cachewarn': async (body, _q, root, pid) => {
+    const who = callerOf(body), a = find(body.chat, scopeOf(who, root, pid)), code = codeOf(a.id);
+    const on = body.on == null ? !!a.cacheOff : body.on !== false && body.on !== 'false';
+    markCache(a, !on);
+    return { chat: code, cacheWarn: on, text: on ? `${code} warns you before its cache runs out.` : `${code} no longer warns you before its cache runs out.` };
+  },
+
   'POST /api/chats/note': async (body, _q, root, pid) => {
     const who = callerOf(body), a = find(body.chat, scopeOf(who, root, pid)), code = codeOf(a.id);
     if (body.clear === true || body.clear === 'true') markNote(a, '');
@@ -218,7 +229,7 @@ const ROUTES: Routes = {
 
   'GET /api/chats/report': async (body, q) => {
     const x = argsOf(body, q), a = chatById(x.id), c = chatOf(a), r = answerOf(c, null, false);
-    return { id: a.id, chat: codeOf(a.id), title: a.title || '', agent: c.agent || 'claude', status: a.status, report: !!a.report, pid: a.pid || '', wid: cfg.workspaceOf(a.pid || '', a.cwd), am: a.am || 1, text: r.all, asked: r.asked, asks: [...(c.cards?.values() || [])].map((k) => askOut(c, k)) };
+    return { id: a.id, chat: codeOf(a.id), title: a.title || '', agent: c.agent || 'claude', status: a.status, report: !!a.report, ...(a.cacheOff ? { cacheOff: true } : {}), pid: a.pid || '', wid: cfg.workspaceOf(a.pid || '', a.cwd), am: a.am || 1, text: r.all, asked: r.asked, asks: [...(c.cards?.values() || [])].map((k) => askOut(c, k)) };
   },
 
   'POST /api/chats/move': async (body, q, root, pid, R, am = 1) => {
@@ -236,7 +247,7 @@ const ROUTES: Routes = {
   'POST /api/chats/end': async (body, _q, root, pid) => {
     const who = callerOf(body), a = find(body.chat, scopeOf(who, root, pid)), code = codeOf(a.id);
     if (who && a.id === who.id) throw new HttpError(400, "a chat can't end itself");
-    if (who && started.get(a.id) !== who.id) throw new HttpError(403, `${code} wasn't started by this chat: only the user ends it`);
+    if (!byUser(who) && started.get(a.id) !== (who?.id ?? 'cli')) throw new HttpError(403, `${code} wasn't started by ${who ? 'this chat' : 'this caller'}: only the user ends it`);
     await route('DELETE /api/agent')({}, new URLSearchParams({ id: a.id }));
     started.delete(a.id);
     return { chat: code, text: `ended ${code}.` };
@@ -246,7 +257,13 @@ const ROUTES: Routes = {
 function init(o: Init) {
   setCfg(o);
   agents.setShell(shellFor);
+  agents.setAlias(alias);
   agents.onEvent(seeEvent);
+  agents.onEvent((c, ev) => {
+    if (ev.type === 'end') dropAliases(c.id);
+  });
 }
 
-export { callerOf, init, ROUTES };
+const freeToRun = (a: Record<string, any>) => byUser(knownCaller(a)) || cfg.settings().asks;
+
+export { askerOf, callerOf, freeToRun, init, ROUTES };

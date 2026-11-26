@@ -48,6 +48,7 @@ contextBridge.exposeInMainWorld('amethyst', {
   quickOf: () => ipcRenderer.invoke('quick-of'),
   soloFront: (kind) => ipcRenderer.invoke('solo-front', String(kind)),
   focusPid: (pid) => ipcRenderer.invoke('focus-pid', Number(pid)),
+  flash: () => ipcRenderer.invoke('flash-frame'),
   showWindow: (kind, focus) => ipcRenderer.invoke('window-back', kind === undefined ? '' : String(kind), !!focus),
   onAway: (fn) => {
     ipcRenderer.on('away', (e, kinds) => fn([...kinds]));
@@ -83,6 +84,7 @@ contextBridge.exposeInMainWorld('amethyst', {
     seen: (id) => ipcRenderer.send('report-seen', String(id)),
     onUnring: (fn) => void ipcRenderer.on('report-unring', (e, id) => fn(String(id))),
     noticeScreen: (v) => ipcRenderer.send('notice-screen', v === 'main' ? 'main' : 'own'),
+    cacheNotice: (on) => ipcRenderer.send('cache-notice', on !== false),
   },
   usage: {
     state: () => ipcRenderer.invoke('usage-state'),

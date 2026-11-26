@@ -27,6 +27,7 @@ export const BINDS = [
   ['modeKey', 'agents and terminals', "in a chat's text box: step the mode (shift: back)", 'alt+m', 'shift'],
   ['modelNextKey', 'agents and terminals', "in a chat's text box: the next model", 'alt+c'],
   ['modelPrevKey', 'agents and terminals', "in a chat's text box: the model before", 'alt+z'],
+  ['micKey', 'agents and terminals', "in a chat's text box: speak your message (again: stop and type it in)", 'alt+v'],
   ['quoteKey', 'agents and terminals', 'a chat: add the text selected in a reply to your message', 'shift+r'],
   ['find', 'agents and terminals', 'a chat: find in its box or in the whole chat (again: the other); settings: find a setting', 'ctrl+f'],
   ['newChatN', 'agents and terminals', 'agents, orchestration and the editor: a new chat (1 Claude Agent, 2 Codex Agent, 3 Antigravity Agent, 4 Cursor Agent, 5 Copilot Agent, 6 Grok Agent)', 'ctrl', 'n'],

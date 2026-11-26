@@ -1,5 +1,6 @@
 import type { RouteHandler, Routes } from '../../public/base/types.ts';
 import { repoDir } from '../base/gitdiff.ts';
+import { hooksOk } from '../base/githooks.ts';
 import { ROUTES as PRS, hands as prHands } from './prs.ts';
 import { ROUTES as REVIEW } from './review.ts';
 import { ROUTES as ISSUES } from './issues.ts';
@@ -21,10 +22,12 @@ function init(o: Partial<typeof hands>) {
 }
 
 const inPicked =
-  (handler: RouteHandler): RouteHandler =>
-  (body, q, root, ...rest) => {
+  (key: string, handler: RouteHandler): RouteHandler =>
+  async (body, q, root, ...rest) => {
     const at = root || hands.chatRoot({ by: body?.by ?? q?.get('by'), key: body?.key ?? q?.get('key') });
-    return handler(body, q, at ? repoDir(at, body?.repo ?? q?.get('repo')) : at, ...rest);
+    const dir = at ? repoDir(at, body?.repo ?? q?.get('repo')) : at;
+    await hooksOk(key, body, dir);
+    return handler(body, q, dir, ...rest);
   };
 
 const PARTS: Routes = {
@@ -37,6 +40,6 @@ const PARTS: Routes = {
     return { ok: true };
   },
 };
-const ROUTES: Routes = Object.fromEntries(Object.entries(PARTS).map(([key, handler]) => [key, inPicked(handler)]));
+const ROUTES: Routes = Object.fromEntries(Object.entries(PARTS).map(([key, handler]) => [key, inPicked(key, handler)]));
 
 export { ROUTES, init };

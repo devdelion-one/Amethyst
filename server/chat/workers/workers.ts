@@ -23,10 +23,15 @@ interface Call {
   agent: string;
   bound: boolean;
   name?: string;
+  bg?: boolean;
+  model?: string;
+  effort?: string;
 }
 
 export const KINDS = ['claude', 'codex', 'antigravity', 'cursor', 'copilot', 'grok'];
 const RUN = /(^|[_.:/\s])agent_run$/;
+const CLI_RUN = /(?:^|[;&|]\s*|\n\s*)(?:(?:"[^"]*[\\/])?|[^\s"']*[\\/])?amethyst(?:\.cmd|\.exe)?["']?\s+agent\s+run(?:\s+|$)/i;
+const CLI_VAL = new Set(['model', 'effort', 'mode', 'timeout']);
 const WAIT_SECS = 86400;
 export const secsOf = (v: unknown) => (Number(v) > 0 ? Math.min(WAIT_SECS, Math.max(5, Math.round(Number(v)))) : WAIT_SECS);
 
@@ -35,30 +40,104 @@ const calls = new Map<string, Map<string, Call>>();
 
 const kindName = (agent: string) => String(agents.NAMES[agent] || agent).replace(/ Agent$/, '');
 export const nameOf = (agent: string, id: string) => `${kindName(agent)} · ${codeOf(id)}`;
-const textOf = (u: any) => (Array.isArray(u.content) ? u.content : []).map((c: any) => (c.type === 'content' && c.content?.type === 'text' ? c.content.text : '')).join('\n').replace(/^```\w*\n([\s\S]*?)\n?```\s*$/, '$1').trim();
+const textOf = (u: any) =>
+  (Array.isArray(u.content) ? u.content : [])
+    .map((c: any) => (c.type === 'content' && c.content?.type === 'text' ? c.content.text : ''))
+    .join('\n')
+    .replace(/^```\w*\n([\s\S]*?)\n?```\s*$/, '$1')
+    .trim() || String(u._meta?.terminal_output?.data || '').trim();
+
+function cliTokens(tail: string) {
+  const out: string[] = [];
+  let cur = '', q = '', has = false;
+  for (let i = 0; i < tail.length; i++) {
+    const ch = tail[i];
+    if (q) {
+      if (ch === '\\' && q === '"' && i + 1 < tail.length) (cur += tail[++i]), (has = true);
+      else if (ch === q) q = '';
+      else (cur += ch), (has = true);
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      q = ch;
+      has = true;
+    } else if (ch === '\n' || ch === ';' || ch === '|' || (ch === '&' && tail[i + 1] === '&')) {
+      break;
+    } else if (/\s/.test(ch)) {
+      if (has) out.push(cur), (cur = ''), (has = false);
+    } else (cur += ch), (has = true);
+  }
+  if (has) out.push(cur);
+  return out;
+}
+
+export function cliRun(u: any) {
+  const cmd = typeof u?.rawInput?.command === 'string' ? u.rawInput.command : '';
+  const m = cmd ? CLI_RUN.exec(cmd) : null;
+  if (!m) return null;
+  const toks = cliTokens(cmd.slice(m.index + m[0].length));
+  const pos: string[] = [];
+  let bg = false, model = '', effort = '';
+  for (let i = 0; i < toks.length; i++) {
+    const t = toks[i];
+    if (t === '--') {
+      pos.push(...toks.slice(i + 1));
+      break;
+    }
+    if (t.startsWith('--')) {
+      const eq = t.indexOf('=');
+      const key = (eq >= 0 ? t.slice(2, eq) : t.slice(2)).toLowerCase();
+      const val = eq >= 0 ? t.slice(eq + 1) : CLI_VAL.has(key) ? toks[++i] || '' : '';
+      if (key === 'background') bg = val !== 'false';
+      else if (key === 'model') model = val;
+      else if (key === 'effort') effort = val;
+      continue;
+    }
+    pos.push(t);
+  }
+  const first = (pos[0] || '').toLowerCase();
+  const agent = KINDS.includes(first) ? first : '';
+  const prompt = (agent ? pos.slice(1) : pos).join(' ').trim();
+  return { agent, prompt, bg, model: model || undefined, effort: effort || undefined };
+}
 
 function isRun(u: any) {
   const name = String(u._meta?.claudeCode?.toolName || u.title || '');
   if (RUN.test(name)) return true;
   const i = u.rawInput;
-  return !!i && typeof i.prompt === 'string' && KINDS.includes(String(i.agent));
+  if (!!i && typeof i.prompt === 'string' && KINDS.includes(String(i.agent))) return true;
+  return !!cliRun(u);
 }
 
-function mark(c: Chat, u: any) {
+export function mark(c: Chat, u: any) {
   if (!u || !/^tool_call/.test(u.sessionUpdate || '') || !u.toolCallId || u._meta?.sub) return u;
   if ((live.get(c.id) as Live | undefined)?.under) return u;
   let mine = calls.get(c.id);
   let call = mine?.get(u.toolCallId);
   if (!call) {
-    if (u.sessionUpdate !== 'tool_call' || !isRun(u)) return u;
+    if (!isRun(u)) return u;
     if (!mine) calls.set(c.id, (mine = new Map()));
     mine.set(u.toolCallId, (call = { id: u.toolCallId, prompt: '', agent: '', bound: false }));
   }
   const i = u.rawInput || {};
-  if (typeof i.prompt === 'string') call.prompt = i.prompt;
-  if (typeof i.agent === 'string') call.agent = i.agent;
-  const sub: Record<string, unknown> = { agent: true, name: call.name || (call.agent ? kindName(call.agent) : 'subagent'), type: call.agent || undefined, prompt: call.prompt || undefined, bg: i.background === true || undefined };
-  if (!call.bound && (u.status === 'completed' || u.status === 'failed')) Object.assign(sub, { end: u.status === 'failed' ? 'failed' : 'done', result: textOf(u) });
+  const cli = typeof i.command === 'string' ? cliRun(u) : null;
+  if (cli) {
+    if (cli.prompt) call.prompt = cli.prompt;
+    if (cli.agent) call.agent = cli.agent;
+    if (cli.bg) call.bg = true;
+    if (cli.model) call.model = cli.model;
+    if (cli.effort) call.effort = cli.effort;
+  } else {
+    if (typeof i.prompt === 'string') call.prompt = i.prompt;
+    if (typeof i.agent === 'string') call.agent = i.agent;
+    if (i.background === true) call.bg = true;
+    if (typeof i.model === 'string' && i.model) call.model = i.model;
+    if (typeof i.effort === 'string' && i.effort) call.effort = i.effort;
+  }
+  const sub: Record<string, unknown> = { agent: true, name: call.name || (call.agent ? kindName(call.agent) : 'subagent'), type: call.agent || undefined, prompt: call.prompt || undefined, model: call.model || undefined, effort: call.effort || undefined, bg: call.bg || undefined };
+  const exit = u._meta?.terminal_exit?.exit_code ?? u._meta?.liveOutput?.exit;
+  const failed = u.status === 'failed' || (u.status === 'completed' && Number(exit) > 0);
+  if (!call.bound && (u.status === 'completed' || u.status === 'failed')) Object.assign(sub, { end: failed ? 'failed' : 'done', result: textOf(u) });
   return { ...u, _meta: { ...u._meta, sub: Object.fromEntries(Object.entries(sub).filter(([, x]) => x !== undefined)) } };
 }
 
@@ -164,6 +243,7 @@ export async function answer(who: NonNullable<Caller>, w: Worker, qid: string | 
   const r = await waitFor({ who, by: who.id, ids: [w.id], qid, secs, asks: false, again: `amethyst agent wait ${code}`, gone });
   if (r.status === 'waiting') return { agent: code, id: w.id, status: 'working', text: `${name} is still working. amethyst agent wait ${code} gives its answer.` };
   const c = agents.chatFor(w.id, false);
+  if (r.status === 'refused') return { agent: code, id: w.id, status: 'refused', text: String(r.text) };
   const a = c ? answerOf(c, (r.qid as string) || qid, false) : null;
   const said = a?.all || '';
   const status = r.status === 'done' ? 'done' : r.status;

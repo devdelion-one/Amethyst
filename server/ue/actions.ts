@@ -4,7 +4,7 @@ export const ACTIONS: Act[] = [
   {
     name: 'debug start',
     tool: 'debug_start',
-    about: "Start debugging this project's Unreal program: Unreal Editor (DebugGame Editor), built first, then started under the debugger; when the editor is already open it attaches to it instead. With game: the game in its own window (Unreal Editor with -game). With attach: only attach to the open editor. It returns at once; set breakpoints with amethyst debug break, then amethyst debug wait returns at the first stop.",
+    about: "Start debugging this project's Unreal program: Unreal Editor (DebugGame Editor), built first, then started under the debugger; when the editor is already open it attaches to it instead. With game: the game in its own window (Unreal Editor with -game). With attach: only attach to the open editor. It returns at once; set breakpoints with amethyst debug break, then amethyst debug wait returns at the first stop. While the user has \"chats answer other chats' permission asks\" off, each run first waits for their OK in Amethyst's window.",
     args: [
       { name: 'game', type: 'boolean', about: 'Debug the game: Unreal Editor with -game, in a window' },
       { name: 'attach', type: 'boolean', about: 'Attach to the Unreal Editor that is open on this project' },
@@ -47,7 +47,7 @@ export const ACTIONS: Act[] = [
   {
     name: 'ue generate',
     tool: 'ue_generate',
-    about: 'Generate the project files (the .sln) for this Unreal project with its engine, and wait for the end. It says whether it succeeded, with any errors.',
+    about: "Generate the project files (the .sln) for this Unreal project with its engine, and wait for the end. It says whether it succeeded, with any errors. While the user has \"chats answer other chats' permission asks\" off, each run first waits for their OK in Amethyst's window.",
     args: [{ name: 'timeout', type: 'number', about: 'Seconds to wait at most, 300 by default, 0 for no limit; then ue wait waits on' }],
     route: 'POST /api/ue/cmd/generate',
     example: 'amethyst ue generate',
@@ -55,7 +55,7 @@ export const ACTIONS: Act[] = [
   {
     name: 'ue build',
     tool: 'ue_build',
-    about: "Build this Unreal project with UnrealBuildTool and wait for the end: the Editor target in Development by default. It says whether it succeeded and lists the errors and warnings as file:line:col. The build runs on in Amethyst's build window if the wait runs out; ue wait waits on. It refuses while Unreal Editor is open on the project (its files are locked), unless --force.",
+    about: "Build this Unreal project with UnrealBuildTool and wait for the end: the Editor target in Development by default. It says whether it succeeded and lists the errors and warnings as file:line:col. The build runs on in Amethyst's build window if the wait runs out; ue wait waits on. It refuses while Unreal Editor is open on the project (its files are locked), unless --force. While the user has \"chats answer other chats' permission asks\" off, each run first waits for their OK in Amethyst's window.",
     args: [
       { name: 'target', type: 'string', pos: true, about: 'The target, such as MyGameEditor or MyGame; the Editor target by default' },
       { name: 'config', type: 'string', about: 'Development (the default), DebugGame or Shipping' },
@@ -86,7 +86,7 @@ export const ACTIONS: Act[] = [
   {
     name: 'ue editor',
     tool: 'ue_editor',
-    about: 'Open Unreal Editor on this project and return at once; ue log shows how far it got. It refuses when the Editor target was never built (Unreal would stop at a dialog), unless --force.',
+    about: "Open Unreal Editor on this project and return at once; ue log shows how far it got. It refuses when the Editor target was never built (Unreal would stop at a dialog), unless --force. While the user has \"chats answer other chats' permission asks\" off, each run first waits for their OK in Amethyst's window.",
     args: [{ name: 'force', type: 'boolean', about: "Open it even though the Editor target isn't built" }],
     route: 'POST /api/ue/cmd/editor',
     example: 'amethyst ue editor',

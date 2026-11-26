@@ -12,6 +12,7 @@ import { refuse, tell } from '../base/notify.ts';
 import { onPref, pref } from '../base/prefs.ts';
 import { esc, setSave, showErr, store } from '../base/util.ts';
 import { onSize } from '../base/measure.ts';
+import { micClick, micHtml } from './voice.ts';
 import type { FmtBox } from '../base/fmt.ts';
 import { litOnHover } from '../base/roving.ts';
 import { chatsHere, looksLikeCode } from '../base/drive.ts';
@@ -213,7 +214,7 @@ export const composerHtml = ({ chat = false }: { chat?: boolean } = {}) => `<for
       <div class="ch-ta"></div>
       <input type="file" class="ch-file-in" accept="image/png,image/jpeg,image/gif,image/webp" multiple hidden>
       <div class="ch-row"><button type="button" class="ch-chip ch-attach" data-ch="attach" title="Add an image\nPicks an image from your disk and puts it in your message where the cursor is.\n\nYou can also paste an image, or drop one onto the box." aria-label="add an image">${icon('image')}</button><span class="ch-opts"></span>
-        <span class="grow"></span>${chat ? '<span class="ch-usage" data-tip-icon="ring" hidden></span>' : ''}${chat ? `<button type="button" class="ch-chip ch-wt" data-ch="wt" aria-label="worktree">${icon('branch')}</button>` : ''}<span class="ch-mode"></span>
+        <span class="grow"></span>${chat ? '<span class="ch-usage" data-tip-icon="ring" hidden></span>' : ''}${chat ? `<button type="button" class="ch-chip ch-wt" data-ch="wt" aria-label="worktree">${icon('branch')}</button>` : ''}<span class="ch-mode"></span>${micHtml()}
         <button type="button" class="ch-send ch-stop" data-ch="stop" title="Stop\nStops the agent right away. Everything it did so far stays in the chat.\n\nThen tell it what to do differently, and it carries on from there." data-tip-keys="=escape:stop" aria-label="stop" hidden>${icon('stop')}</button>
         <button class="ch-send" data-ch="send" title="Send" data-tip-keys="=enter:send;=shift+enter:new line" aria-label="send" disabled>${icon('send')}</button></div>
     </div></form>`;
@@ -700,6 +701,10 @@ export function createComposer(form: HTMLElement, { agent: first, switches, comm
       e.preventDefault();
       const m = pickers().find((p) => p.category === 'mode');
       if (m) stepOpt(m.key, e.shiftKey ? -1 : 1, true);
+    } else if (is(e, 'micKey')) {
+      e.preventDefault();
+      const m = $('.ch-mic');
+      if (m && !m.hidden) micClick(m, input);
     } else if (is(e, 'modelNextKey')) {
       e.preventDefault();
       const m = pickers().find((p) => p.category === 'model');
@@ -783,6 +788,7 @@ export function createComposer(form: HTMLElement, { agent: first, switches, comm
     if (d.ch === 'refs') return showRefs(!refsOpen);
     if (d.ch === 'stop') return onStop();
     if (d.ch === 'attach') return $('.ch-file-in')!.click();
+    if (d.ch === 'mic') return micClick(b, input);
     if (d.ch === 'shrink') {
       b.focus();
       onShrink?.(b.getAttribute('aria-pressed') !== 'true');

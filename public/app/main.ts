@@ -12,9 +12,11 @@ import './dnd.ts';
 import '../usage/usage.ts';
 import '../clips/clips.ts';
 import './keyhelp.ts';
+import './runask.ts';
 import '../welcome/welcome.ts';
 import '../report/report.ts';
 import '../chatnote/chatnote.ts';
+import { openDash } from '../dash/dash.ts';
 import { copyItems, pasteItems, removeAsked, selectDir, selectInbox, setSolo, togglePin } from './actions.ts';
 import { closeEditorNow, flushNow, openMoved, openThought, renderEditorMeta } from '../editor/editor.ts';
 import { addProject, goUp, moveExt, moveWsThoughts, newProject, newWorkspace, openFiles, showWsEditor, switchLevel, switchWorkspace, workspaceMenu, projectMenu } from './levels.ts';
@@ -46,7 +48,7 @@ import type { Msg } from '../base/windows.ts';
 
 const DESKTOP = window.amethyst?.desktop ? window.amethyst : null;
 
-const calls: Page = { chatFromText, editorsOf: editorsOfAm, activity: openActivity, review: openReview, reviewTab: openReviewTab, openReviewFile, openDiff: (d: any) => openDiff(d, true), openPage, showAgent, addAgent: (b: HTMLElement, place?: string) => addAgent('chat', b, '', undefined, place), agentPanel, sendChat, chatPlaces, chatTo, render, reload: reloadAll, layout, moved, openMoved, renderTree, treeRow, renderList, nameInTree, shows, openInTab, openView, keepTab, reveal, openInWindow, toChat: refToChat, chatsFor, floatOpen, inboxTab, showWsEditor, moveExt, openFiles, shownPath: () => (mode() === 'chat' ? null : tabsState() ? (shown(activeGroup())?.path ?? null) : null), flushNow, closeEditorNow, renderEditorMeta, renderSettings, openSettings, openSettingsAt: settingsAt, settingsName, paintSwitch, switchLevel, switchWorkspace, addProject, showGit: () => toggleGit(true), gitRepo: gitRepoNow, gitRefresh: prChanged, openPr, newPr, openIssue, debug: debugStart };
+const calls: Page = { openDash, chatFromText, editorsOf: editorsOfAm, activity: openActivity, review: openReview, reviewTab: openReviewTab, openReviewFile, openDiff: (d: any) => openDiff(d, true), openPage, showAgent, addAgent: (b: HTMLElement, place?: string) => addAgent('chat', b, '', undefined, place), agentPanel, sendChat, chatPlaces, chatTo, render, reload: reloadAll, layout, moved, openMoved, renderTree, treeRow, renderList, nameInTree, shows, openInTab, openView, keepTab, reveal, openInWindow, toChat: refToChat, chatsFor, floatOpen, inboxTab, showWsEditor, moveExt, openFiles, shownPath: () => (mode() === 'chat' ? null : tabsState() ? (shown(activeGroup())?.path ?? null) : null), flushNow, closeEditorNow, renderEditorMeta, renderSettings, openSettings, openSettingsAt: settingsAt, settingsName, paintSwitch, switchLevel, switchWorkspace, addProject, showGit: () => toggleGit(true), gitRepo: gitRepoNow, gitRefresh: prChanged, openPr, newPr, openIssue, debug: debugStart };
 Object.assign(page, calls);
 
 const fromIndex = (el: HTMLElement) => !!el.closest('#tree');
