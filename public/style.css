@@ -630,6 +630,9 @@ body.out-mod .lk:is(a, code, span):not(.miss), body.out-mod .cm-content.pm-mod .
 .ask-wait::after { content: ''; position: absolute; left: 10px; right: 10px; bottom: 2px; height: 2px; background: var(--accent); transform-origin: left; animation: ask-wait var(--wait, 1s) linear forwards; pointer-events: none; }
 .ask-wait .n { opacity: .45; transition: opacity .15s; }
 .ask-ready .n { animation: ask-ready .7s ease-out; }
+#modal button.ask-wait::after { left: 8px; right: 8px; background: var(--on-accent); opacity: .8; }
+#modal button.ask-ready { animation: ask-glow .7s ease-out; }
+@keyframes ask-glow { 0%, 40% { box-shadow: 0 0 8px var(--accent); } }
 @keyframes ask-wait { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes ask-ready { 0%, 40% { color: var(--accent); text-shadow: 0 0 6px var(--accent); } }
 .ch-ask .row button { gap: 5px; min-height: 22px; padding: 0 var(--s2); border-color: transparent; font-size: var(--fs-sm); background: color-mix(in srgb, var(--text) 10%, transparent); }

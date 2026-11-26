@@ -10,6 +10,7 @@ import { DEFAULT, gem, GLYPH, modeGem, NAME, workGem } from './kinds.ts';
 import { tell } from './notify.ts';
 import { atWs, dirGem, hexOr, inboxLoc, inboxTint, levelKey, matches, S, styleMark, tintOf, within } from './model.ts';
 import { page } from './page.ts';
+import { holdFor } from './settle.ts';
 import { BAR_LAST, BAR_ORDER, BAR_SHARE, BTN_OF, chatOn, isOff, MENUS, onPref, peek, pref, PREFS, saved, savedOff, setAt, setOff, setPref } from './prefs.ts';
 import { onPrefUndo, prefStep } from './prefundo.ts';
 import { col, COLORS } from './theme.ts';
@@ -47,6 +48,7 @@ interface AskOpts {
   menu?: { label: string; open: (btn: HTMLElement, pick: (v: unknown) => void, ticked: string[]) => void } | null;
   end?: { label: string; value: unknown } | null;
   main?: { label: string; value: unknown } | null;
+  held?: boolean;
 }
 
 export const MARK_NOS = [1, 2, 3, 4, 5, 6];
@@ -1345,7 +1347,7 @@ new MutationObserver((list) => {
   }
 }).observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['title'] });
 
-export function ask({ title, text = '', warn = '', safe = '', code, value = '', placeholder = '', confirm = false, choices = null, pick = null, tick = null, tick2 = null, label = '', about = '', folder = null, blank = false, list = null, checks = null, ticks = null, menu = null, end = null, main = null }: AskOpts) {
+export function ask({ title, text = '', warn = '', safe = '', code, value = '', placeholder = '', confirm = false, choices = null, pick = null, tick = null, tick2 = null, label = '', about = '', folder = null, blank = false, list = null, checks = null, ticks = null, menu = null, end = null, main = null, held = false }: AskOpts) {
   return new Promise<any>((resolve) => {
     const m = $('#modal');
     const inp = m.querySelector('input');
@@ -1494,8 +1496,11 @@ export function ask({ title, text = '', warn = '', safe = '', code, value = '', 
     }
     let over = false;
     const opened = performance.now();
+    const okBtn = held ? (m.querySelector('[data-ok]') as HTMLElement | null) : null;
+    const hold = okBtn ? holdFor(okBtn) : null;
     const done = (v: unknown) => {
       over = true;
+      hold?.stop();
       m.hidden = true;
       row.innerHTML = plain;
       for (const el of added) el.remove();
@@ -1553,11 +1558,13 @@ export function ask({ title, text = '', warn = '', safe = '', code, value = '', 
       } else if (e.key === 'Escape' || e.key === 'Enter') {
         e.preventDefault();
         e.stopPropagation();
+        if (e.key === 'Enter' && hold?.held()) return;
         e.key === 'Escape' ? cancel() : (e.target as Element).matches?.('[data-browse]') ? browse() : ok();
       }
     };
     const onClick = (e: MouseEvent) => {
       const c = (e.target as Element).closest<HTMLElement>('[data-choice]');
+      if ((c || (e.target as Element).closest('[data-ok]')) && hold?.held()) return;
       if ((e.target as Element).closest('[data-mn]')) openMenu();
       else if ((e.target as Element).closest('[data-end]')) done({ value: end!.value, ticked: said() });
       else if ((e.target as Element).closest('[data-main]')) !(e.target as Element).closest<HTMLButtonElement>('[data-main]')!.disabled && done({ value: main!.value, ticked: said() });

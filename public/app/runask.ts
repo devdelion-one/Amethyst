@@ -19,7 +19,7 @@ export function askQueue<T extends Item>(what: Record<string, unknown>, show: (a
     if (!$<HTMLElement>('#modal').hidden) return void setTimeout(next, 500);
     const a = (open = queue.shift()!);
     desk?.flash?.();
-    const said = ask({ ...show(a), choices: [{ label: 'Allow', value: true, main: true }] });
+    const said = ask({ ...show(a), choices: [{ label: 'Allow', value: true, main: true }], held: true });
     const no = $<HTMLElement | null>('#modal [data-cancel]');
     if (no) no.innerHTML = '<kbd>esc</kbd>not now';
     const yes = await said;
