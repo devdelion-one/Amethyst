@@ -74,7 +74,7 @@ function rail(a: Agent, st: string, t: boolean) {
   const bell = a.report ? `<i class="oc-ic" title="Notifying you\nA notification each time it's ready.">${ICONS.bell}</i>` : '';
   const cold = a.cacheOff && a.program === 'claude' && pref('cache:notice') ? `<i class="oc-ic oc-cold" title="No cache notices&#10;No notice comes before this chat's cache runs out. Turn it back on from its menu.">${icon('history')}<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 2.5l11 11"/></svg></i>` : '';
   const status = st === 'working' ? workGem() : st === 'asks' ? '<i class="oc-dot" title="Needs you"></i>' : st === 'done' ? `<span class="oc-done" title="Finished">${ICONS.check}</span>` : '';
-  return `<div class="oc-rail"><span class="oc-sl">${note}</span><span class="oc-sl oc-sl-b">${bell}${cold}</span><span class="oc-sl oc-sl-m">${markSign(a)}</span><span class="oc-sl oc-sl-s" data-st="${st}">${status}</span>${slotEnd(a, t, st !== 'working')}</div>`;
+  return `<div class="oc-icons"><span class="oc-sl">${note}</span><span class="oc-sl oc-sl-b">${bell}${cold}</span><span class="oc-sl oc-sl-m">${markSign(a)}</span><span class="oc-sl oc-sl-s" data-st="${st}">${status}</span>${slotEnd(a, t, st !== 'working')}</div>`;
 }
 const when = (a: Agent, t: boolean) => whenSpan(a, t);
 const xBtn = (a: Agent) => `<button class="oc-x" data-dk-end="${esc(a.id)}" title="Close it\nIt asks where from. Shift+click closes without asking." aria-label="close it">${ICONS.x}</button>`;
