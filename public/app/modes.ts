@@ -204,6 +204,7 @@ export function renderModes() {
   const nolist = !pref('orch:list');
   $('#app').classList.toggle('orch-lgl', !!ls.l);
   $('#app').classList.toggle('orch-lgr', !!ls.r && !(nolist && ls.l));
+  $('#app').classList.toggle('orch-lmid', nolist && !!ls.l && !!ls.r);
   $('#decks').style.setProperty('--orch-w', orchWidth() ? orchWidth() + 'px' : '');
   if (!atLaunch() && !atWs()) useOrch(orch);
   $('#app').classList.toggle('noagent', m !== 'editor' && m !== 'chat' && m !== 'orch');

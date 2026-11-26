@@ -3,7 +3,7 @@ import { agents, chatOfSession, onAgents } from '../base/stream.ts';
 import { amElse, amKey, chatTabOf, CHATS, esc, quietly, sinceShort, store, track, uid } from '../base/util.ts';
 import { addClosed, crystalOf, groupOf, onCleared, titleOf } from '../base/agentlook.ts';
 import { cacheFlip, cacheRow, doneInner, fileDrag, markFly, markMenu, markPick, renameAsk, renameItem } from '../base/agentrow.ts';
-import { createChatList, hideDrag, listMenu, listPrefs, orchHas, rowListBands, rowListPick } from '../app/chatlist.ts';
+import { createChatList, hideDrag, listMenu, listPrefs, orchHas, rowListBands, rowListPick, showDrag } from '../app/chatlist.ts';
 import { page } from '../base/page.ts';
 import { queue } from '../base/queue.ts';
 import { api, levelKey, S } from '../base/model.ts';
@@ -597,11 +597,21 @@ export function createOrch({ head, makeChat, makeTerm, filesChanged, openFile, c
     for (const g of el.querySelectorAll<HTMLElement>('.oc-lgrip')) g.title = pref('orch:list') ? 'Hide the list\nDrag it all the way to the edge to hide the list.' : 'Show the list\nClick, or drag it, to show the list again.';
   };
   lgripTip();
+  let lgripX = 0;
   for (const g of el.querySelectorAll<HTMLElement>('.oc-lgrip')) {
+    g.addEventListener('click', (e) => {
+      if (!pref('orch:list') && (!e.detail || Math.abs(e.clientX - lgripX) < 3)) setPref('orch:list', true);
+    });
     g.addEventListener('pointerdown', (e: PointerEvent) => {
       if (e.button !== 0) return;
       e.preventDefault();
-      if (!pref('orch:list')) return void setPref('orch:list', true);
+      lgripX = e.clientX;
+      if (!pref('orch:list')) {
+        const ls = listSides();
+        const dir = ls.l && ls.r ? 'mid' : g.dataset.side === 'r' ? 'r' : 'l';
+        grip = showDrag(e, g, dir, () => setPref('orch:list', true));
+        return;
+      }
       grip = hideDrag(e, rail, g, g.dataset.side === 'r', () => setPref('orch:list', false));
     });
   }

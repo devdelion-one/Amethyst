@@ -340,3 +340,20 @@ export function hideDrag(e: PointerEvent, rail: HTMLElement, grip: HTMLElement, 
     apply: (w) => !w && hide(),
   });
 }
+
+export function showDrag(e: PointerEvent, grip: HTMLElement, dir: 'l' | 'r' | 'mid', show: () => void) {
+  const r = grip.getBoundingClientRect(), edge = dir === 'r' ? r.left : dir === 'l' ? r.right : (r.left + r.right) / 2;
+  return snapDrag(e, {
+    grip,
+    sizes: [0, LIST_W],
+    at: (ev) => (dir === 'r' ? ev.clientX - edge : dir === 'l' ? edge - ev.clientX : Math.abs(ev.clientX - edge)),
+    box: (w) => {
+      const width = Math.max(w, 6);
+      if (dir === 'r') return { left: edge, top: r.top, width, height: r.height, edge: edge + w };
+      if (dir === 'l') return { left: edge - width, top: r.top, width, height: r.height, edge: edge - w };
+      return { left: edge - width / 2, top: r.top, width, height: r.height, edge: edge + w / 2 };
+    },
+    label: (w) => (w ? 'list' : 'hide the list'),
+    apply: (w) => w && show(),
+  });
+}
