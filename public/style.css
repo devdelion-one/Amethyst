@@ -4537,8 +4537,10 @@ body:has(> .img-view) :is(#colormenu, #tip) { z-index: 110; }
 #btn-scratch.on, #btn-sketch.on, #btn-inbox.on, #btn-qterm.on, #btn-qpwsh.on, #btn-qagent.on { border-color: transparent; background: var(--flip); color: var(--flip-ink); box-shadow: none; }
 :root .sets > button[data-mode].on .gem:not(.ly-wk .gem), :root .ly.cur .gem:not(.ly-wk .gem), #quick button.on .gem, .pj-tab.on .gem:not(.pj-wk .gem), #btn-qagent.on .gem { color: var(--flip-ink) !important; }
 :root .sets > button[data-mode].on .gem:not(.ly-wk .gem) .b, :root .ly.cur .gem:not(.ly-wk .gem) .b, #quick button.on .gem .b, .pj-tab.on .gem:not(.pj-wk .gem) .b { fill: var(--flip-ink); }
-:root :is(.sets > button[data-mode].on, .ly.cur)[style*="--ly-c"] .gem:not(.ly-wk .gem) { color: var(--flip-ink) !important; }
-:root :is(.sets > button[data-mode].on, .ly.cur)[style*="--ly-c"] .gem:not(.ly-wk .gem) .b { fill: var(--flip-ink); }
+:root :is(.sets > button[data-mode].on, .ly.cur)[style*="--ly-c"] .gem:not(.ly-wk .gem) { color: color-mix(in srgb, var(--ly-c) 70%, var(--flip-ink)) !important; }
+:root :is(.sets > button[data-mode].on, .ly.cur)[style*="--ly-c"] .gem:not(.ly-wk .gem) .b { fill: color-mix(in srgb, var(--ly-c) 55%, var(--flip-ink)); }
+:root :is(.sets > button[data-mode].on, .ly.cur).pale[style*="--ly-c"] .gem:not(.ly-wk .gem) { color: var(--flip-ink) !important; }
+:root :is(.sets > button[data-mode].on, .ly.cur).pale[style*="--ly-c"] .gem:not(.ly-wk .gem) .b { fill: var(--flip-ink); }
 :root :is(.sets > button[data-mode].on, .ly.cur) .gem:not(.ly-wk .gem) .b:not([d="M0 0"]) + path, #quick button.on .gem .b:not([d="M0 0"]) + path, .pj-tab.on .gem:not(.pj-wk .gem) .b:not([d="M0 0"]) + path, :is(#btn-scratch, #btn-sketch, #btn-inbox, #btn-qterm, #btn-qpwsh).on .gem .b:not([d="M0 0"]) + path { fill: color-mix(in srgb, var(--flip-ink) 35%, var(--flip)); }
 #ws-btn:has(#ws-go.on) { border-color: transparent; background: var(--flip); }
 #btn-scratch, #btn-sketch, #btn-inbox, #btn-qterm, #btn-qpwsh, #btn-qagent, .pn-qa { border-color: transparent; background: color-mix(in srgb, var(--text) 10%, transparent); color: var(--text-dim); }
