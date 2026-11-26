@@ -111,8 +111,6 @@ body.resizing-y, body.resizing-y * { cursor: row-resize !important; user-select:
 #switch .sv :is(.md-n, .act-n) { position: absolute; top: 0; right: 0; z-index: 1; min-width: 12px; height: 12px; padding: 0 2px; font-size: var(--fs-mark); line-height: 12px; box-shadow: none; }
 #switch .sv .ly-wk { right: 0; bottom: 0; width: 11px; height: 11px; box-shadow: none; }
 #switch .sv .ly-wk .gem { width: 8px; height: 8px; }
-:is(#btn-newchat, .pn-nc) .nc-plus { position: absolute; right: 1px; bottom: 1px; display: grid; place-items: center; width: 10px; height: 10px; border-radius: var(--r-pill); background: var(--accent); color: var(--on-accent); }
-:is(#btn-newchat, .pn-nc) .nc-plus .ic { width: 8px; height: 8px; stroke-width: 2.4; }
 #app.noagent #switch #btn-newchat { visibility: hidden; }
 #switch #btn-ue :is(.ue-cf, .ue-tm) { display: none; }
 #switch #btn-ue .ue-ic { width: 15px; height: 15px; }
@@ -1449,8 +1447,13 @@ body.fg-toast { margin: 0; overflow: hidden; background: var(--raised); user-sel
 .oc-list > .dk-gh.oc-gh { height: 24px; margin: 8px 0 2px; padding: 0 8px; color: var(--text-faint); font: 400 var(--fs-xs)/1 var(--font); letter-spacing: 0; text-transform: none; }
 .oc-list > .dk-gh.oc-gh:first-child { margin-top: 0; }
 .oc-gh > span { flex: none; font: 500 var(--fs-2xs)/1 var(--mono); }
-.oc-gh > .oc-new { flex: none; height: 18px; padding: 0 7px; border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); border-radius: var(--r-sm); background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--text); font: 500 var(--fs-2xs)/1 var(--font); cursor: pointer; }
-.oc-gh > .oc-new:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 24%, transparent); color: var(--text-strong); }
+.oc-list > .dk-gh.oc-gh:has(> .oc-new) { padding-right: 0; }
+.oc-gh > .oc-new { flex: none; display: grid; place-items: center; width: 22px; height: 22px; padding: 0; border: 1px solid color-mix(in srgb, var(--accent) 60%, transparent); border-radius: var(--r-sm); background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); cursor: pointer; }
+.oc-gh > .oc-new:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 22%, transparent); }
+.oc-gh > .oc-new .gem { width: 13px; height: 13px; color: var(--accent); }
+.oc-gh > .oc-new .gem .b { fill: var(--text-strong); }
+:root[data-light] .oc-gh > .oc-new { border-color: var(--accent); background: var(--raised); }
+:root[data-light] .oc-gh > .oc-new:hover { background: color-mix(in srgb, var(--accent) 6%, var(--raised)); }
 .oc-row { position: relative; border-radius: var(--r-md); cursor: pointer; }
 .oc-row:hover { background: color-mix(in srgb, var(--text) 5%, transparent); }
 .oc-row:focus-visible, .oc-row.drop { outline: 2px solid var(--accent); outline-offset: -2px; }

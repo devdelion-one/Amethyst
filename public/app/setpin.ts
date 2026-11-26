@@ -7,8 +7,8 @@ import { selBarHtml } from '../base/quote.ts';
 import { esc, setSave } from '../base/util.ts';
 
 const PLACE: Record<string, [string, string]> = {
-  top: ['+ agent in the rail', "It makes a tab in the Editor, a window in Agents, or a chat in Orchestration's list."],
-  list: ['+ agent in the chat list', 'The button at the top of the list of chats, in Agents and in Orchestration.'],
+  top: ['New agent button in the rail', "It makes a tab in the Editor, a window in Agents, or a chat in Orchestration's list."],
+  list: ['New agent button in the chat list', 'The button at the top of the list of chats, in Agents and in Orchestration.'],
   agents: ['+ new on an empty spot in Agents', 'It fills that spot with a new chat. A right-click on the empty grid shows the same list.'],
   text: ['+ chat on selected text in the scratch', 'Select text in the scratch and pick where. The new chat starts with that text.'],
   tochat: ['Add to chat on text in a file or terminal', 'When no chat is open for that text yet, it starts a new one with it.'],
@@ -16,8 +16,8 @@ const PLACE: Record<string, [string, string]> = {
 };
 
 const TILE: Record<string, [string, string]> = {
-  top: ['+ agent', 'The + agent button in the rail.'],
-  list: ['+ agent', 'The + agent at the top of the list of chats.'],
+  top: ['new agent button', 'The new agent button in the rail.'],
+  list: ['new agent button', 'The new agent button at the top of the list of chats.'],
   agents: ['+ new', 'The + new on an empty spot in agents.'],
   text: ['+ chat', 'The + chat on text selected in the scratch pad.'],
   tochat: ['Add to chat', 'The add to chat on text in a file or terminal.'],

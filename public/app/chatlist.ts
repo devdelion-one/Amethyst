@@ -129,7 +129,7 @@ export function ocRow(a: Agent, c: RowCtx): Row {
   return { key: 'r:' + a.id, html, cmp, shape: '', text: '', at: a.at, a: ak ? a : null };
 }
 
-export const NEW_BTN = `<button class="oc-new" data-oc-new title="New chat&#10;Starts a new chat with an agent.&#10;&#10;Right-click to pick another agent, or to pin one.">+ agent</button>`;
+export const NEW_BTN = `<button class="oc-new" data-oc-new aria-label="a new agent chat" title="New chat&#10;Starts a new chat with an agent.&#10;&#10;Right-click to pick another agent, or to pin one.">${gem('ai')}</button>`;
 export const ocHead = (k: string, label: string, n: number, add = false): Row => {
   const h = `<h4 class="dk-gh oc-gh" data-st="${k}"><b>${label}</b>${add ? NEW_BTN : `<span>${n}</span>`}</h4>`;
   return { key: 'h:' + k, html: h, cmp: h, shape: '', text: '', at: 0, a: null };

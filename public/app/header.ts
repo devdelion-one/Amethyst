@@ -11,7 +11,7 @@ import { refreshSetup } from '../setup/setup.ts';
 import { openWindow } from './groups.ts';
 import { newProject } from './levels.ts';
 import { web } from '../minds/minds.ts';
-import { addAgent, MODES, openSettings, PLUS, setMode } from './modes.ts';
+import { addAgent, MODES, openSettings, setMode } from './modes.ts';
 import { setPinDrag } from './slots.ts';
 import { api, atLaunch, atWs, mode, S } from '../base/model.ts';
 import { newQuickAgent, toggleQuickAgent } from '../chat/qagent.ts';
@@ -394,7 +394,7 @@ qa.addEventListener('click', () => toggleQuickAgent());
 qa.addEventListener('contextmenu', (e: MouseEvent) => agentRight('quick', e, (k) => newQuickAgent(k), ['all rail buttons', () => topBarMenu(e.clientX, e.clientY, { tray: 'quick' })]));
 
 const nc = $('#btn-newchat');
-export const ncInner = () => gem('ai') + `<i class="nc-plus">${PLUS}</i>`;
+export const ncInner = () => gem('ai');
 const ncTip = () => {
   const on = chatsOn(), k = pinOf('top');
   const one = on.length === 1 ? on[0][1] : k ? agentName(k) : '';

@@ -45,7 +45,7 @@ export const BINDS = [
   ['closeTab', 'tabs', 'close the tab', 'alt+w'],
   ['headerSwitch', 'tabs', 'C and C++: open the other half (Foo.h ↔ Foo.cpp)', 'alt+o'],
   ['reopen', 'tabs', 'bring the closed tab back', 'alt+shift+t'],
-  ['newAgentKey', 'agents and terminals', "a new chat, like the rail's + agent (the picker opens at the pointer)", 'ctrl+r'],
+  ['newAgentKey', 'agents and terminals', "a new chat, like the rail's new agent button (the picker opens at the pointer)", 'ctrl+r'],
   ['refreshBrowser', 'tabs', 'refresh the browser tab', 'ctrl+shift+r'],
   ['tabN', 'tabs', 'tab 1 to 9 of the group (keys, then a digit)', 'alt', 'n'],
   ['tabPrev', 'tabs', 'the tab before', 'alt+arrowleft'],

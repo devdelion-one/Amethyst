@@ -106,7 +106,7 @@ function topGroups(all = false): any[][] {
     bk('noteKey', 'a chat: its note, show / hide'),
     bk('clearKey', 'a chat: clear it (asks first)'),
     bk('find', 'a chat: find in its box or in the whole chat (again: the other); settings: find a setting'),
-    bk('newAgentKey', "a new chat like the rail's + agent"), bk('newChatN', `agents, orchestration and the editor: a new chat (${CHATS.map(([k, name], i) => [k, `${i + 1} ${name}`]).filter(([k]) => chatOn(k)).map(([, t]) => t).join(', ')})`),
+    bk('newAgentKey', "a new chat like the rail's new agent button"), bk('newChatN', `agents, orchestration and the editor: a new chat (${CHATS.map(([k, name], i) => [k, `${i + 1} ${name}`]).filter(([k]) => chatOn(k)).map(([, t]) => t).join(', ')})`),
     bk('fireGo', "research's box: send it and go with it"),
   ]];
   return [modes, deck];
