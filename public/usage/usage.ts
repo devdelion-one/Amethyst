@@ -291,8 +291,7 @@ function agent(id: 'claude' | 'codex' | 'antigravity' | 'cursor' | 'copilot' | '
   if (!chatOn(id)) return '';
   const list = (allLimits() as any[]).filter((l) => l.agent === id).sort((a, b) => (a.key === 'session' ? -1 : b.key === 'session' ? 1 : 0));
   const open = opened().has(id);
-  const tip = `${name}\nClick to ${open ? 'hide' : 'show'} its limits in full.`;
-  const head = `<div class="uw-head uw-fold" data-uw-fold="${id}" role="button" tabindex="0" aria-expanded="${open}" title="${esc(tip)}"><span>${esc(name)}</span>${open ? (id === 'claude' ? accounts() : id === 'antigravity' ? agyAccounts() : '') : mini(list, note)}</div>`;
+  const head = `<div class="uw-head uw-fold" data-uw-fold="${id}" role="button" tabindex="0" aria-expanded="${open}"><span>${esc(name)}</span>${open ? (id === 'claude' ? accounts() : id === 'antigravity' ? agyAccounts() : '') : mini(list, note)}</div>`;
   if (!open) return `<section class="uw-agent" data-agent="${id}">${head}</section>`;
   const asOf = id === 'claude' && list.length ? `<div class="uw-asof">as of ${clock(Math.max(...list.map((l) => l.at)))}</div>` : '';
   const rows = !list.length ? `<div class="uw-none">${esc(note)}</div>` : id === 'antigravity' ? agyRows(list) : list.map((l) => row(l)).join('');
