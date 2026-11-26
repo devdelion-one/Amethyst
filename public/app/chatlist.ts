@@ -3,7 +3,7 @@ import { agentMenu } from '../base/agentmenu.ts';
 import { amElse, amKey, esc, store, track } from '../base/util.ts';
 import { busyNow, gem, workGem } from '../base/kinds.ts';
 import { crystalOf } from '../base/codes.ts';
-import { barMenu, ICONS, miRow, rowIcons, topRow } from '../base/controls.ts';
+import { barMenu, ICONS, miRow, rowIcons, sortable, topRow } from '../base/controls.ts';
 import { toolSign, TOOL_IC } from '../base/tools.ts';
 import { markSign, noteFirst, NOTE_IC, took, whenSpan } from '../base/agentrow.ts';
 import type { Row } from '../base/agentrow.ts';
@@ -43,25 +43,48 @@ const subsOn = (list: string) => !!pref('subagents:on') && !!pref(listKey(list, 
 const stOf = (a: Agent) => (busyNow(a) ? 'working' : a.status);
 const has = (c: RowCtx, x: string) => !!c.show?.includes(x) || !!pref(listKey(c.list, x));
 const subsShown = (c: RowCtx, a: Agent): Sub[] => (a.kind === 'chat' && (c.show?.includes('subs') || subsOn(c.list)) && a.subs?.length ? a.subs : []);
-const quiet = (a: Agent, n: string) => !n || n === 'ready' || /^(thinking|working)\W*$/i.test(n.trim()) || (!!a.title && n.startsWith(a.title));
-
+const EYE_PARTS = ['tool', 'code', 'wt'] as const;
+function eyeOrder(): string[] {
+  const raw = pref('list:eyeOrder');
+  const xs = Array.isArray(raw) ? raw.filter((x): x is string => (EYE_PARTS as readonly string[]).includes(x)) : [];
+  const out = [...new Set(xs)];
+  for (const p of EYE_PARTS) if (!out.includes(p)) out.push(p);
+  return out;
+}
 function slot(st: string) {
   const inner = st === 'working' ? workGem() : st === 'asks' ? '<i class="oc-dot"></i>' : st === 'done' ? ICONS.check : '';
   return `<i class="oc-sg" data-st="${st}">${inner}</i>`;
 }
 const tool = (c: RowCtx, a: Agent) => (has(c, 'tools') ? toolSign(a) : '');
 const code = (c: RowCtx, a: Agent) => (has(c, 'code') ? `<span class="oc-code">${esc(crystalOf(a.id).code)}</span>` : '');
+const toolPart = (c: RowCtx, a: Agent) => (has(c, 'tools') ? toolSign(a).replace('<i class="oc-tool"', '<i class="oc-tool" data-oc-part="tool"') : '');
+const codePart = (c: RowCtx, a: Agent) => (has(c, 'code') ? `<span class="oc-code" data-oc-part="code">${esc(crystalOf(a.id).code)}</span>` : '');
+function wtPart(c: RowCtx, a: Agent) {
+  if (!has(c, 'wt')) return '';
+  if (a.wtBranch) return `<span class="oc-wt" data-oc-part="wt" title="${esc(`Worktree\nBranch ${a.wtBranch}`)}">${icon('branch')}<span>${esc(a.wtBranch)}</span></span>`;
+  return `<span class="oc-wt main" data-oc-part="wt" title="Main folder\nThis chat works in the main project folder."><span>main</span></span>`;
+}
+function eyeLeft(c: RowCtx, a: Agent) {
+  const map: Record<string, () => string> = { tool: () => toolPart(c, a), code: () => codePart(c, a), wt: () => wtPart(c, a) };
+  return `<div class="oc-eye-l">${eyeOrder().map((p) => map[p]?.() || '').join('')}</div>`;
+}
 const topic = (a: Agent) => `<span class="oc-t">${a.title ? esc(a.title) : `<i>${a.kind === 'term' ? esc(a.program || 'terminal') : 'Ready'}</i>`}</span>`;
-function icons(a: Agent, calm: boolean) {
-  const note = !calm && a.kind === 'chat' && a.note ? `<i class="oc-ic" title="${esc(`Note\n${noteFirst(a)}`)}">${NOTE_IC}</i>` : '';
-  const bell = !calm && a.report ? `<i class="oc-ic" title="Notifying you\nA notification each time it's ready.">${ICONS.bell}</i>` : '';
-  const cold = !calm && a.cacheOff && a.program === 'claude' && pref('cache:notice') ? `<i class="oc-ic oc-cold" title="No cache notices&#10;No notice comes before this chat's cache runs out. Turn it back on from its menu.">${icon('history')}<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 2.5l11 11"/></svg></i>` : '';
-  return `<span class="oc-ics">${note}${bell}${cold}${markSign(a)}</span>`;
+function rail(a: Agent, st: string, t: boolean) {
+  const note = a.kind === 'chat' && a.note ? `<i class="oc-ic" title="${esc(`Note\n${noteFirst(a)}`)}">${NOTE_IC}</i>` : '';
+  const bell = a.report ? `<i class="oc-ic" title="Notifying you\nA notification each time it's ready.">${ICONS.bell}</i>` : '';
+  const cold = a.cacheOff && a.program === 'claude' && pref('cache:notice') ? `<i class="oc-ic oc-cold" title="No cache notices&#10;No notice comes before this chat's cache runs out. Turn it back on from its menu.">${icon('history')}<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 2.5l11 11"/></svg></i>` : '';
+  const status = st === 'working' ? workGem() : st === 'asks' ? '<i class="oc-dot" title="Needs you"></i>' : st === 'done' ? `<span class="oc-done" title="Finished">${ICONS.check}</span>` : '';
+  return `<div class="oc-rail"><span class="oc-sl">${note}</span><span class="oc-sl oc-sl-b">${bell}${cold}</span><span class="oc-sl oc-sl-m">${markSign(a)}</span><span class="oc-sl oc-sl-s" data-st="${st}">${status}</span>${slotEnd(a, t, st !== 'working')}</div>`;
 }
 const when = (a: Agent, t: boolean) => whenSpan(a, t);
 const xBtn = (a: Agent) => `<button class="oc-x" data-dk-end="${esc(a.id)}" title="Close it\nIt asks where from. Shift+click closes without asking." aria-label="close it">${ICONS.x}</button>`;
 const slotEnd = (a: Agent, t: boolean, time: boolean) => `<span class="oc-slot">${time ? when(a, t) : ''}${xBtn(a)}</span>`;
 const subLine = (a: Agent, s: Sub, t: boolean) => `<div class="oc-sub" data-oc-sub="${esc(s.id)}" data-oc-of="${esc(a.id)}" role="button" tabindex="0" title="${esc(`${s.name}\nOpens Agent activity: every subagent of this chat.`)}">${slot('working')}<span class="n">${esc(s.name)}</span><span class="dk-tick" data-from="${s.start}">${t ? took(s) : ''}</span></div>`;
+function subOne(a: Agent, s: Sub, t: boolean) {
+  if (s.status === 'running') return subLine(a, s, t);
+  const bad = s.status === 'failed';
+  return `<div class="oc-sub fin" data-oc-sub="${esc(s.id)}" data-oc-of="${esc(a.id)}" role="button" tabindex="0" title="${esc(`${s.name}\nOpens Agent activity: every subagent of this chat.`)}">${bad ? `<i class="oc-sg" data-st="bad">${ICONS.wx}</i>` : slot('done')}<span class="n">${esc(s.name)}</span><span class="dk-tick" data-from="${s.start}">${t ? took(s) : ''}</span></div>`;
+}
 function finLine(a: Agent, subs: Sub[]) {
   const fin = subs.filter((s) => s.status !== 'running');
   if (!fin.length) return '';
@@ -74,7 +97,6 @@ function ticks(a: Agent, subs: Sub[]) {
   const bad = subs.filter((s) => s.status === 'failed').length;
   return `<span class="oc-ticks" data-oc-sub="${esc(subs[0].id)}" data-oc-of="${esc(a.id)}" title="${esc(`${subs.length} subagent${subs.length > 1 ? 's' : ''}${bad ? `, ${bad} failed` : ''}\nOpens Agent activity: every subagent of this chat.`)}">${subs.map((s) => `<i class="${tone(s)}"></i>`).join('')}</span>`;
 }
-const askLine = (a: Agent) => a.ask?.form?.message || a.ask?.q || a.line || '';
 const tip = (a: Agent) => (a.title ? ` title="${esc(a.title)}" data-tip-cut=".oc-t"` : '');
 
 export function ocRow(a: Agent, c: RowCtx): Row {
@@ -83,21 +105,24 @@ export function ocRow(a: Agent, c: RowCtx): Row {
   const open = `data-st="${st}" ${c.attr}="${esc(a.id)}"${tip(a)} role="button" tabindex="0"`;
   let build: (t: boolean) => string;
   if (c.calm) {
-    const run = subs.filter((s) => s.status === 'running').length;
-    const hint = st === 'asks' ? 'needs you' : st === 'working' && run ? `${run} subagent${run > 1 ? 's' : ''}` : '';
-    build = () => `<div class="oc-row oc-line oc-calm${here}" ${open}>${slot(st)}${tool(c, a)}${code(c, a)}${topic(a)}${hint ? `<span class="oc-hint">${hint}</span>` : ''}<span class="oc-ics">${markSign(a)}</span></div>`;
-  } else if (!c.live) {
-    build = (t) => `<div class="oc-row oc-line${here}" ${open}>${slot(st)}${tool(c, a)}${code(c, a)}${topic(a)}${ticks(a, subs)}${icons(a, false)}${slotEnd(a, t, st !== 'working')}</div>`;
+    const hint = st === 'asks' ? 'needs you' : '';
+    build = () => `<div class="oc-row oc-line oc-calm${here}" ${open}>${slot(st)}${tool(c, a)}${code(c, a)}${topic(a)}${ticks(a, subs)}${hint ? `<span class="oc-hint">${hint}</span>` : ''}<span class="oc-ics">${markSign(a)}</span></div>`;
   } else {
     const tight = c.tight && st !== 'asks', run = subs.filter((s) => s.status === 'running');
-    const line = st === 'asks' ? '' : a.line || '';
+    const cls = `oc-row oc-card${c.live ? ' live' : ''}${st === 'asks' ? ' asks' : ''}${tight ? ' tight' : ''}${here}`;
     build = (t) => {
-      const head = `<div class="oc-h">${slot(st)}${tool(c, a)}${code(c, a)}${topic(a)}${icons(a, false)}${slotEnd(a, t, st !== 'working')}</div>`;
-      const now = st === 'asks'
-        ? ak ? `<div class="dk-askslot" data-dk-ask="${esc(ak)}"></div>` : `<div class="oc-now"><span>${esc(askLine(a))}</span><button type="button" class="oc-ans" data-oc-ans="${esc(a.id)}" title="Answer\nOpens the chat, where you answer it.">Answer</button></div>`
-        : !tight && !quiet(a, line) ? `<div class="oc-now"><span>${esc(line)}</span></div>` : '';
-      const lines = st === 'asks' ? '' : run.map((s) => subLine(a, s, t)).join('') + (tight ? '' : finLine(a, subs));
-      return `<div class="oc-row oc-card${tight ? ' tight' : ''}${here}" ${open}>${head}${now}${lines ? `<div class="oc-subs">${lines}</div>` : ''}</div>`;
+      const eye = `<div class="oc-eye">${eyeLeft(c, a)}${rail(a, st, t)}</div>`;
+      const tray = ak
+        ? `<div class="oc-subs"><div class="dk-askslot" data-dk-ask="${esc(ak)}"></div></div>`
+        : st === 'asks' || !subs.length
+          ? ''
+          : c.live
+            ? (() => {
+                const lines = run.map((s) => subLine(a, s, t)).join('') + (tight ? '' : finLine(a, subs));
+                return lines ? `<div class="oc-subs">${lines}</div>` : '';
+              })()
+            : `<div class="oc-subs">${subs.length === 1 ? subOne(a, subs[0], t) : run.map((s) => subLine(a, s, t)).join('') + finLine(a, subs)}</div>`;
+      return `<div class="${cls}" ${open}>${eye}${topic(a)}${tray}</div>`;
     };
   }
   const html = build(true), cmp = build(false);
@@ -112,7 +137,7 @@ export const ocHead = (k: string, label: string, n: number, add = false): Row =>
 
 for (const l of ['orch', 'deck']) {
   const k = (x: string) => listKey(l, x);
-  rowIcons({ [k('newBtn')]: () => gem('ai'), [k('folders')]: () => icon('folder'), [k('subs')]: () => icon('subs'), [k('code')]: () => '<b class="tb-tx">K</b>', [k('tools')]: () => TOOL_IC.claude, [k('answer')]: () => icon('compose') });
+  rowIcons({ [k('newBtn')]: () => gem('ai'), [k('folders')]: () => icon('folder'), [k('subs')]: () => icon('subs'), [k('code')]: () => '<b class="tb-tx">K</b>', [k('tools')]: () => TOOL_IC.claude, [k('wt')]: () => icon('branch'), [k('answer')]: () => icon('compose') });
 }
 const PICK_IC: Record<string, string> = { calm: ICONS.bars, detailed: icon('plan'), mine: icon('move'), latest: ICONS.history };
 const choiceRows = (k: string): [string, string] => [String(PREFS[k].label), (PREFS[k].choices || []).map(([v, label, tip]) => `<button class="mi pick${pref(k) === v ? ' on' : ''}" data-op="${k}" data-ov="${esc(String(v))}" title="${esc(`${label}
@@ -121,7 +146,7 @@ const subRow = (list: string) => {
   const k = listKey(list, 'subs'), e = PREFS[k];
   return pref('subagents:on') ? topRow(!!pref(k), `data-sl title="${esc(e.label)}&#10;${esc(e.desc || '')}"`, icon('subs'), esc(e.label)) : '';
 };
-const ROW_IC: Record<string, () => string> = { code: () => '<b class="tb-tx">K</b>', tools: () => TOOL_IC.claude, answer: () => icon('compose') };
+const ROW_IC: Record<string, () => string> = { code: () => '<b class="tb-tx">K</b>', tools: () => TOOL_IC.claude, wt: () => icon('branch'), answer: () => icon('compose') };
 export const rowListBands = (list: string) => ({
   options: Object.keys(ROW_IC).map((x) => {
     const k = listKey(list, x), e = PREFS[k];
@@ -138,7 +163,7 @@ export function rowListPick(list: string, b: HTMLElement): boolean {
 }
 type MenuMore = { only?: string[]; acts?: () => string; opts?: () => string; pick?: (b: HTMLElement) => unknown };
 export function listMenu(list: string, sel: string, menu: string, more: MenuMore = {}) {
-  const own = ['folders', 'newBtn', 'code', 'tools', 'answer'].map((x) => listKey(list, x)).concat(more.only || []);
+  const own = ['folders', 'newBtn', 'code', 'tools', 'wt', 'answer'].map((x) => listKey(list, x)).concat(more.only || []);
   barMenu(sel, menu, {
     order: false,
     skip: '.dk-ask',
@@ -156,7 +181,7 @@ export function listMenu(list: string, sel: string, menu: string, more: MenuMore
   });
 }
 
-export const listPrefs = (list: string) => ['folders', 'newBtn', 'look', 'sort', 'code', 'tools', 'answer', 'subs'].map((x) => listKey(list, x)).concat(['subagents:on', 'marks:on', 'marks:names']);
+export const listPrefs = (list: string) => ['folders', 'newBtn', 'look', 'sort', 'code', 'tools', 'wt', 'answer', 'subs'].map((x) => listKey(list, x)).concat(['list:eyeOrder', 'subagents:on', 'marks:on', 'marks:names']);
 
 const sortKeyOf = (list: string) => (list === 'orch' ? 'orch' : 'decklist') + ':placed:' + levelKey() + amKey;
 const keyOf = (a: Agent) => a.session || a.id;
@@ -217,6 +242,17 @@ export function createChatList(o: ListOpts) {
     agentMenu(r.left, r.bottom + 6, (p) => o.newChat(nb, p), '', 'chat:', false, { place: 'list' });
   }, true);
   const fh = folderHost(el, { list, attr, agentOf: (id) => agents.all.get(id), repaint: () => void again(), sort: { on: () => pref(k('sort')) !== 'latest', put: place } });
+  sortable(el, {
+    item: '[data-oc-part]',
+    drop(all) {
+      const seen = (all as HTMLElement[]).map((x) => x.dataset.ocPart || '').filter(Boolean);
+      if (seen.length < 2) return;
+      const cur = eyeOrder(), has = new Set(seen);
+      let i = 0;
+      const next = cur.map((p) => (has.has(p) ? seen[i++] : p));
+      if (next.join() !== cur.join()) setPref('list:eyeOrder', next);
+    },
+  });
   const asks = answers((id) => o.open(id));
   const noneLeft = () => ([...agents.all.values()].some((a) => o.mine(a) && folderOf(list, a)) ? 'Every chat here is in a folded folder.' : '');
 

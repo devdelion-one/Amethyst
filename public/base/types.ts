@@ -237,6 +237,7 @@ export interface AgentInfo {
   session?: string | null;
   am?: number;
   wt?: string | null;
+  wtBranch?: string | null;
   subs?: SubSummary[];
   ask?: AskCard | null;
   place?: ChatPlace;

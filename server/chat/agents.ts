@@ -1709,7 +1709,7 @@ function sleeper(e: any) {
   if (!AGENTS[e.agent]) return;
   const { model, effort, mode } = e.codex || {};
   chats.set(e.id, newChat({ id: e.id, agent: e.agent, cwd: e.cwd, sessionId: e.session, named: !!e.named, mine: typeof e.mine === 'string' && e.mine ? e.mine : undefined, auto: typeof e.auto === 'string' ? e.auto : e.mine ? undefined : e.title || undefined, spoke: !!e.spoke, images: new Set(e.images || []), asleep: true, kept: true, codexModel: model, codexEffort: effort, codexMode: mode, agySkip: !!e.agySkip, agySandbox: !!e.agySandbox, cursorForce: !!e.cursorForce, copilotModel: e.copilot?.model || undefined, copilotEffort: e.copilot?.effort || undefined, grokMode: typeof e.grokMode === 'string' && GROK_MODES.has(e.grokMode) ? e.grokMode : undefined, sessions: e.sessions && typeof e.sessions === 'object' ? e.sessions : undefined, carry: e.carry?.from ? e.carry : null, wt: e.wt?.root ? e.wt : null, points: Array.isArray(e.points) ? e.points : [], lastAi: e.lastAi || null, review: e.review?.files ? e.review : null }));
-  live.set(e.id, { kind: 'chat', program: e.program, cwd: e.wt?.root || e.cwd, pid: e.pid, ...(e.wt?.path && !e.wt.gone ? { wt: e.wt.path } : {}), title: e.title || '', model: e.model || '', line: e.line || '', session: e.session, status: e.status === 'done' ? 'done' : 'idle', started: e.started || e.at, am: e.am, ...(e.report ? { report: true } : {}), ...(e.cacheOff ? { cacheOff: true } : {}), ...(e.note ? { note: String(e.note) } : {}) });
+  live.set(e.id, { kind: 'chat', program: e.program, cwd: e.wt?.root || e.cwd, pid: e.pid, ...(e.wt?.path && !e.wt.gone ? { wt: e.wt.path, ...(e.wt.branch ? { wtBranch: e.wt.branch } : {}) } : {}), title: e.title || '', model: e.model || '', line: e.line || '', session: e.session, status: e.status === 'done' ? 'done' : 'idle', started: e.started || e.at, am: e.am, ...(e.report ? { report: true } : {}), ...(e.cacheOff ? { cacheOff: true } : {}), ...(e.note ? { note: String(e.note) } : {}) });
   live.get(e.id).at = e.at || Date.now();
 }
 function hydrate(c: Chat) {
@@ -1784,7 +1784,7 @@ async function rouse(c: Chat) {
     if (c.wt && !c.wt.gone && !fs.existsSync(c.cwd)) {
       c.cwd = c.wt.root;
       c.wt = { ...c.wt, gone: true };
-      live.set(c.id, { wt: null });
+      live.set(c.id, { wt: null, wtBranch: null });
       emit(c, { type: 'worktree', wt: c.wt });
     }
     want(c.agent);
@@ -1845,7 +1845,7 @@ async function intoWorktree(c: Chat, start: StartFrom = {}) {
     await removeWorktree(root, wt.path).catch(() => {});
     throw new HttpError(502, `${AGENTS[c.agent].name} couldn't start in the worktree: ${whyOf(e)}`);
   }
-  live.set(c.id, { session: c.sessionId, wt: wt.path, step: '' });
+  live.set(c.id, { session: c.sessionId, wt: wt.path, wtBranch: wt.branch || null, step: '' });
   emit(c, { type: 'worktree', wt });
 }
 async function touchedIn(dir: string) {

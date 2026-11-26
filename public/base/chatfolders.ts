@@ -278,7 +278,7 @@ export function folderHost(list: HTMLElement, o: HostOpts) {
   };
   const onDown = (e: PointerEvent) => {
     const t = e.target as HTMLElement;
-    if (e.button !== 0 || t.closest('input, button, textarea, .dk-ask, .dk-strip')) return;
+    if (e.button !== 0 || t.closest('input, button, textarea, .dk-ask, .dk-strip, [data-oc-part]')) return;
     dragEnd = 0;
     const h = t.closest<HTMLElement>('[data-cf-h]');
     if (h) return headDrag(e, h);

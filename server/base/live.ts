@@ -31,6 +31,7 @@ interface Live {
   session?: string | null;
   am?: number;
   wt?: string | null;
+  wtBranch?: string | null;
   subs?: SubSummary[];
   ask?: AskCard | null;
   place?: ChatPlace | null;
@@ -70,7 +71,7 @@ const list = new Map<string, Live>();
 const subs = new Set<Sub>();
 const KEEP = 2 * 60e3;
 
-const pub = ({ id, kind, program, title, status, line, model, at, started, session, am, wt, subs, ask, place, draft, review, report, cacheOff, note, rang, step }: Live): Omit<AgentInfo, 'pid' | 'project'> => ({ id, kind, program, title, status, line, model, at, started, session, am, ...(step ? { step } : {}), ...(wt ? { wt } : {}), ...(subs?.length ? { subs } : {}), ...(ask ? { ask } : {}), ...(place ? { place } : {}), ...(draft ? { draft } : {}), ...(review ? { review } : {}), ...(report ? { report } : {}), ...(cacheOff ? { cacheOff } : {}), ...(note ? { note } : {}), ...(rang ? { rang } : {}) });
+const pub = ({ id, kind, program, title, status, line, model, at, started, session, am, wt, wtBranch, subs, ask, place, draft, review, report, cacheOff, note, rang, step }: Live): Omit<AgentInfo, 'pid' | 'project'> => ({ id, kind, program, title, status, line, model, at, started, session, am, ...(step ? { step } : {}), ...(wt ? { wt } : {}), ...(wtBranch ? { wtBranch } : {}), ...(subs?.length ? { subs } : {}), ...(ask ? { ask } : {}), ...(place ? { place } : {}), ...(draft ? { draft } : {}), ...(review ? { review } : {}), ...(report ? { report } : {}), ...(cacheOff ? { cacheOff } : {}), ...(note ? { note } : {}), ...(rang ? { rang } : {}) });
 const lastLine = (s: unknown, n = 140) => String(s || '').split('\n').map((l) => l.trim()).filter(Boolean).pop()?.slice(0, n) || '';
 
 function tell(a: Live) {

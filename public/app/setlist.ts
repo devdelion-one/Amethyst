@@ -13,7 +13,7 @@ type Sample = Agent & { pos: number; bench?: boolean; folder?: boolean };
 const TWO = ['deck', 'orch'];
 const both = (x: string, more: Partial<Row> = {}): Row => ({ id: listKey('deck', x), key: listKey('deck', x), at: TWO.map((place) => ({ key: listKey(place, x), place })), ...more });
 const calmBoth = () => (TWO.every((p) => pref(listKey(p, 'look')) === 'calm') ? 'Not used while the list is calm: calm rows are one line each.' : '');
-const chatRows = (): Row[] => [both('look', { choice: true }), both('sort', { choice: true }), both('folders'), both('newBtn'), both('code'), both('tools'), both('answer', { blocked: calmBoth }), both('subs', { blocked: calmBoth })];
+const chatRows = (): Row[] => [both('look', { choice: true }), both('sort', { choice: true }), both('folders'), both('newBtn'), both('code'), both('tools'), both('wt', { blocked: calmBoth }), both('answer', { blocked: calmBoth }), both('subs')];
 const linked = (key: string): Row => ({ id: key, key, at: [{ key, place: 'deck' }, { key, place: 'terms' }], linked: true });
 const alsoRows = (): Row[] => [{ id: 'closed:on', key: 'closed:on', at: [{ key: 'closed:on', place: 'deck' }] }, linked('rail:hideBtn'), linked('rail:showBtn')];
 const termRows = (): Row[] => ['deck:rowCode', 'deck:title2', 'deck:rowInfo'].map((key) => ({ id: key, key, at: [{ key, place: 'terms' }] }));
@@ -21,7 +21,7 @@ const clRows = () => [...chatRows(), ...alsoRows()];
 
 const shortOf = (key: string) => (key === 'subagents:list' || key === 'decklist:subs' ? 'subs' : key.replace(/^(orch|decklist):/, ''));
 const SEL: Record<string, string> = {
-  folders: '.cf-box', newBtn: '.oc-new', code: '.oc-code', tools: '.oc-tool', answer: '.dk-ask', subs: '.oc-subs',
+  folders: '.cf-box', newBtn: '.oc-new', code: '.oc-code', tools: '.oc-tool', wt: '.oc-wt', answer: '.dk-ask', subs: '.oc-subs',
   'closed:on': '.dk-closed', 'rail:hideBtn': '.dk-hide', 'rail:showBtn': '.dk-show',
   'deck:rowCode': '.dk-row .dk-r1 > .dk-code', 'deck:title2': '.dk-row.hr-long .dk-topic', 'deck:rowInfo': '.dk-row .dk-r2',
 };
@@ -34,7 +34,7 @@ const FORM = (message: string, opts: string[]) => ({ id: 'hr-ask', q: '', why: '
 const SAMPLES: Record<string, () => Sample[]> = {
   deck: () => [
     { id: 'hr-1079-a1', kind: 'chat', program: 'claude', status: 'asks', title: 'Pick the database for sign-up', line: '', ask: FORM('Which database should the sign-up page use?', ['Postgres, like the rest of the app', 'SQLite, a file next to the server']), at: ago(60), pos: 2 },
-    { id: 'hr-1079-a2', kind: 'chat', program: 'claude', status: 'working', title: 'Fix the login page on mobile', line: 'Running the tests on a small screen', subs: [sub('s1', 'Explore the login form', 'running', 72), sub('s2', 'Run the tests', 'running', 24), sub('s3', 'Read the logs', 'done', 300)], at: ago(5), pos: 0 },
+    { id: 'hr-1079-a2', kind: 'chat', program: 'claude', status: 'working', title: 'Fix the login page on mobile', line: 'Running the tests on a small screen', wtBranch: 'fix/login-mobile', subs: [sub('s1', 'Explore the login form', 'running', 72), sub('s2', 'Run the tests', 'running', 24), sub('s3', 'Read the logs', 'done', 300)], at: ago(5), pos: 0 },
     { id: 'hr-1079-a3', kind: 'chat', program: 'claude', status: 'idle', title: 'Sign-up page colors', line: '', report: true, at: ago(3600), pos: 1 },
     { id: 'hr-1079-a4', kind: 'chat', program: 'codex', status: 'done', title: 'Read the server logs', line: '', note: 'Check the logs again tomorrow', subs: [sub('s4', 'a', 'done', 900), sub('s5', 'b', 'done', 900), sub('s6', 'c', 'done', 900)], at: ago(120), pos: 3 },
     { id: 'hr-1079-a5', kind: 'chat', program: 'claude', status: 'idle', title: 'Check the form on a small phone', line: '', at: ago(3 * 3600), pos: 4, folder: true },
@@ -42,7 +42,7 @@ const SAMPLES: Record<string, () => Sample[]> = {
   ] as unknown as Sample[],
   orch: () => [
     { id: 'hr-1079-o1', kind: 'chat', program: 'claude', status: 'asks', title: 'Name the new settings page', line: '', ask: FORM('Which name should the page use?', ['Show and hide', 'Look']), at: ago(90), pos: 2 },
-    { id: 'hr-1079-o2', kind: 'chat', program: 'claude', status: 'working', title: 'Move the chat list switches', line: 'Reading the settings code', subs: [sub('s7', 'Find every list switch', 'running', 48), sub('s8', 'Check the tooltips', 'done', 200)], at: ago(8), pos: 0 },
+    { id: 'hr-1079-o2', kind: 'chat', program: 'claude', status: 'working', title: 'Move the chat list switches', line: 'Reading the settings code', wtBranch: 'task/list-switches', subs: [sub('s7', 'Find every list switch', 'running', 48), sub('s8', 'Check the tooltips', 'done', 200)], at: ago(8), pos: 0 },
     { id: 'hr-1079-o3', kind: 'chat', program: 'claude', status: 'idle', title: 'Draw the preview', line: '', at: ago(7200), pos: 1 },
     { id: 'hr-1079-o4', kind: 'chat', program: 'codex', status: 'done', title: 'Check the menu words', line: '', note: 'Ask about the order', at: ago(300), pos: 3 },
     { id: 'hr-1079-o5', kind: 'chat', program: 'claude', status: 'idle', title: 'Write the change notes', line: '', at: ago(2 * 86400), pos: 4, folder: true },
@@ -57,7 +57,7 @@ function listPic(p: string, parts = ALL_PARTS) {
   const live = L.filter((a) => a.status === 'asks' || a.status === 'working').sort((x, y) => (x.status === 'asks' ? -1 : 0) - (y.status === 'asks' ? -1 : 0));
   const ord = (xs: Sample[]) => (pref(listKey(p, 'sort')) === 'latest' ? xs.sort((x, y) => y.at - x.at) : xs.sort((x, y) => x.pos - y.pos));
   const rest = ord(L.filter((a) => !live.includes(a) && !a.bench && !a.folder)), bench = p === 'deck' ? ord(L.filter((a) => a.bench)) : [];
-  const showOf = (a: Sample) => (a.status === 'asks' ? ['code', 'tools', 'answer'] : a.status === 'working' ? ['subs'] : []);
+  const showOf = (a: Sample) => (a.status === 'asks' ? ['code', 'tools', 'wt', 'answer'] : a.status === 'working' ? ['wt', 'subs'] : []);
   const row = (a: Sample, isLive: boolean) => {
     const html = ocRow(a, { list: p, attr: 'data-hr-agent', calm, tight: false, live: isLive, cur: null, show: showOf(a) }).html;
     return a.ask ? html.replace(/<div class="dk-askslot"[^>]*><\/div>/, askHtml(a.ask)) : html;
@@ -94,7 +94,7 @@ function termPic(rows = true) {
   return `<aside class="dk-rail hr-crail hr-trail">${termHead()}${list}</aside>`;
 }
 
-const PARTS: Record<string, string[]> = { look: ['live', 'all'], sort: ['all'], folders: ['all', 'folder'], newBtn: ['live'], code: ['live'], tools: ['live'], answer: ['live'], subs: ['live', 'all'], 'closed:on': ['all', 'closed'], 'rail:hideBtn': ['live', 'hide'] };
+const PARTS: Record<string, string[]> = { look: ['live', 'all'], sort: ['all'], folders: ['all', 'folder'], newBtn: ['live'], code: ['live'], tools: ['live'], wt: ['live', 'all'], answer: ['live'], subs: ['live', 'all'], 'closed:on': ['all', 'closed'], 'rail:hideBtn': ['live', 'hide'] };
 function picOf(a: At) {
   const k = shortOf(a.key);
   if (k === 'rail:showBtn') return edgePic();
