@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Amethyst</title>
+  <meta name="theme-color" content="#18181b">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="winbar" class="xw-bar" hidden>
+  <img class="wb-gem" src="amethyst.svg" alt="" draggable="false"><span class="xw-n"></span><span class="grow"></span>
+  <span id="pop-acts" class="xw-acts"><button class="x xw-every" id="win-every" aria-label="keep this window when you switch projects" hidden><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M0 7.5h10M1.5 7.5V5M8.5 7.5V5M1.5 5Q5 1.5 8.5 5M5 3.2v4.3"/></svg></button><span class="szs"></span><button class="x" id="pop-min" aria-label="minimize"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M0 5.5h10"/></svg></button><button class="x" id="pop-max" aria-label="maximize" hidden><svg viewBox="0 0 10 10" aria-hidden="true"><rect x=".5" y=".5" width="9" height="9"/></svg></button><button class="x xw-x" id="pop-x" title="Close&#10;Closes this window. What you typed is saved." aria-label="close"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M0 0l10 10M10 0L0 10"/></svg></button></span>
+</div>
+<div id="app">
+  <header class="bar">
+    <span id="here"></span>
+    <div id="switch" hidden></div>
+    <div class="actions">
+      <div class="tray" data-g="ue"><button id="btn-uewin" class="off"></button><button id="btn-ue" class="off"></button></div>
+      <div class="tray" data-g="make">
+        <span id="quick" aria-label="quick create"></span>
+        <button id="btn-more" title="New&#10;Makes a new file or folder, in the inbox or the project folder.&#10;&#10;Right-click to choose its buttons." data-tip-icon="plus">new ▾</button>
+      </div>
+      <div class="tray" data-g="quick">
+        <button id="btn-scratch"></button>
+        <button id="btn-sketch"></button>
+        <button id="btn-qterm"></button>
+        <button id="btn-qpwsh"></button>
+        <button id="btn-qagent"></button>
+        <button id="btn-inbox"></button>
+      </div>
+      <div class="tray" data-g="agent"><button id="btn-newchat"></button></div>
+      <div class="tray" data-g="win">
+        <button id="btn-pins"></button>
+        <button id="btn-win"></button>
+      </div>
+    </div>
+  </header>
+
+  <div id="shell">
+    <nav id="activity" aria-label="side bar">
+      <button id="btn-index"></button>
+      <button id="btn-git"></button>
+      <button id="btn-github" title="GitHub&#10;The project's pull requests and issues."></button>
+      <button id="btn-setup" title="Agent setup&#10;The skills, memory and instructions each agent uses in this project."></button>
+      <span class="grow"></span>
+      <a id="btn-site" href="/" title="Site: Amethyst&#10;The project's site, its pages and how it builds."></a>
+    </nav>
+
+    <aside class="box" id="side">
+      <span class="bt">Explorer</span>
+      <button class="x" id="tree-fold"></button>
+      <button class="x" id="tree-focus" hidden></button>
+      <input id="search" placeholder="search (/)" autocomplete="off" spellcheck="false">
+      <div id="tree" role="tree" aria-label="explorer"></div>
+      <div id="scm"></div>
+      <div id="github"></div>
+      <div id="setup"></div>
+      <div id="side-grip" title="Resize&#10;Drag to make the side panel wider or narrower."></div>
+    </aside>
+
+    <aside id="wsx" aria-label="the workspace's files">
+      <div class="wx-head"><span class="bt">Explorer</span><span class="grow"></span><button class="x" data-wxnew title="New file&#10;Makes a new file in the workspace's folder." data-tip-icon="newFile">+ file</button><button class="x" data-wxdir title="New folder&#10;Makes a new folder in the workspace's folder." data-tip-icon="newFolder">+ folder</button><button class="x" data-wxfold title="Fold all&#10;Closes every open folder in the list." data-tip-icon="foldAll">fold</button><button class="x" data-wxload title="Refresh&#10;Reads the folder again, to show files changed outside the app." aria-label="refresh">⟳</button></div>
+      <div id="wx-tree" role="tree" aria-label="the workspace's files"></div>
+    </aside>
+
+    <main id="main"></main>
+
+    <section id="start" aria-label="your projects">
+      <div class="st-in">
+        <div class="st-head"><span class="st-ic" id="st-ic" data-tip-mono></span><div class="st-name"><h1 id="st-title" data-tip-mono data-tip-icon="workspaces">workspace</h1><div id="st-desc" role="textbox" aria-multiline="true" spellcheck="false" title="Description&#10;What this workspace is for. Click to write it." data-tip-icon="rename"></div></div></div>
+        <div class="st-cols">
+          <div class="st-pj">
+            <div class="st-sec"><span class="st-l">Projects</span><b class="cnt" id="st-n"></b><span class="st-hid" id="st-hid" hidden></span><span class="grow"></span><span class="st-newg"><button class="outline sm st-new" data-newproject title="New project&#10;Adds a folder you work in to this workspace, with its own tabs, chats and terminals."><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.2v9.6M3.2 8h9.6"/></svg>new project</button><button class="outline sm st-newm" data-newpjmenu title="More ways to add a project&#10;Adds a project as a copy of a git repository." aria-label="more ways to add a project"><svg class="ic" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5 5 6.5 8 3.5"/></svg></button></span></div>
+            <div class="pjr head"><span></span><span>name<span class="h-folder"> and folder</span></span><span class="h-eye"></span></div>
+            <div id="st-grid"></div>
+            <p id="st-left" hidden></p>
+          </div>
+          <div id="st-note"><div class="st-sec"><span class="st-l">workspace.md</span><span class="grow"></span><button class="tx" data-wsnote title="Edit&#10;Opens workspace.md in the workspace's tabs, to write about the workspace."><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M10.8 2.8 13.2 5.2 5.6 12.8 2.6 13.4 3.2 10.4z"/></svg>edit</button></div><div class="sn-body ch-ai"><div class="md"></div></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="decks" aria-label="agents"></section>
+
+    <aside id="pins" aria-label="pinned"><span class="bt">Pinned</span><div id="pins-list"></div></aside>
+  </div>
+
+  <section id="pagewin" class="box" hidden>
+    <div class="fw-head"><div id="pw-tabs"></div><span class="szs"></span><button class="x" data-pwmin aria-label="minimize"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M0 5.5h10"/></svg></button><button class="x" data-pwclose aria-label="close"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M0 0l10 10M10 0L0 10"/></svg></button></div>
+    <div id="pw-body"></div>
+    <i data-rs="n"></i><i data-rs="s"></i><i data-rs="e"></i><i data-rs="w"></i><i data-rs="ne"></i><i data-rs="nw"></i><i data-rs="se"></i><i data-rs="sw"></i>
+  </section>
+  <div id="fw-snap"></div>
+
+  <section id="launch" aria-label="your workspaces">
+    <div class="la-in">
+      <div class="la-hero"><a class="la-logo" href="/" title="Amethyst&#10;Opens the Amethyst site in your browser." data-tip-icon="site"><img src="amethyst.svg" alt="Amethyst"></a><h1>Amethyst</h1><p id="la-line">Pick a workspace, or make a new one.</p>
+        <div class="la-acts"><button class="primary" data-newws title="New workspace&#10;Makes a workspace: a place for project folders that belong together." data-tip-keys="newWorkspace:new workspace" data-tip-icon="plus"><kbd>w</kbd>new workspace</button></div></div>
+      <div class="la-sec"><span class="st-l" title="Workspaces&#10;Each workspace holds the projects that belong together.&#10;&#10;Removing a workspace only takes it off this list; its folders stay." data-tip-icon="workspaces">Workspaces</span><b class="cnt" id="la-n"></b><span class="grow"></span><button id="la-reset" class="tx" style="visibility:hidden" title="Reset order&#10;Unpins every workspace, so the last opened comes first again.">reset order</button></div>
+      <div id="la-grid"></div>
+    </div>
+  </section>
+
+  <footer id="status">
+    <button id="ws-all" data-launch aria-label="all workspaces"></button><i class="dock-sep"></i>
+    <div id="ws-btn" hidden><button id="ws-go"></button></div>
+    <nav id="projects" aria-label="projects" hidden></nav>
+    <div id="pw-dock" hidden></div>
+    <span class="grow"></span>
+    <span id="aw-dock" data-dk="windows" hidden></span>
+    <button id="st-update" class="quiet" data-dk="update" hidden></button>
+    <button id="st-hitch" class="quiet" data-dk="hitch" aria-label="freeze log" aria-expanded="false" hidden></button>
+    <i class="dock-sep" data-dk="sep"></i>
+    <button id="btn-timer" class="quiet" data-dk="timer" title="Timer&#10;Each click sets the next time from your timer steps, and it starts a moment later. A click while it runs moves it up to the next step.&#10;&#10;Right-click to reset it." data-tip-set="general"></button>
+    <button id="btn-clips" class="quiet" data-dk="clips" title="Clips&#10;Screenshots, photos and texts you kept for later." aria-label="clips" hidden></button>
+    <button id="fg-btn" data-dk="forget" title="Don't forget&#10;Your reminders, in one list." data-tip-keys="newForget:new don't forget" aria-label="don't forget" aria-expanded="false" hidden>!</button>
+    <i class="dock-sep" data-dk="sep"></i>
+    <button id="st-usage" class="quiet st-usage" data-dk="usage" data-tip-icon="usage" title="Usage and limits&#10;How much of each agent's limits you have used.&#10;&#10;Right-click to pick two bars instead of the gauge." aria-label="usage and limits" aria-expanded="false"></button>
+    <button id="btn-keys" class="quiet" data-dk="keys" title="Keys&#10;The keys you'll use most. Change any of them in Settings, Keys." data-tip-set="keys" aria-label="keys" aria-expanded="false"></button>
+    <button id="btn-settings" data-dk="settings" title="Settings&#10;Theme, fonts, code colors, archive and keys." data-tip-keys="settings:settings"></button>
+  </footer>
+</div>
+
+<div id="notices"><div id="save-state" class="float" role="status" hidden></div></div>
+
+<div id="webs"></div>
+
+<div id="stash" hidden>
+  <div id="list"></div>
+  <div id="archive"></div>
+
+  <section class="box panel float" id="editor">
+    <span class="bt" id="ed-head"></span>
+    <button class="x" id="ed-close" title="Close&#10;Closes this window." data-tip-keys="=esc:close" aria-label="close">×</button>
+    <div id="ed-disk" hidden>changed on disk <button class="outline" data-disk="reload" title="Reload it&#10;Drops what you typed and shows the file as it is on disk.">reload it</button><button class="quiet" data-disk="keep" title="Keep mine&#10;Saves what you typed over the file on disk.">keep mine</button></div>
+    <div class="title-row"><button class="mark" id="ed-mark" tabindex="-1"></button><input id="ed-title" autocomplete="off" spellcheck="false"></div>
+    <div id="ed-bodywrap">
+      <div id="ed-body"></div>
+      <span id="ed-sel" hidden><button id="ed-split" title="Make a file&#10;Makes the selected text a file in the inbox. It leaves the scratch.">+ file</button><button id="ed-chat" title="Add to chat&#10;Sends the selected text to a chat you pick, a new or an open one. It leaves the scratch." data-tip-keys="=shift+click:on a chat: put it in its box, unsent;=ctrl+click:on a chat: go there too">+ chat</button></span>
+    </div>
+    <div id="ed-atts" hidden></div>
+    <div id="ed-board"></div>
+    <div id="ed-pad"></div>
+    <details class="more" id="ed-web"><summary>more <span class="v" id="ed-webv"></span></summary>
+      <div class="more-body">
+        <div class="props">
+          <span class="lbl where">where</span><span class="row where"><select id="ed-where"></select></span>
+        </div>
+      </div>
+    </details>
+    <div class="foot">
+      <span class="grow"></span>
+      <button id="ed-tab" title="Open in a tab&#10;Opens it in a tab of its own, beside this one.">⇥ tab</button>
+      <button id="ed-wide" title="Wide&#10;The board takes the whole screen. Click again for its usual size.">wide</button>
+      <button id="ed-trash" class="danger" title="Archive&#10;Moves it to the archive.&#10;&#10;The archive brings it back." data-tip-keys="archive:archive;=4:open the archive"><kbd>del</kbd>archive</button>
+    </div>
+  </section>
+</div>
+
+<section id="forget" aria-label="don't forget" tabindex="-1" hidden>
+  <div id="fg-head" class="float-head"><img src="amethyst.svg" alt="" draggable="false"><span>don't forget</span><button data-fgnew aria-label="new don't forget" aria-expanded="false"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0v10M0 5h10"/></svg></button><span class="fg-sp"></span><button data-fgpop role="switch" aria-checked="true" aria-label="reminders in the corner of the screen" hidden></button><button data-fginfo title="How to write it&#10;Start with ! for this project or # for the whole workspace, then minutes or a time. Without a timer it stays in the list." aria-label="how to write a don't forget"></button><button data-fgset title="Settings&#10;The don't forget settings." data-tip-set="general" aria-label="don't forget settings"></button><button class="x" data-fgx title="Close&#10;The ! in the dock opens it again." aria-label="close"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M0 0l10 10M10 0L0 10"/></svg></button></div>
+  <div id="fg-form" hidden><span class="fg-line"><span class="fg-mir" aria-hidden="true"></span><input id="fg-text" type="text" spellcheck="false" placeholder="!55 call mom"><span class="fg-pv"></span></span><div class="fg-hint"></div></div>
+  <div id="fg-list" hidden></div>
+  <i data-rs="n"></i><i data-rs="s"></i><i data-rs="e"></i><i data-rs="w"></i><i data-rs="ne"></i><i data-rs="nw"></i><i data-rs="se"></i><i data-rs="sw"></i>
+</section>
+
+<div id="colormenu" hidden></div>
+
+<div id="tip" role="tooltip" hidden></div>
+
+<div id="modal" hidden>
+  <div class="box">
+    <span class="bt"></span>
+    <p></p>
+    <input autocomplete="off" spellcheck="false">
+    <div class="row"><button data-cancel><kbd>esc</kbd>cancel</button><button data-ok class="primary"><kbd>enter</kbd>ok</button></div>
+  </div>
+</div>
+
+<div id="setwin" hidden>
+  <div class="box" role="dialog" aria-label="settings">
+    <div class="sw-head"><i id="setwin-gem"></i><span class="sw-title">settings</span><button class="chip set-rail-btn" id="set-rail-btn" hidden title="Preview panel&#10;Shows or hides the read-only visual preview panel on the right."></button><button class="x" data-setwin-close title="Close&#10;Closes Settings." data-tip-keys="=esc:close" aria-label="close">×</button></div>
+    <div class="sw-body">
+      <nav id="set-side" aria-label="settings sections"><span id="set-find-at"><input id="set-find" type="search" placeholder="find a setting or a key" spellcheck="false" autocomplete="off" aria-label="find a setting or a key"><span id="set-find-n" aria-live="polite"></span></span><div id="set-secs" role="tablist" aria-orientation="vertical"></div></nav>
+      <div id="settings"></div>
+      <aside id="set-rail" aria-label="setting preview" hidden></aside>
+    </div>
+  </div>
+</div>
+
+<div id="keys" hidden>
+  <div class="box">
+    <span class="bt">keys and mouse</span>
+    <button class="x" data-keys-close title="Close&#10;Closes this window." data-tip-keys="=esc:close" aria-label="close">×</button>
+    <div id="keys-grid"></div>
+    <div class="bd-foot"><span id="keys-msg"></span><button class="chip" data-keys-reset-all>reset all</button></div>
+  </div>
+</div>
+
+<div id="palette" hidden>
+  <div class="box">
+    <input autocomplete="off" spellcheck="false" placeholder="a file or chat by its name or a word in it · > a command">
+    <ul></ul>
+  </div>
+</div>
+
+<div id="fpick" hidden>
+  <div class="box" role="dialog" aria-label="pick a folder">
+    <div class="fp-head"><span class="fp-t"></span><label class="fp-tick" title="Don&#39;t ask&#10;With this on, the inbox or the project folder you pick is where new files go, without asking again." data-tip-set="files"><input type="checkbox"> don’t ask</label></div>
+    <input class="fp-q" autocomplete="off" spellcheck="false" placeholder="folder…" aria-label="find a folder">
+    <ul></ul>
+  </div>
+</div>
+
+<script type="module" src="app/main.ts"></script>
+</body>
+</html>

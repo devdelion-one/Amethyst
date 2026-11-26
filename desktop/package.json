@@ -1,0 +1,98 @@
+{
+  "name": "amethyst-desktop",
+  "productName": "Amethyst",
+  "version": "0.2.5",
+  "private": true,
+  "description": "Amethyst for Windows: windows around the app (server.ts and public/ one folder up).",
+  "main": "boot.ts",
+  "scripts": {
+    "start": "node run.ts",
+    "icon": "node icon.ts",
+    "dist": "electron-builder --win nsis",
+    "release": "electron-builder --win nsis --publish always"
+  },
+  "devDependencies": {
+    "electron": "44.7.2",
+    "electron-builder": "26.17.0"
+  },
+  "build": {
+    "appId": "dev.enthr.amethyst",
+    "productName": "Amethyst",
+    "artifactName": "Amethyst-Setup-${version}.${ext}",
+    "afterPack": "afterpack.ts",
+    "publish": {
+      "provider": "github",
+      "owner": "devdelion-one",
+      "repo": "Amethyst.exe"
+    },
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "boot.ts",
+      "main.ts",
+      "hitch.ts",
+      "update-state.ts",
+      "usage-state.ts",
+      "license-state.ts",
+      "owned.ts",
+      "snap.ts",
+      "preload.js",
+      "package.json",
+      "build/icon.png",
+      "build/icon.ico"
+    ],
+    "extraResources": [
+      {
+        "from": "..",
+        "to": "app-src",
+        "filter": [
+          "server.ts",
+          "server/**/*",
+          "hook.js",
+          "package.json",
+          "public/**/*"
+        ]
+      },
+      {
+        "from": "..",
+        "to": "app-src",
+        "filter": [
+          "LICENSE",
+          "THIRD-PARTY-NOTICES.txt"
+        ]
+      },
+      {
+        "from": "../node_modules/@xterm",
+        "to": "app-src/node_modules/@xterm"
+      },
+      {
+        "from": "../node_modules/node-pty",
+        "to": "app-src/node_modules/node-pty",
+        "filter": [
+          "package.json",
+          "lib/**/*",
+          "build/Release/**/*",
+          "prebuilds/win32-x64/**/*",
+          "!**/*.pdb",
+          "!lib/**/*.test.js"
+        ]
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/app.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "Amethyst",
+      "license": "license.txt"
+    }
+  },
+  "dependencies": {
+    "electron-updater": "6.8.11"
+  }
+}

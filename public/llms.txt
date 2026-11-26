@@ -1,0 +1,16 @@
+# Amethyst
+
+> Amethyst is an ADE for running multiple coding agents in parallel. Give every task its own space, pick up any chat when you're ready, and switch projects in one click while every agent keeps working.
+
+Amethyst is an ADE (Agentic Development Environment) for software engineers. Run your coding agents in parallel on your own accounts, give every task its own space, and switch projects in one click while every agent keeps working. Arrange the window around the work, from a wall of chats to chats beside your code, with orchestration and context passing between agents built in.
+
+It works with Claude, Codex, Antigravity, Cursor and GitHub Copilot. It runs on Windows.
+
+Price: Amethyst is free for personal and work use during the beta. Paid Personal and Commercial licenses start at 1.0.0; 30 days later every version needs one, beta versions too.
+
+## Links
+
+- [Download](https://amethyst.run/download): the download page for Windows
+- [Discord](https://discord.gg/yppAbHmMXG): early access to the installer and the builds that follow
+- [License](https://amethyst.run/license): the Amethyst License
+- [Privacy](https://amethyst.run/privacy): what Amethyst and amethyst.run keep

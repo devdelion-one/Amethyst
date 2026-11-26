@@ -1,0 +1,1 @@
+export const UE_CONFIGS = { Editor: ['Development', 'DebugGame'], Game: ['Development', 'DebugGame', 'Shipping'], Client: ['Development', 'DebugGame', 'Shipping'], Server: ['Development', 'DebugGame', 'Shipping'] };

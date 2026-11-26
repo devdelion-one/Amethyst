@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "types": [],
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "allowJs": true,
+    "checkJs": true,
+    "strict": true,
+    "paths": {
+      "/vendor/codemirror.mjs": ["../codemirror.ts"],
+      "/vendor/xterm.mjs": ["./vendor/xterm.d.mts"],
+      "/vendor/addon-fit.mjs": ["./vendor/addon-fit.d.mts"]
+    }
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["vendor"]
+}

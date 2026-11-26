@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Privacy · Amethyst</title>
+  <meta name="description" content="How Amethyst and amethyst.run handle your data.">
+  <link rel="canonical" href="https://amethyst.run/privacy">
+  <meta name="theme-color" content="#100f14">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="site-doc">
+<header class="doc-top">
+  <a class="doc-brand" href="/" aria-label="Amethyst home">
+    <svg class="brand-mark" viewBox="22.3 -14.0 440.8 540.0" aria-hidden="true">
+    <defs>
+    <mask id="doc-belt" maskUnits="userSpaceOnUse" x="-200" y="-200" width="1000" height="1000">
+    <rect x="-200" y="-200" width="1000" height="1000" fill="#fff"/>
+    <polyline points="98.62,129.98 120.96,150 225.88,244 323.48,262 443.04,242 472.63,237.05" fill="none" stroke="#000" stroke-width="14"/>
+    </mask>
+    </defs>
+    <g fill="#8a3dff">
+    <g mask="url(#doc-belt)">
+    <polygon points="313.72,6 120.96,150 225.88,244 323.48,262 443.04,242"/>
+    <polygon points="120.96,150 225.88,244 323.48,262 443.04,242 245.4,506"/>
+    </g>
+    <polygon points="42.27,209.75 118.52,257.25 65.15,258.5"/>
+    <polygon points="83.44,273.5 129.19,277.25 129.19,334.75"/>
+    <polygon points="84.97,309.75 123.09,361 110.9,403.5"/>
+    </g>
+    </svg>
+    <span>Amethyst</span>
+  </a>
+  <a class="doc-dl site-dl" href="/download">Download</a>
+</header>
+<main class="doc-solo doc-tile">
+  <h1>Privacy</h1>
+  <p class="when">Last changed: 18 November 2026</p>
+  <p>What the Amethyst app and amethyst.run keep, what they send, and what never leaves your computer.</p>
+  <p class="dl-go"><button class="dl-btn doc-open" type="button">Read the full privacy notice<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9.5M8.5 4l4 4-4 4"/></svg></button></p>
+</main>
+<dialog class="doc-modal" aria-label="Privacy">
+  <div class="doc-box-head"><h2>Privacy</h2><span class="when">Last changed: 18 November 2026</span><button class="doc-close" type="button" aria-label="Close">✕</button></div>
+  <article class="doc-box-body">
+  <p>This notice covers the Amethyst desktop app and the website amethyst.run. Amethyst is developed by Daniel Klecki. Contact: support@amethyst.run.</p>
+  <h2>The app</h2>
+  <h3>What stays on your computer</h3>
+  <p>Amethyst has no accounts and sends me nothing unless you say yes to the install count below: no usage statistics, no crash reports and no telemetry. What it keeps stays on your computer:</p>
+  <ul>
+    <li>settings, workspaces, chat history and usage figures in <code>%APPDATA%\Amethyst</code>;</li>
+    <li>each project's notes and agent data in the project's <code>.amethyst</code> folder.</li>
+  </ul>
+  <p>Uninstalling Amethyst may leave these folders behind. Delete them to remove that data.</p>
+  <h3>The install count</h3>
+  <p>I'm one person building Amethyst, and I'd love to know how many people actually use it. So the app asks you once, in the welcome page (or, if you already had it, once after updating): "Can I count you?" Nothing is sent unless you say yes. You can change your answer any time in settings → updates → "count this install".</p>
+  <p>If you say yes, once a day the app sends amethyst.run one request with:</p>
+  <ul>
+    <li>the app's version (for example 0.9.3);</li>
+    <li>four yes/no answers: is this the first time ever, did it just update, is it the first time this week, is it the first time this month.</li>
+  </ul>
+  <p>That's all. No ID, no name, no computer name, nothing about your projects, agents or files. The four answers are how I count new users, updates, and weekly and monthly users without needing an ID: each install says "first this week" once a week, so adding those up gives the weekly users. The server adds 1 to a few daily, weekly and monthly counts, and keeps nothing else.</p>
+  <ul>
+    <li>I never store your IP address. To stop one network from flooding the counts, the server keeps, in memory only and only for the day, how many requests came from it, under the same kind of random-looking code as the website's visitor ID.</li>
+    <li>The counts are kept up to 400 days, then deleted.</li>
+    <li>Settings → general shows exactly what was sent last, and when.</li>
+    <li>Once 100 or more people a month are counted, the website shows that monthly total, rounded down (for example "310+ people used Amethyst this month"). Only the total, nothing else.</li>
+    <li>Railway, the host, keeps its own short request logs (see "The host" below).</li>
+  </ul>
+  <h3>Update checks</h3>
+  <p>Amethyst checks GitHub for a newer version when it starts, at 12:00 and when you open its settings, and downloads updates from GitHub. GitHub receives your IP address, the time and the files the updater asks for, under <a href="https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub's privacy statement</a>. I don't receive any of it.</p>
+  <h3>GitHub features</h3>
+  <p>When you use source control, Amethyst checks that GitHub can be reached and runs your own <code>git</code> and GitHub CLI (<code>gh</code>) with your own GitHub login. Pushes and new repositories go to GitHub under your account.</p>
+  <h3>AI agents</h3>
+  <p>The agents you start in Amethyst, such as Claude Code, the Codex CLI and the Antigravity CLI, send your prompts and the files and command output they read to their providers (Anthropic, OpenAI or Google), under your account and their terms. When you ask Amethyst to write a commit message, it sends the changes you are committing to your Claude agent in the same way. Amethyst does not send any of this to me.</p>
+  <h3>Web pages</h3>
+  <p>Pages you open in Amethyst's browser tabs load directly from their websites, as in any browser.</p>
+  <h2>The website</h2>
+  <p>I keep simple visitor statistics for amethyst.run, to see how many people come by and what they look at. Nothing I keep says who you are.</p>
+  <h3>What I keep</h3>
+  <ul>
+    <li>Daily counts: page views, visitors, new visitors and clicks on the Discord button.</li>
+    <li>Which website sent you here, by its name only (for example github.com).</li>
+    <li>A visitor ID, with the last day it was seen, so a returning visitor isn't counted as new.</li>
+    <li>For 5 minutes after a page view: that page and the minute, to see how many people are on the site right now.</li>
+  </ul>
+  <h3>The visitor ID</h3>
+  <p>The server makes it from your network (your IP address without its last part), your browser's name and a secret value. It is a random-looking code that doesn't lead back to you, and I only use it for the counts above.</p>
+  <h3>What I don't keep or do</h3>
+  <ul>
+    <li>I never store your IP address.</li>
+    <li>No cookies, and nothing stored in your browser.</li>
+    <li>No outside scripts, trackers, ads or analytics services.</li>
+    <li>No profiles, and nothing shared or sold.</li>
+  </ul>
+  <h3>How long I keep it</h3>
+  <p>Counts are kept up to 400 days, and a visitor ID until 400 days after its last visit. Then they are deleted.</p>
+  <h3>The host</h3>
+  <p>The site and the install count run on <a href="https://railway.com" target="_blank" rel="noopener">Railway</a>. Like most hosts, Railway keeps its own short technical logs of the requests it handles, such as your IP address, browser name, the page and the time, for up to 30 days, to run and protect its service. I don't use those logs for counting. Railway's privacy policy: <a href="https://railway.com/legal/privacy" target="_blank" rel="noopener">railway.com/legal/privacy</a>.</p>
+  <h2>Discord</h2>
+  <p>The Discord buttons open the Amethyst server on <a href="https://discord.com" target="_blank" rel="noopener">Discord</a>, under Discord's own privacy policy. If you write to me there, I see your Discord name and what you post, and I use it only to answer you and to improve Amethyst.</p>
+  <h2>Your rights</h2>
+  <p>You can ask what I hold about you, and ask me to correct or delete it, by writing to support@amethyst.run. The app sends me nothing that identifies you (the install count has no ID) and the website keeps nothing that identifies you, so there is usually nothing to look up. You can also complain to Datatilsynet, the Norwegian Data Protection Authority, at <a href="https://www.datatilsynet.no" target="_blank" rel="noopener">datatilsynet.no</a>.</p>
+  <h2>Changes</h2>
+  <p>If Amethyst or the website starts sending or keeping something new, this notice will say so first, with a new date at the top.</p>
+  <p>Data controller: Daniel Klecki, <a href="mailto:support@amethyst.run">support@amethyst.run</a>.</p>
+  </article>
+</dialog>
+<section class="doc-brandmark" aria-label="Amethyst">
+  <p class="doc-foot-line">One window for <span class="doc-foot-words" aria-live="polite"><span>every agent</span></span></p>
+  <a class="doc-foot-mark" href="/" aria-label="Amethyst home"><span><img src="amethyst.svg" alt="">Amethyst</span></a>
+</section>
+<footer class="doc-foot doc-foot-bar">
+  <span>© 2026 Amethyst</span>
+  <nav aria-label="Site"><a href="/">Home</a><a href="/download">Download</a><a href="https://discord.gg/yppAbHmMXG" target="_blank" rel="noopener">Discord</a><a href="/license">License</a><a href="/privacy" aria-current="page">Privacy</a></nav>
+</footer>
+<script type="module" src="site/doc.ts"></script>
+</body>
+</html>

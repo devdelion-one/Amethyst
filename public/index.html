@@ -1,0 +1,1318 @@
+<!doctype html>
+<html lang="en" data-theme="ink">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Amethyst: the ADE built for managing agent chats</title>
+  <meta name="description" content="Amethyst is an ADE for running multiple coding agents in parallel. Give every task its own space, pick up any chat when you're ready, and switch projects in one click while every agent keeps working.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://amethyst.run/">
+  <meta property="og:title" content="Amethyst: the ADE built for managing agent chats">
+  <meta property="og:description" content="Amethyst is an ADE for running multiple coding agents in parallel. Give every task its own space, pick up any chat when you're ready, and switch projects in one click while every agent keeps working.">
+  <meta property="og:image" content="https://amethyst.run/shots/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#100f14">
+  <link rel="canonical" href="https://amethyst.run/">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Amethyst","applicationCategory":"DeveloperApplication","operatingSystem":"Windows","url":"https://amethyst.run/","downloadUrl":"https://amethyst.run/download","image":"https://amethyst.run/shots/og.png","description":"Amethyst is an ADE for running multiple coding agents in parallel. Give every task its own space, pick up any chat when you're ready, and switch projects in one click while every agent keeps working."}</script>
+  <style>
+    :root,
+    [data-theme="ink"] {
+      --ground: #100f14;
+      --chrome: #17161d;
+      --surface: #14131a;
+      --elevated: #1c1a24;
+      --hover: #262332;
+      --line: #2c2839;
+      --line-strong: #413a54;
+      --text: #e4e2ec;
+      --text-strong: #ffffff;
+      --text-dim: #9d99ad;
+      --text-faint: #6c687c;
+      --accent: #8a3dff;
+      --accent-text: #b380ff;
+      --accent-hover: #9d5cff;
+      --on-accent: #ffffff;
+      --dot-grid: rgb(154 96 255 / 0.10);
+      --shadow: 0 24px 64px rgb(0 0 0 / .72);
+      color-scheme: dark;
+    }
+
+    [data-theme="ink-light"] {
+      --ground: #eceaf3;
+      --chrome: #f3f1f8;
+      --surface: #f9f8fc;
+      --elevated: #ffffff;
+      --hover: #ece8f6;
+      --line: #dcd6ea;
+      --line-strong: #c6bce0;
+      --text: #23212c;
+      --text-strong: #100e16;
+      --text-dim: #5d586e;
+      --text-faint: #847f96;
+      --accent: #7428eb;
+      --accent-text: #651cd8;
+      --accent-hover: #5e18cc;
+      --on-accent: #ffffff;
+      --dot-grid: rgb(116 40 235 / 0.08);
+      --shadow: 0 24px 60px rgb(30 16 60 / .18);
+      color-scheme: light;
+    }
+
+    [data-theme="paper"] {
+      --ground: #e5dece;
+      --chrome: #f0e9d9;
+      --surface: #f7f1e3;
+      --elevated: #fdfaf2;
+      --hover: #ebe3d1;
+      --line: #dcd3bf;
+      --line-strong: #c5b9a0;
+      --text: #27231c;
+      --text-strong: #110e09;
+      --text-dim: #665e50;
+      --text-faint: #8f8675;
+      --accent: #7428eb;
+      --accent-text: #651cd8;
+      --accent-hover: #5e18cc;
+      --on-accent: #ffffff;
+      --dot-grid: rgb(116 40 235 / 0.08);
+      --shadow: 0 24px 60px rgb(60 45 20 / .24);
+      color-scheme: light;
+    }
+
+    :root {
+      --font: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+      --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+      --mono: "Cascadia Mono", "Cascadia Code", Consolas, monospace;
+      --r-sm: 4px;
+      --r-md: 6px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      font-family: var(--font);
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--text);
+      background:
+        radial-gradient(circle, var(--dot-grid) 1px, transparent 1.5px) 0 0 / 26px 26px,
+        var(--ground);
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+
+    a { color: var(--accent-text); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code {
+      font-family: var(--mono);
+      font-size: 0.88em;
+      padding: 1px 4px;
+      border-radius: 3px;
+      background: color-mix(in srgb, var(--accent) 16%, transparent);
+      color: var(--text-strong);
+    }
+
+    .screen {
+      height: 100vh;
+      width: 100vw;
+      display: grid;
+      grid-template-rows: 48px minmax(0, 1fr) 34px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 0 clamp(18px, 3vw, 40px);
+      border-bottom: 1px solid var(--line);
+      background: color-mix(in srgb, var(--chrome) 88%, transparent);
+      backdrop-filter: blur(8px);
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      color: var(--text-strong);
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 15px;
+      letter-spacing: -0.01em;
+    }
+    .brand-mark { width: 19px; height: 23px; display: block; flex: none; }
+
+    .top-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .top-link {
+      height: 30px;
+      padding: 0 10px;
+      border-radius: var(--r-sm);
+      color: var(--text-dim);
+      font-size: 13px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      transition: background 120ms, color 120ms;
+    }
+    .top-link:hover {
+      background: var(--hover);
+      color: var(--text-strong);
+      text-decoration: none;
+    }
+
+    .theme-group {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: var(--r-sm);
+      overflow: hidden;
+      height: 30px;
+      background: var(--surface);
+    }
+    .theme-opt {
+      height: 100%;
+      padding: 0 9px;
+      border: 0;
+      background: transparent;
+      color: var(--text-dim);
+      font: 500 11.5px/1 var(--font);
+      cursor: pointer;
+    }
+    .theme-opt + .theme-opt { border-left: 1px solid var(--line); }
+    .theme-opt:hover { background: var(--hover); color: var(--text-strong); }
+    .theme-opt[aria-pressed="true"] {
+      background: var(--elevated);
+      color: var(--text-strong);
+    }
+
+    .btn {
+      height: 36px;
+      padding: 0 16px;
+      border-radius: var(--r-sm);
+      border: 1px solid var(--line-strong);
+      background: var(--elevated);
+      color: var(--text-strong);
+      font: 500 13.5px/1 var(--font);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: background 120ms, border-color 120ms;
+      white-space: nowrap;
+    }
+    .btn:hover { background: var(--hover); text-decoration: none; }
+    .btn-sm { height: 30px; padding: 0 12px; font-size: 12.5px; }
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--on-accent);
+      font-weight: 600;
+    }
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+      color: var(--on-accent);
+    }
+
+    .stage {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(320px, 0.78fr) minmax(0, 1.22fr);
+      gap: clamp(24px, 3.6vw, 52px);
+      align-items: center;
+      padding: clamp(16px, 2.6vh, 32px) clamp(18px, 3vw, 40px);
+      max-width: 1520px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .pitch {
+      display: flex;
+      flex-direction: column;
+      gap: clamp(14px, 2vh, 22px);
+      min-width: 0;
+    }
+
+    .kicker-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 7px;
+    }
+    .pill {
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 3px 9px;
+      border-radius: 3px;
+      border: 1px solid var(--line-strong);
+      background: var(--surface);
+      color: var(--text-dim);
+    }
+    .pill-accent {
+      border-color: color-mix(in srgb, var(--accent) 58%, transparent);
+      background: color-mix(in srgb, var(--accent) 18%, transparent);
+      color: var(--accent-text);
+    }
+
+    .hero-head {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .crystal-canvas {
+      width: clamp(92px, 8vw, 116px);
+      aspect-ratio: 256 / 296;
+      display: block;
+      flex: none;
+    }
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(38px, 4.4vw, 56px);
+      font-weight: 700;
+      line-height: 0.96;
+      letter-spacing: -0.025em;
+      color: var(--text-strong);
+      margin: 0;
+    }
+    .hero-spell {
+      margin: 6px 0 0;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+    .hero-spell b { color: var(--accent-text); font-weight: 600; }
+
+    .hero-tagline {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: clamp(19px, 1.9vw, 24px);
+      font-weight: 600;
+      line-height: 1.24;
+      color: var(--text-strong);
+      text-wrap: balance;
+    }
+
+    .hero-lede {
+      margin: 0;
+      font-size: clamp(13.5px, 1.1vw, 15px);
+      line-height: 1.58;
+      color: var(--text-dim);
+      max-width: 50ch;
+    }
+
+    .agents-strip {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+    }
+    .agents-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-faint);
+    }
+    .agents-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .agent-chip {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      padding: 4px 9px;
+      border-radius: 3px;
+      border: 1px solid var(--line);
+      background: var(--elevated);
+      color: var(--text);
+    }
+    .agent-chip.soon {
+      background: transparent;
+      border-style: dashed;
+      color: var(--text-faint);
+    }
+
+    .cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .site-users {
+      min-height: 2.6em;
+      margin: 0;
+      font-size: 12.5px;
+      line-height: 1.4;
+      color: var(--text-dim);
+    }
+    .site-users:empty { min-height: 0; }
+    .site-users b { color: var(--text-strong); font-weight: 600; }
+    .site-users span { display: block; color: var(--text-faint); }
+
+    .sheet {
+      max-height: 100%;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      border-radius: var(--r-md);
+      border: 1px solid var(--line-strong);
+      background: var(--surface);
+      overflow: hidden;
+    }
+
+    .sheet-head {
+      flex: none;
+      display: flex;
+      align-items: stretch;
+      border-bottom: 1px solid var(--line);
+      background: var(--chrome);
+      font-family: var(--mono);
+      font-size: 11.5px;
+    }
+    .sheet-tabs {
+      display: flex;
+      align-items: stretch;
+    }
+    .sheet-tab {
+      padding: 10px 16px;
+      border: 0;
+      border-right: 1px solid var(--line);
+      background: transparent;
+      color: var(--text-dim);
+      font: 600 11.5px/1 var(--mono);
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      position: relative;
+      transition: background 120ms, color 120ms;
+    }
+    .sheet-tab:hover { background: var(--hover); color: var(--text-strong); }
+    .sheet-tab[aria-selected="true"] {
+      background: var(--surface);
+      color: var(--text-strong);
+      box-shadow: 0 1px 0 var(--surface);
+    }
+    .sheet-tab[aria-selected="true"]::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 2px;
+      background: var(--accent);
+    }
+
+    .sheet-body {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+    }
+    .sheet-body > * {
+      grid-area: 1 / 1;
+      min-height: 0;
+    }
+    .sheet-body > .inactive {
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .tile-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      background: var(--line);
+      gap: 1px;
+    }
+
+    .tile {
+      background: var(--surface);
+      padding: clamp(10px, 1.35vh, 15px) clamp(12px, 1.4vw, 16px);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      text-align: left;
+      border: 0;
+      color: inherit;
+      font: inherit;
+      position: relative;
+      transition: background 120ms;
+    }
+    .tile.has-shot { cursor: pointer; }
+    .tile.has-shot:hover { background: var(--elevated); }
+    .tile.has-shot:hover .pic-icon {
+      color: var(--accent-text);
+      border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+      background: color-mix(in srgb, var(--accent) 14%, transparent);
+    }
+
+    .tile-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .tile-name {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--text-strong);
+      line-height: 1.25;
+    }
+    .tile-desc {
+      margin: 0;
+      font-size: 12.5px;
+      line-height: 1.44;
+      color: var(--text-dim);
+    }
+
+    .pic-icon {
+      flex: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 3px;
+      border: 1px solid var(--line);
+      background: var(--chrome);
+      color: var(--text-faint);
+      display: inline-grid;
+      place-items: center;
+      transition: color 120ms, border-color 120ms, background 120ms;
+    }
+    .pic-icon svg {
+      width: 13px;
+      height: 13px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .pricing-pane {
+      display: flex;
+      flex-direction: column;
+      background: var(--line);
+      gap: 1px;
+    }
+    .price-plans {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1px;
+      background: var(--line);
+      height: 176px;
+    }
+    .plan-col {
+      background: var(--surface);
+      padding: clamp(16px, 2.2vh, 24px) clamp(16px, 1.8vw, 22px);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: relative;
+    }
+    .plan-col.now {
+      background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 62%, transparent);
+    }
+    .plan-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .plan-name {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-strong);
+      margin: 0;
+    }
+    .plan-price {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      margin-top: 2px;
+    }
+    .plan-num {
+      font-family: var(--font-display);
+      font-size: clamp(30px, 3.2vw, 38px);
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: -0.025em;
+      color: var(--text-strong);
+    }
+    .plan-unit {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+    .plan-alt {
+      margin: 0;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+    .plan-alt strong {
+      color: var(--accent-text);
+      font-weight: 600;
+    }
+    .plan-desc {
+      margin: 2px 0 0;
+      font-size: 12.5px;
+      line-height: 1.45;
+      color: var(--text-dim);
+    }
+
+    .yr-line {
+      margin-top: 2px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-strong);
+      font-weight: 600;
+    }
+
+    .price-label {
+      background: var(--chrome);
+      padding: 8px 16px;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+    }
+
+    .price-facts {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1px;
+      background: var(--line);
+    }
+    .fact-cell {
+      background: var(--surface);
+      padding: clamp(11px, 1.4vh, 16px) clamp(14px, 1.5vw, 18px);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .fact-cell b {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-strong);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .fact-cell b::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 1px;
+      background: var(--accent);
+      flex: none;
+    }
+    .fact-cell p {
+      margin: 0;
+      font-size: 12.5px;
+      line-height: 1.44;
+      color: var(--text-dim);
+    }
+
+    .ue-pane {
+      display: flex;
+      flex-direction: column;
+      background: var(--line);
+      gap: 1px;
+    }
+    .ue-hero {
+      height: 176px;
+      justify-content: center;
+    }
+    .ue-hero .plan-desc {
+      max-width: none;
+    }
+
+    .docs-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      background: var(--line);
+      gap: 1px;
+    }
+    .doc-tile {
+      cursor: pointer;
+    }
+    .doc-tile:hover { background: var(--elevated); }
+    .doc-tile:hover .pic-icon {
+      color: var(--accent-text);
+      border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+      background: color-mix(in srgb, var(--accent) 14%, transparent);
+    }
+
+    dialog.doc-modal {
+      width: min(80vw, 960px);
+      max-width: 92vw;
+      height: 82vh;
+      max-height: 86vh;
+      margin: auto;
+      padding: 0;
+      border: 1px solid var(--line-strong);
+      border-radius: var(--r-md);
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    dialog.doc-modal[open] {
+      display: flex;
+      flex-direction: column;
+    }
+    dialog.doc-modal::backdrop {
+      background: rgb(0 0 0 / .72);
+      backdrop-filter: blur(4px);
+    }
+    .doc-head {
+      flex: none;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 16px;
+      border-bottom: 1px solid var(--line);
+      background: var(--chrome);
+    }
+    .doc-head b {
+      font-family: var(--font-display);
+      font-size: 14px;
+      color: var(--text-strong);
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .doc-body {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: clamp(20px, 3vh, 32px) clamp(20px, 3vw, 38px);
+      scrollbar-width: thin;
+      scrollbar-color: var(--line-strong) transparent;
+    }
+    .doc-body h1 {
+      margin: 0 0 14px;
+      font-family: var(--font-display);
+      font-size: clamp(22px, 2.4vw, 28px);
+      font-weight: 700;
+      color: var(--text-strong);
+      line-height: 1.2;
+    }
+    .doc-body h2 {
+      margin: 24px 0 10px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+      font-family: var(--font-display);
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text-strong);
+    }
+    .doc-body h3 {
+      margin: 18px 0 8px;
+      font-size: 14.5px;
+      font-weight: 600;
+      color: var(--text-strong);
+    }
+    .doc-body p {
+      margin: 0 0 12px;
+      font-size: 14px;
+      line-height: 1.62;
+      color: var(--text-dim);
+      max-width: 72ch;
+    }
+    .doc-body strong { color: var(--text-strong); font-weight: 600; }
+    .doc-body ul {
+      margin: 0 0 14px;
+      padding-left: 20px;
+      color: var(--text-dim);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .doc-body li { margin: 5px 0; }
+    .doc-body li::marker { color: var(--accent); }
+    .doc-body pre {
+      margin: 12px 0 16px;
+      padding: 12px 14px;
+      border-radius: var(--r-sm);
+      border: 1px solid var(--line);
+      background: var(--elevated);
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: var(--text);
+    }
+    .doc-body pre code { background: none; padding: 0; font-size: inherit; }
+    .doc-body table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 16px;
+      font-size: 13px;
+    }
+    .doc-body th, .doc-body td {
+      text-align: left;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+    }
+    .doc-body th {
+      background: var(--chrome);
+      color: var(--text-strong);
+      font-family: var(--mono);
+      font-size: 11.5px;
+    }
+    .doc-body td { color: var(--text-dim); }
+
+    .footbar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 0 clamp(18px, 3vw, 40px);
+      border-top: 1px solid var(--line);
+      background: var(--chrome);
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--text-faint);
+      white-space: nowrap;
+    }
+    .footbar a { color: var(--text-dim); }
+    .footbar a:hover { color: var(--text-strong); }
+    .foot-spacer { flex: 1; }
+
+    dialog.lightbox {
+      width: min(80vw, 1380px);
+      max-width: 92vw;
+      max-height: 86vh;
+      margin: auto;
+      padding: 0;
+      border: 1px solid var(--line-strong);
+      border-radius: var(--r-md);
+      background: var(--elevated);
+      color: var(--text);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    dialog.lightbox[open] {
+      display: flex;
+      flex-direction: column;
+    }
+    dialog.lightbox::backdrop {
+      background: rgb(0 0 0 / .72);
+      backdrop-filter: blur(4px);
+    }
+    .lb-body {
+      flex: 1;
+      min-height: 55vh;
+      background: var(--ground);
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+    .lb-body img {
+      display: block;
+      max-width: 100%;
+      max-height: calc(86vh - 60px);
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      transition: opacity 120ms ease;
+    }
+    .lb-body img.loading { opacity: 0; }
+    .lb-bar {
+      flex: none;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 16px;
+      border-top: 1px solid var(--line);
+      background: var(--chrome);
+    }
+    .lb-info {
+      min-width: 0;
+      flex: 1;
+    }
+    .lb-info b {
+      display: block;
+      font-size: 13.5px;
+      color: var(--text-strong);
+    }
+    .lb-info span {
+      display: block;
+      font-size: 12.5px;
+      color: var(--text-dim);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .lb-count {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--text-faint);
+      flex: none;
+    }
+    .lb-btn {
+      height: 28px;
+      width: 28px;
+      border: 1px solid var(--line-strong);
+      border-radius: var(--r-sm);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      display: inline-grid;
+      place-items: center;
+      flex: none;
+    }
+    .lb-btn:hover { background: var(--hover); color: var(--text-strong); }
+
+    @media (max-width: 1020px), (max-height: 640px) {
+      body { overflow-y: auto; }
+      .screen { height: auto; min-height: 100vh; grid-template-rows: 48px auto 38px; }
+      .stage { grid-template-columns: 1fr; padding-block: 22px; }
+    }
+    @media (max-width: 680px) {
+      .tile-grid, .price-plans, .price-facts, .ue-grid, .docs-grid { grid-template-columns: 1fr; }
+      .price-plans, .ue-hero { height: auto; }
+      .theme-group { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="screen">
+    <header class="topbar">
+      <div class="brand">
+        <svg class="brand-mark" viewBox="22.3 -14.0 440.8 540.0" aria-hidden="true">
+          <defs>
+            <mask id="am-belt" maskUnits="userSpaceOnUse" x="-200" y="-200" width="1000" height="1000">
+              <rect x="-200" y="-200" width="1000" height="1000" fill="#fff"/>
+              <polyline points="98.62,129.98 120.96,150 225.88,244 323.48,262 443.04,242 472.63,237.05" fill="none" stroke="#000" stroke-width="14"/>
+            </mask>
+          </defs>
+          <g fill="var(--accent)">
+            <g mask="url(#am-belt)">
+              <polygon points="313.72,6 120.96,150 225.88,244 323.48,262 443.04,242"/>
+              <polygon points="120.96,150 225.88,244 323.48,262 443.04,242 245.4,506"/>
+            </g>
+            <polygon points="42.27,209.75 118.52,257.25 65.15,258.5"/>
+            <polygon points="83.44,273.5 129.19,277.25 129.19,334.75"/>
+            <polygon points="84.97,309.75 123.09,361 110.9,403.5"/>
+          </g>
+        </svg>
+        <span>Amethyst</span>
+      </div>
+
+      <div class="top-right">
+        <div class="theme-group" role="group" aria-label="Theme">
+          <button type="button" class="theme-opt" data-theme-set="ink" aria-pressed="true">Ink</button>
+          <button type="button" class="theme-opt" data-theme-set="ink-light" aria-pressed="false">Light</button>
+          <button type="button" class="theme-opt" data-theme-set="paper" aria-pressed="false">Paper</button>
+        </div>
+        <a class="btn btn-sm btn-primary site-dl" href="/download">Download</a>
+      </div>
+    </header>
+
+    <main class="stage">
+      <section class="pitch" aria-label="Amethyst overview">
+        <div class="kicker-row">
+          <span class="pill pill-accent">Free Beta</span>
+          <span class="pill">Windows 10 and 11</span>
+        </div>
+
+        <div class="hero-head">
+          <canvas class="crystal-canvas" id="hero-crystal" role="img" aria-label="The Amethyst crystal"></canvas>
+          <div>
+            <h1 class="hero-title">Amethyst</h1>
+            <p class="hero-spell"><b>A</b>gentic <b>D</b>evelopment <b>E</b>nvironment</p>
+          </div>
+        </div>
+
+        <p class="hero-tagline">The ADE built for managing agent chats.</p>
+        <p class="hero-lede">
+          Run your coding agents in parallel on your own accounts, give every task its own space, and switch projects in one click while every agent keeps working.
+        </p>
+
+        <div class="agents-strip">
+          <span class="agents-label">Works with your installed agent CLIs</span>
+          <div class="agents-row">
+            <span class="agent-chip">Claude Code</span>
+            <span class="agent-chip">Codex CLI</span>
+            <span class="agent-chip">Antigravity</span>
+            <span class="agent-chip">Cursor CLI</span>
+            <span class="agent-chip">Copilot CLI</span>
+          </div>
+        </div>
+
+        <div class="cta-row">
+          <a class="btn btn-primary site-dl" href="/download">Download for Windows</a>
+          <a class="btn site-discord" href="https://discord.gg/yppAbHmMXG" target="_blank" rel="noopener">Join Discord</a>
+          <a id="site-go" class="btn" href="/app" target="_blank" rel="noopener" hidden>Open the app</a>
+        </div>
+        <p class="site-users"></p>
+      </section>
+
+      <section class="sheet" aria-label="What is inside Amethyst">
+        <div class="sheet-head">
+          <div class="sheet-tabs" role="tablist" aria-label="Sheet sections">
+            <button type="button" class="sheet-tab" role="tab" aria-selected="true" data-sheet="inside">Inside Amethyst</button>
+            <button type="button" class="sheet-tab" role="tab" aria-selected="false" data-sheet="pricing">Pricing</button>
+            <button type="button" class="sheet-tab" role="tab" aria-selected="false" data-sheet="unreal">Unreal Engine</button>
+            <button type="button" class="sheet-tab" role="tab" aria-selected="false" data-sheet="docs">Docs</button>
+            <button type="button" class="sheet-tab" role="tab" aria-selected="false" data-sheet="next">Coming next</button>
+          </div>
+        </div>
+
+        <div class="sheet-body">
+          <div class="tile-grid" data-pane="inside">
+            <button type="button" class="tile has-shot" data-shot="shots/tabs-agents.webp" data-title="Agents deck" data-cap="See every live chat in one grid. The ones waiting for you come first.">
+              <span class="tile-top">
+                <span class="tile-name">Agents deck</span>
+                <span class="pic-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></span>
+              </span>
+              <p class="tile-desc">See every live chat in one grid. The ones waiting for you come first.</p>
+            </button>
+
+            <button type="button" class="tile has-shot" data-shot="shots/bench.webp" data-title="Bench" data-cap="Put the chats that can wait on the bench. They keep running until you take them back.">
+              <span class="tile-top">
+                <span class="tile-name">Bench</span>
+                <span class="pic-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></span>
+              </span>
+              <p class="tile-desc">Put chats that can wait on the bench. They keep running until you take them back.</p>
+            </button>
+
+            <button type="button" class="tile has-shot" data-shot="shots/chat-list.webp" data-title="Chat list" data-cap="Every chat stays listed after it leaves the view, grouped by state and ready to pick up again.">
+              <span class="tile-top">
+                <span class="tile-name">Chat list</span>
+                <span class="pic-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></span>
+              </span>
+              <p class="tile-desc">Every chat stays listed after it leaves the view, grouped by state and ready to pick up.</p>
+            </button>
+
+            <button type="button" class="tile has-shot" data-shot="shots/chat.webp" data-title="Chat and plans" data-cap="Follow each agent's plan, review every diff and answer permission requests.">
+              <span class="tile-top">
+                <span class="tile-name">Chat and plans</span>
+                <span class="pic-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></span>
+              </span>
+              <p class="tile-desc">Follow each agent's plan, answer permission cards, and steer or queue follow-ups.</p>
+            </button>
+
+            <button type="button" class="tile has-shot" data-shot="shots/review.webp" data-title="Review" data-cap="See everything one chat changed in one window, and keep or reject each change.">
+              <span class="tile-top">
+                <span class="tile-name">Review</span>
+                <span class="pic-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></span>
+              </span>
+              <p class="tile-desc">See everything one chat changed in one window, and keep or reject each change.</p>
+            </button>
+
+            <button type="button" class="tile has-shot" data-shot="shots/activity.webp" data-title="Agent activity" data-cap="Watch a chat's subagents work: what each was asked, every step and its result.">
+              <span class="tile-top">
+                <span class="tile-name">Agent activity</span>
+                <span class="pic-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></span>
+              </span>
+              <p class="tile-desc">Watch a chat's subagents work: what each was asked, every step and its result.</p>
+            </button>
+
+            <button type="button" class="tile has-shot" data-shot="shots/projects.webp" data-title="Projects and modes" data-cap="Switch projects with one click. Their agents and terminals keep working.">
+              <span class="tile-top">
+                <span class="tile-name">Projects and modes</span>
+                <span class="pic-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></span>
+              </span>
+              <p class="tile-desc">Switch projects and layouts in one click while every agent and terminal keeps working.</p>
+            </button>
+
+            <button type="button" class="tile has-shot" data-shot="shots/git.webp" data-title="Editor, worktrees and git" data-cap="Review your changes, let an agent write the commit message, and commit.">
+              <span class="tile-top">
+                <span class="tile-name">Editor, worktrees and git</span>
+                <span class="pic-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></span>
+              </span>
+              <p class="tile-desc">Split file tabs, project search, a git worktree per chat, live diffs, and AI commit messages.</p>
+            </button>
+
+            <button type="button" class="tile has-shot" data-shot="shots/tabs-terminal.webp" data-title="Terminals and CLI" data-cap="Open real terminals in the project's folder, in tabs, a grid, or a floating quick terminal.">
+              <span class="tile-top">
+                <span class="tile-name">Terminals and CLI</span>
+                <span class="pic-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></span>
+              </span>
+              <p class="tile-desc">Real terminals in tabs, a grid, or a quick window, plus <code>amethyst chat</code> CLI and MCP.</p>
+            </button>
+
+            <button type="button" class="tile has-shot" data-shot="shots/usage.webp" data-title="Accounts and usage" data-cap="See each account's Claude and Codex limits, and when each one resets.">
+              <span class="tile-top">
+                <span class="tile-name">Accounts and usage</span>
+                <span class="pic-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></span>
+              </span>
+              <p class="tile-desc">Add several Claude accounts, switch in one click, and keep every limit and reset time in view.</p>
+            </button>
+
+            <div class="tile">
+              <span class="tile-top">
+                <span class="tile-name">Orchestration and handoff</span>
+              </span>
+              <p class="tile-desc">One chat can drive others over MCP, and switching a chat to another agent brings its context along.</p>
+            </div>
+
+            <div class="tile">
+              <span class="tile-top">
+                <span class="tile-name">Hide anything</span>
+              </span>
+              <p class="tile-desc">Over 100 hide switches let you turn off any button, panel, or feature you don't use.</p>
+            </div>
+          </div>
+
+          <div class="pricing-pane inactive" data-pane="pricing">
+            <div class="price-plans">
+              <div class="plan-col now">
+                <div class="plan-head">
+                  <h2 class="plan-name">Free Beta</h2>
+                  <span class="pill pill-accent">Now</span>
+                </div>
+                <div class="plan-price">
+                  <span class="plan-num">$0</span>
+                </div>
+                <p class="plan-alt"><strong>Everything unlocked</strong></p>
+                <p class="plan-desc">Free for personal and work use while Amethyst is in beta.</p>
+              </div>
+
+              <div class="plan-col">
+                <div class="plan-head">
+                  <h2 class="plan-name">From 1.0</h2>
+                  <span class="pill">Planned</span>
+                </div>
+                <div class="plan-price">
+                  <span class="plan-num">$5</span>
+                  <span class="plan-unit">/ month</span>
+                </div>
+                <div class="yr-line">
+                  <span>$45 / year</span>
+                  <span class="pill pill-accent">Save 3 months</span>
+                </div>
+                <p class="plan-desc">Simple licensing once Amethyst reaches 1.0.</p>
+              </div>
+            </div>
+
+            <div class="price-label">How Amethyst works</div>
+
+            <div class="price-facts">
+              <div class="fact-cell">
+                <b>Everything local</b>
+                <p>Chats, layouts, and project state stay on your PC. Code goes only to the agent you choose.</p>
+              </div>
+              <div class="fact-cell">
+                <b>No telemetry</b>
+                <p>No background tracking or usage analytics. Your workspace stays private.</p>
+              </div>
+              <div class="fact-cell">
+                <b>Optimized for scale</b>
+                <p>Built to keep many parallel agents, terminals, and projects responsive in one window.</p>
+              </div>
+              <div class="fact-cell">
+                <b>Your own accounts</b>
+                <p>Sign in with the Claude, Codex, Antigravity, Cursor, and Copilot plans or API keys you already use.</p>
+              </div>
+              <div class="fact-cell">
+                <b>Source available</b>
+                <p>Readable TypeScript files ship with the installer so you can inspect the code or build it yourself.</p>
+              </div>
+              <div class="fact-cell">
+                <b>Chats survive restarts</b>
+                <p>Close Amethyst anytime; every chat comes back asleep and picks up right where you left off.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="ue-pane inactive" data-pane="unreal">
+            <div class="plan-col now ue-hero">
+              <div class="plan-head">
+                <h2 class="plan-name">Unreal Engine</h2>
+                <span class="pill pill-accent">Beta</span>
+              </div>
+              <div class="plan-price">
+                <span class="plan-num">Built in</span>
+              </div>
+              <p class="plan-alt"><strong>Turn it on in settings</strong></p>
+              <p class="plan-desc">The editor adjusts to your Unreal project: build, check, and debug without leaving Amethyst. Making a game in Unreal? Try it on your project and let us know what's missing on Discord.</p>
+            </div>
+
+            <div class="price-label">Unreal support</div>
+
+            <div class="price-facts">
+              <div class="fact-cell">
+                <b>Build</b>
+                <p>Build, rebuild and clean with the engine your project names, with its logs in tabs.</p>
+              </div>
+              <div class="fact-cell">
+                <b>Live C++ checks</b>
+                <p>Errors, warnings, and completion in your Unreal C++ while you type.</p>
+              </div>
+              <div class="fact-cell">
+                <b>Native debugger</b>
+                <p>Breakpoints, stepping, set next statement, and Blueprint frames on Windows DbgEng.</p>
+              </div>
+              <div class="fact-cell">
+                <b>Agent-driven debugging</b>
+                <p>Your coding agents can set breakpoints, step through code, and inspect variables over MCP.</p>
+              </div>
+              <div class="fact-cell">
+                <b>Engine templates</b>
+                <p>Create new Unreal classes, modules, and plugins from the engine's own templates.</p>
+              </div>
+              <div class="fact-cell">
+                <b>Clean explorer</b>
+                <p>Unreal's generated folders stay out of your file tree.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="docs-grid inactive" data-pane="docs">
+            <button type="button" class="tile doc-tile" data-doc="getting-started">
+              <span class="tile-top"><span class="tile-name">Getting started</span><span class="pic-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h6"/></svg></span></span>
+              <p class="tile-desc">Install on Windows, set up workspaces and projects, and sign in to your agents.</p>
+            </button>
+            <button type="button" class="tile doc-tile" data-doc="modes-and-shortcuts">
+              <span class="tile-top"><span class="tile-name">Modes and shortcuts</span><span class="pic-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h6"/></svg></span></span>
+              <p class="tile-desc">Editor, Agents, Terminals, Research, quick windows, Freeze Log, and keybinds.</p>
+            </button>
+            <button type="button" class="tile doc-tile" data-doc="agent-setup-and-accounts">
+              <span class="tile-top"><span class="tile-name">Agent setup and accounts</span><span class="pic-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h6"/></svg></span></span>
+              <p class="tile-desc">Instructions, skills, rules, multi-account Claude switching, and usage limits.</p>
+            </button>
+            <button type="button" class="tile doc-tile" data-doc="review-and-rewind">
+              <span class="tile-top"><span class="tile-name">Reviewing edits and rewind</span><span class="pic-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h6"/></svg></span></span>
+              <p class="tile-desc">Review edits per file or per turn, keep or reject changes, and rewind checkpoints.</p>
+            </button>
+            <button type="button" class="tile doc-tile" data-doc="agents">
+              <span class="tile-top"><span class="tile-name">Cross-model subagents</span><span class="pic-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h6"/></svg></span></span>
+              <p class="tile-desc">Start Claude, Codex, Antigravity, Cursor, or Copilot as a subagent from any chat.</p>
+            </button>
+            <button type="button" class="tile doc-tile" data-doc="orchestration">
+              <span class="tile-top"><span class="tile-name">Orchestration</span><span class="pic-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h6"/></svg></span></span>
+              <p class="tile-desc">Have one chat start, message, wait for, read, and organize other chats in the project.</p>
+            </button>
+            <button type="button" class="tile doc-tile" data-doc="cli-and-mcp">
+              <span class="tile-top"><span class="tile-name">CLI and MCP server</span><span class="pic-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h6"/></svg></span></span>
+              <p class="tile-desc">Script Amethyst from the terminal and connect outside agents through <code>amethyst mcp</code>.</p>
+            </button>
+            <button type="button" class="tile doc-tile" data-doc="commands">
+              <span class="tile-top"><span class="tile-name">Command and MCP reference</span><span class="pic-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h6"/></svg></span></span>
+              <p class="tile-desc">Complete reference of every <code>amethyst</code> CLI command, flag, and MCP tool.</p>
+            </button>
+            <button type="button" class="tile doc-tile" data-doc="worktrees-and-handoff">
+              <span class="tile-top"><span class="tile-name">Worktrees and handoff</span><span class="pic-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h6"/></svg></span></span>
+              <p class="tile-desc">Isolate parallel chats in git worktrees and switch a chat between agents mid-conversation.</p>
+            </button>
+            <button type="button" class="tile doc-tile" data-doc="git-and-github">
+              <span class="tile-top"><span class="tile-name">Git, PRs, and issues</span><span class="pic-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h6"/></svg></span></span>
+              <p class="tile-desc">Open diffs, history, branch comparisons, pull requests, and issues from an agent.</p>
+            </button>
+            <button type="button" class="tile doc-tile" data-doc="unreal-debugger">
+              <span class="tile-top"><span class="tile-name">Unreal Engine and debugger</span><span class="pic-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h6"/></svg></span></span>
+              <p class="tile-desc">Set up the native Windows debugger and let agents inspect a live Unreal session.</p>
+            </button>
+            <button type="button" class="tile doc-tile" data-doc="support">
+              <span class="tile-top"><span class="tile-name">Support and security</span><span class="pic-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h6"/></svg></span></span>
+              <p class="tile-desc">Where to ask questions, report bugs, and disclose security issues privately.</p>
+            </button>
+          </div>
+
+          <div class="ue-pane inactive" data-pane="next">
+            <div class="plan-col now ue-hero">
+              <div class="plan-head">
+                <h2 class="plan-name">Roadmap</h2>
+                <span class="pill pill-accent">Beta</span>
+              </div>
+              <div class="plan-price">
+                <span class="plan-num">Coming next</span>
+              </div>
+              <p class="plan-alt"><strong>Shipped continuously during beta</strong></p>
+              <p class="plan-desc">New platforms, agents, and workflow tools built alongside daily engineering work and community ideas on Discord.</p>
+            </div>
+
+            <div class="price-label">On the way</div>
+
+            <div class="price-facts">
+              <div class="fact-cell">
+                <b>Platforms</b>
+                <p>Linux AppImage (Ubuntu 24.04) first, with macOS support following after.</p>
+              </div>
+              <div class="fact-cell">
+                <b>More coding agents</b>
+                <p>Native chat support for Gemini CLI and Grok alongside the five live agents.</p>
+              </div>
+              <div class="fact-cell">
+                <b>Remote control</b>
+                <p>Check on running agents, read answers, and respond to prompts from your phone.</p>
+              </div>
+              <div class="fact-cell">
+                <b>Full plan view</b>
+                <p>Dedicated phases, steps, and live progress tracking across multi-step tasks.</p>
+              </div>
+              <div class="fact-cell">
+                <b>Browser automation</b>
+                <p>Let coding agents inspect pages and drive the built-in browser over MCP.</p>
+              </div>
+              <div class="fact-cell">
+                <b>Speed and polish</b>
+                <p>Faster startup, quicker mode switching, and signed desktop installers.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footbar">
+      <span>© 2026 Amethyst</span>
+      <span class="foot-spacer"></span>
+      <a href="https://github.com/devdelion-one/Amethyst.exe/blob/main/docs/README.md" target="_blank" rel="noopener">Docs</a>
+      <a id="site-download-link" class="site-dl" href="/download">Download</a>
+      <a href="/license">License</a>
+      <a id="site-privacy" href="/privacy">Privacy</a>
+      <a class="site-discord" href="https://discord.gg/yppAbHmMXG" target="_blank" rel="noopener">Discord</a>
+    </footer>
+  </div>
+
+  <dialog class="lightbox" id="lightbox" aria-label="Screenshot preview">
+    <div class="lb-body">
+      <img id="lb-img" alt="">
+    </div>
+    <div class="lb-bar">
+      <div class="lb-info">
+        <b id="lb-title"></b>
+        <span id="lb-cap"></span>
+      </div>
+      <span class="lb-count" id="lb-count"></span>
+      <button type="button" class="lb-btn" id="lb-prev" aria-label="Previous screenshot">‹</button>
+      <button type="button" class="lb-btn" id="lb-next" aria-label="Next screenshot">›</button>
+      <button type="button" class="lb-btn" id="lb-close" aria-label="Close">✕</button>
+    </div>
+  </dialog>
+
+  <dialog class="doc-modal" id="doc-modal" aria-label="Documentation">
+    <div class="doc-head">
+      <b id="doc-title"></b>
+      <span class="lb-count" id="doc-count"></span>
+      <button type="button" class="lb-btn" id="doc-prev" aria-label="Previous guide">‹</button>
+      <button type="button" class="lb-btn" id="doc-next" aria-label="Next guide">›</button>
+      <button type="button" class="lb-btn" id="doc-close" aria-label="Close">✕</button>
+    </div>
+    <article class="doc-body" id="doc-body"></article>
+  </dialog>
+
+  <script type="module" src="site/site.ts"></script>
+</body>
+</html>

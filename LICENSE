@@ -1,0 +1,454 @@
+AMETHYST LICENSE
+Version 1.1, 18 November 2026
+
+Amethyst is source available, not open source. Its source code is public so
+that anyone can read it, but using, modifying or building Amethyst requires a
+license under these terms. Students and maintainers of open-source projects
+may ask for a free license, as described in section 7.
+
+This license is an agreement between you and the developer of Amethyst named
+in section 20 ("I", "me" or "the developer"). It applies to every version of
+Amethyst. You agree to this license by clicking "I agree" in the installer
+or in Amethyst, or by installing, running, modifying or building Amethyst,
+whichever comes first. If you do not agree, you have no right to do any of
+those things. You do not need to accept this license to read the source code
+as described in section 2.
+
+1. WHAT THIS LICENSE COVERS
+
+In this license:
+
+ a. "Amethyst" means the Amethyst desktop application in all its versions,
+    including its source code, installer, updates and documentation, and any
+    copy, modified version or build of it;
+ b. "Beta Versions" means versions of Amethyst numbered below 1.0.0, as
+    described in section 4;
+ c. "Beta license" means the free license for Beta Versions in section 4;
+ d. "Personal license" and "Commercial license" mean the paid licenses
+    described in section 5, each a "paid license";
+ e. "Commercial use" means use of Amethyst in the course of work that you are
+    paid for, or that is part of running a business, including your own
+    business, or use in, for or on behalf of a company, organisation, public
+    body or other legal entity;
+ f. "Personal use" means any use of Amethyst that is not Commercial use, such
+    as learning, study, hobby projects and unpaid open-source work done in
+    your own time;
+ g. "Official channels" means https://amethyst.run, the official Amethyst
+    GitHub repository and its releases, the Amethyst Discord and the official
+    store named on https://amethyst.run.
+
+Plugins, extensions, themes and other components that I publish through
+official channels for use with Amethyst are part of Amethyst, unless they
+come with their own license. Software made by others, including add-ons, AI
+agents and tools that Amethyst works with, is not part of Amethyst and is
+governed by its own terms, as set out in sections 11 and 12.
+
+2. WHAT ANYONE MAY DO
+
+Anyone may, without a license and free of charge:
+
+ a. read and study the source code of Amethyst;
+ b. link to the source code, the official Amethyst website, Discord and
+    GitHub repository;
+ c. quote small parts of the source code in issues, discussions, reviews and
+    similar commentary, to the extent reasonably necessary for that purpose.
+
+These rights do not include installing, running, modifying or building
+Amethyst. Those require a license under section 3.
+
+3. WHAT A LICENSE ALLOWS
+
+If you hold a valid Beta license, Personal license or Commercial license, I
+grant you a personal, non-exclusive, non-sublicensable license, not
+transferable except as set out in section 5, for the kind of use your license
+covers, to:
+
+ a. download, install and run Amethyst;
+ b. modify Amethyst for your own use, including by applying changes that
+    others have shared under section 8;
+ c. build Amethyst from its source code, including such changes, for your
+    own use;
+ d. make the copies of Amethyst reasonably necessary to do the above,
+    including backup copies,
+
+on all computers that you personally use.
+
+A license is granted to you as an individual. It does not grant a separate
+license to your employer, organisation, clients or any other person. Each
+person who installs, runs, modifies or builds Amethyst needs their own
+license.
+
+Computers you personally use include a computer that your employer or client
+owns or manages, as long as you are the one using Amethyst on it. Their rules
+for that computer are between you and them and do not change this license.
+
+4. THE BETA LICENSE
+
+Beta period. Versions of Amethyst numbered below 1.0.0 ("Beta Versions") are
+licensed to you free of charge solely for the duration of the beta period. The
+beta period ends at 23:59 Norwegian time (Europe/Oslo, whether standard or
+daylight saving time applies on that day) on the 30th day after the day
+version 1.0.0 of Amethyst is first made publicly available through an
+official channel (the "Beta End Date"). The
+release of version 1.0.0 and the Beta End Date will be announced on
+https://amethyst.run; failure to announce them does not extend the beta
+period. On the Beta End Date, the free license granted for every Beta Version
+terminates automatically and without further notice, whenever and however
+that Beta Version was obtained. From the Beta End Date, any use, modification
+or building of any version of Amethyst, including every Beta Version, requires
+a valid Personal or Commercial license under these terms, and no version of
+Amethyst remains free to use. The end of the beta period does not affect your
+rights in your own files, code, projects or configurations, which remain yours
+and remain accessible to you without Amethyst.
+
+Until the Beta End Date, the Beta license lets you use Beta Versions under
+section 3 for personal, educational and professional purposes, including
+work on commercial projects. You do not need a Personal or Commercial license
+for that use.
+
+The Beta license covers only Beta Versions. It does not grant a right to use
+versions 1.0.0 or later.
+
+5. PERSONAL AND COMMERCIAL LICENSES
+
+There are two kinds of paid license:
+
+ a. a Personal license is for one natural person, on all computers that
+    person personally uses, for Personal use only. It does not cover paid
+    work or use in, for or on behalf of a company or organisation;
+ b. a Commercial license is for one natural person, on all computers that
+    person personally uses, for Personal use and Commercial use. A Commercial
+    license is required for any Commercial use. A company or organisation
+    needs one Commercial license for each person who uses Amethyst for it.
+
+Each paid license belongs to one person, not to a computer or an
+organisation:
+
+ a. you may use your license on every computer you personally use, such as
+    your own laptop and a computer at work. On a computer shared by several
+    people, each person who uses Amethyst needs their own license;
+ b. a company or organisation may buy and pay for licenses for the people who
+    use Amethyst for it. Each such license is held by the person it is
+    assigned to; paying for it does not make the organisation the license
+    holder;
+ c. an organisation that paid for a license may assign it to another person
+    when the first person stops using Amethyst for it, for example because
+    they leave. The first person's right to use Amethyst under that license
+    then ends;
+ d. if you work for several clients, one Commercial license covers your work
+    for all of them. Your clients need licenses only for their own people who
+    use Amethyst.
+
+Paid licenses are not on sale yet. They become available with version 1.0.0
+through the official store named on https://amethyst.run, which shows the
+price and billing period of each license before you buy. The store's terms of
+purchase apply to payment, renewal, cancellation, refunds and taxes. If you
+are a consumer, the store also explains, before you buy, any statutory right
+you have to withdraw from the purchase and how it applies to a license
+delivered digitally.
+
+A paid license is valid for the period you have paid for. The store shows,
+before you buy, whether a license renews automatically at the end of each
+period. If it does, you can turn renewal off at any time, and the license
+then ends at the end of the period you have already paid for. Prices may
+change for future periods. A price change does not apply to a period you
+have already paid for, and you will be told about it before it applies to a
+renewal.
+
+6. WHEN A PAID LICENSE ENDS
+
+A paid license gives you the rights in section 3 only while it is valid, for
+the period you have paid for. When your paid license ends, for example because
+you stop paying or do not renew it, all rights it granted end, for every
+version of Amethyst. This includes versions that you downloaded, installed,
+modified or built while your license was valid. No version of Amethyst
+remains licensed to you after your paid license ends, and you may not
+reinstall, keep using, modify or build any version until you hold a valid
+paid license again.
+
+To use Amethyst again, renew your paid license or buy a new one. A valid paid
+license covers every version of Amethyst under section 3.
+
+The end of a paid license does not affect your rights in your own files,
+code, projects or configurations, which remain yours and remain accessible to
+you without Amethyst.
+
+7. FREE LICENSES FOR STUDENTS AND OPEN-SOURCE MAINTAINERS
+
+Students and maintainers of open-source projects may ask for a free license
+by writing to the contact address in section 20. A free license is not
+guaranteed: whether to grant one, its kind and its duration are at my
+discretion. A free license granted this way works as a Personal license
+unless I state otherwise when granting it.
+
+A free license lasts for the period I state when granting it. I may end it
+before then only:
+
+ a. for a material breach of this license, as set out in section 17; or
+ b. if you no longer meet the condition it was granted for, for example
+    because you are no longer a student or no longer maintain the project,
+    by telling you in writing at least 30 days in advance.
+
+8. WHAT NOBODY MAY DO
+
+Whether or not you hold a license, and except as set out in this section,
+you may not:
+
+ a. distribute, publish, re-host, sell, rent, lease, lend or sublicense
+    Amethyst, its installer, or any modified version or build of it, or
+    otherwise make any of them available to others;
+ b. offer Amethyst, or any modified version or build of it, as a hosted or
+    managed service for others;
+ c. remove or alter copyright, attribution or license notices in Amethyst;
+ d. use the name Amethyst or its logo for a modified version or build, or
+    suggest that a modified version or build comes from me;
+ e. share your license or license key with others, or let others use
+    Amethyst under your license;
+ f. use Amethyst beyond the kind of use your license covers.
+
+Sharing your changes. If you hold a valid license, you may share changes
+you made to Amethyst with others as source code, such as a patch or a public
+fork of the official Amethyst source repository on GitHub, provided that:
+
+ a. you share them free of charge and receive no payment, fee, donation,
+    subscription, advertising income or other compensation for the changes
+    or for access to them;
+ b. you share source code only, not builds, installers or packages;
+ c. you keep this license and all notices, and state clearly that the
+    changes are yours and not mine;
+ d. you do not use the name Amethyst or its logo as the name of your
+    modified version.
+
+Your changes, and any fork that holds them, do not give anyone a license.
+Anyone who installs, runs, modifies or builds Amethyst with your changes
+needs their own valid license, and may apply your changes to their own copy
+under section 3.
+
+You may make and publish screenshots, screen recordings, videos, live
+streams, tutorials, demonstrations, reviews and articles that show or
+describe Amethyst, including a modified version you use under your license,
+and you may use the name Amethyst to refer to it. Doing so is not
+distribution under point a, as long as you do not make Amethyst, its
+installer or any build of it available to others, and do not suggest that a
+modified version comes from me.
+
+Obtain Amethyst only through official channels.
+
+Nothing in this license restricts rights that applicable copyright law
+grants to lawful users of computer programs and that cannot be excluded or
+restricted by agreement. This includes any such rights to make a backup copy,
+to observe, study and test how Amethyst works, to make changes necessary to
+use it for its intended purpose, including correcting errors, and to
+decompile it where necessary for interoperability, each under the conditions
+set by that law.
+
+Nothing in this section restricts any other right that applicable law does
+not allow me to restrict, or your rights in your own files, code, projects or
+configurations.
+
+9. LICENSE KEYS AND THE HONOR SYSTEM
+
+Amethyst may show whether a license key has been entered. Amethyst has no
+technical lock and keeps working without a key. That does not change what
+this license requires: you need a valid license for any use that requires
+one under these terms.
+
+10. OWNERSHIP
+
+Amethyst is licensed, not sold. I retain all rights, title and interest in
+Amethyst that are not expressly granted to you under this license.
+Publishing the source code does not place Amethyst in the public domain or
+under an open-source license.
+
+This license does not transfer ownership of Amethyst or any intellectual
+property rights to you.
+
+11. OPEN-SOURCE AND THIRD-PARTY SOFTWARE
+
+Amethyst may include or work with third-party software, including open-source
+software such as Electron, CodeMirror and xterm.js.
+
+Those components are provided under their respective licences. Applicable
+notices and licence texts are included in THIRD-PARTY-NOTICES.txt or
+otherwise made available with the relevant distribution.
+
+If a third-party licence grants you rights that differ from or exceed the
+rights in this license, that third-party licence governs your use of that
+component. Nothing in this license limits rights granted to you under an
+applicable third-party licence.
+
+12. AI AGENTS AND THIRD-PARTY ACCOUNTS
+
+Amethyst may launch or interact with AI agents and command-line tools that you
+install or authenticate separately, such as Claude Code, the Codex CLI, the
+Antigravity CLI or other third-party tools.
+
+Your use of those tools and services is governed by the terms and policies of
+their respective providers. You are responsible for reviewing and accepting
+those terms and for managing your own accounts, credentials, usage and
+charges.
+
+AI agents and tools launched through Amethyst may be able to read, create,
+change or delete files and run commands on your computer. Their actions may
+have unintended or destructive consequences.
+
+You are responsible for deciding what tools to run, what permissions to grant
+and what actions to approve. Keep independent backups of important files and
+work. Do not give an agent access to files or accounts unless you are
+comfortable with the access it receives.
+
+13. YOUR DATA AND PRIVACY
+
+The way Amethyst collects, uses, stores or shares information is described in
+the Amethyst Privacy Notice at https://amethyst.run/privacy.
+
+Amethyst's actual data practices may change as the product develops. I will
+update the Privacy Notice when required and will not describe data practices
+as absent unless that is accurate.
+
+Third-party tools and services that you choose to use through Amethyst,
+including AI agent providers and GitHub, may process information under their
+own terms and privacy policies. You are responsible for reviewing those terms
+before using those services.
+
+This license is not a substitute for the Privacy Notice or any information
+required by applicable data protection law.
+
+14. CONTRIBUTIONS AND FEEDBACK
+
+Code contributions, such as pull requests, are not accepted at this time. I
+may close them without review. If that changes, the terms for contributions
+will be published first.
+
+Ideas, bug reports and other feedback are welcome. You are not required to
+provide feedback.
+
+If you choose to send suggestions, ideas or other feedback about Amethyst
+("Feedback"), however you send it, including by email, on Discord or in
+GitHub issues or discussions, you grant me a worldwide, perpetual,
+irrevocable, non-exclusive, royalty-free right to use, reproduce, modify and incorporate
+that Feedback into Amethyst or other products and services, without payment
+or attribution to you.
+
+Do not send confidential information or information you do not have the
+right to share as Feedback.
+
+15. NO WARRANTY
+
+Beta Versions are beta software. Any version of Amethyst may be incomplete,
+contain errors, change without notice, stop working, or cause loss or
+corruption of data.
+
+To the maximum extent permitted by applicable law, Amethyst is provided "as
+is" and "as available", without promises or warranties that it will be
+error-free, secure, uninterrupted, compatible with your system, suitable for
+a particular purpose or preserve your data. This applies equally to any
+version you modify or build yourself.
+
+You should not rely on Amethyst as the only copy of important work. Keep
+independent backups.
+
+If you are a consumer, this section does not affect your statutory rights.
+Where Amethyst is supplied to you as a consumer under a paid license, it must
+conform to the contract and to the requirements of applicable consumer law.
+If it does not, you keep the remedies that law gives you, such as having the
+defect corrected, a price reduction or ending the contract. This section does
+not override those requirements, and nothing in this license excludes or
+limits a warranty, right or remedy that cannot lawfully be excluded or
+limited.
+
+16. LIMITATION OF LIABILITY
+
+To the maximum extent permitted by applicable law, I will not be liable for
+indirect, incidental, special or consequential loss, loss of profits, loss of
+business, loss of opportunity, loss of goodwill, or loss or corruption of
+data arising out of or related to your use of, or inability to use,
+Amethyst.
+
+To the maximum extent permitted by applicable law, my total liability arising
+out of or related to this license or Amethyst is limited to the amount, if
+any, that you paid for your license in the twelve (12) months before the
+event giving rise to the claim.
+
+Nothing in this license excludes or limits liability for death or personal
+injury, for loss caused intentionally or by gross negligence, or any other
+liability that cannot lawfully be excluded or limited. Nothing in this
+section limits your statutory remedies as a consumer, including your
+remedies if Amethyst is defective or does not conform to the contract.
+
+17. ENDING THE LICENSE
+
+You may end your license at any time by uninstalling Amethyst and ceasing
+all use of it. Ending a paid license early does not by itself entitle you to
+a refund; the store's terms of purchase apply. This does not affect any
+statutory right of withdrawal you have as a consumer.
+
+If you materially breach this license, I may end your license by telling
+you in writing. Before I do, I will tell you in writing what the breach is
+and give you at least 14 days to remedy it, unless the breach cannot be
+remedied or was deliberate, such as distributing builds of Amethyst or
+sharing a license key. If you remedy the breach in time, your license
+continues.
+
+The Beta license ends on the Beta End Date as set out in section 4.
+
+I may stop distributing Amethyst, or stop providing updates or support, at
+any time. Doing so does not, by itself, terminate the rights you have already
+received, except that the Beta license still ends on the Beta End Date.
+
+If your license is terminated or ends, you must stop using every version of
+Amethyst and delete copies of it in your possession, except where retention
+is required or permitted by applicable law. This does not apply to your own
+files, code, projects or configurations.
+
+Sections concerning ownership, third-party software, feedback, warranty
+disclaimers, liability, governing law and any provisions that by their
+nature should survive will continue to apply after termination.
+
+18. CHANGES TO THESE TERMS
+
+I may publish a new version of this license. Each version of Amethyst is
+licensed under the license text it was released with, and a new license text
+does not retroactively remove rights already granted for a version released
+before it, unless you separately agree or applicable law permits it. The
+exception is the Beta period clause in section 4, which applies as written to
+every Beta Version.
+
+I will announce a new license text on https://amethyst.run and in the
+changelog of the first version of Amethyst released with it. If you hold a
+paid license and I have your email address, I will also email you about it,
+at the latest when that version is released. You accept a new license text
+by clicking "I agree" when Amethyst shows it (before an update downloads, or
+in the app), or by installing or running a version released with it,
+whichever comes first.
+
+I am not obligated to release any particular version, provide future
+updates, maintain compatibility with earlier versions, or provide support.
+
+19. GOVERNING LAW AND CONSUMER RIGHTS
+
+This license is governed by the laws of Norway, without regard to its
+conflict-of-law rules.
+
+If you are a consumer living outside Norway, this choice of law does not
+deprive you of the protection of mandatory provisions of the law of the
+country where you live, which would apply to you without it. Where that law
+gives you the right, you may also bring a claim in the courts of the country
+where you live.
+
+If you are a consumer, you retain the protection of mandatory consumer laws
+that apply to you. Nothing in this license is intended to deprive you of
+rights that cannot legally be waived or restricted.
+
+20. THE DEVELOPER AND CONTACT
+
+Amethyst is developed and licensed by the developer below. Questions about
+this license, and requests for free licenses:
+
+Developer: Daniel Klecki
+Email:     support@amethyst.run
+Website:   https://amethyst.run
+Discord:   https://discord.gg/yppAbHmMXG
+
+Copyright (c) 2026 Daniel Klecki, the licensor. All rights reserved, except
+for third-party components governed by their own licences.
