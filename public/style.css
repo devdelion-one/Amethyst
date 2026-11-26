@@ -1063,12 +1063,6 @@ button.ch-from:hover { color: var(--text-strong); }
 
 #drop-hint { position: fixed; z-index: 60; pointer-events: none; border: 2px solid var(--accent); border-radius: var(--r-md); background: color-mix(in srgb, var(--accent) 14%, transparent); }
 #drop-hint.slot { border: 0; border-radius: var(--r-mark); background: var(--accent); }
-#out-hint { position: fixed; z-index: 61; display: grid; place-items: center; pointer-events: none; background: color-mix(in srgb, var(--veil) 55%, transparent); opacity: 0; visibility: hidden; transition: opacity var(--t-med), visibility var(--t-med); }
-#out-hint.on { opacity: 1; visibility: visible; }
-#out-hint > div { display: flex; flex-direction: column; align-items: center; gap: 4px; max-width: calc(100% - 16px); box-sizing: border-box; padding: var(--s4); text-align: center; border: 0; border-radius: var(--r-panel); background: var(--raised); box-shadow: var(--float); }
-#out-hint .ic { width: 22px; height: 22px; color: var(--accent); }
-#out-hint b { color: var(--text-strong); font-size: var(--fs-xl); font-weight: 600; }
-#out-hint span { color: var(--text-dim); font-size: var(--fs-sm); }
 #tell { position: fixed; z-index: 61; max-width: min(340px, calc(100vw - 16px)); pointer-events: none; opacity: 0; visibility: hidden; translate: 0 3px; transition: opacity var(--t-fast), translate var(--t-fast), visibility var(--t-fast); }
 #tell.on { opacity: 1; visibility: visible; translate: 0 0; }
 :is(#tell, .hr-tell) > div { display: grid; grid-template-columns: auto 1fr; column-gap: 6px; align-items: center; box-sizing: border-box; padding: 4px 10px; border-radius: var(--r-panel); background: var(--chrome); box-shadow: var(--float); }

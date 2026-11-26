@@ -836,18 +836,6 @@ const hint = document.createElement('div');
 hint.id = 'drop-hint';
 hint.hidden = true;
 document.body.append(hint);
-const outHint = document.createElement('div');
-outHint.id = 'out-hint';
-outHint.innerHTML = `<div><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M9 2.5h4.5V7M13.5 2.5L7.5 8.5M11.5 9.5v3a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h3"/></svg><b>Opens in a new window</b><span></span></div>`;
-document.body.append(outHint);
-const showOut = (over: Element | boolean | null | undefined) => {
-  const on = !!over && !!dragging && movable(dragging) && !!S.pid;
-  outHint.classList.toggle('on', on);
-  if (!on) return;
-  const r = over === true ? { left: 0, top: 0, width: innerWidth, height: innerHeight } : over.getBoundingClientRect();
-  Object.assign(outHint.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
-  outHint.querySelector('span')!.textContent = over === true ? 'let go outside this window' : 'let go here';
-};
 function spotAt(e: DragEvent, tabby = !!dragging): Spot | null {
   const el = (e.target as Element).closest?.<HTMLElement>('.grp');
   const g = el && groupById(el.dataset.g!);
@@ -912,7 +900,6 @@ export const agentPanel = () =>
 const endDrag = () => {
   dragging = null;
   hint.hidden = true;
-  showOut(false);
 };
 main.addEventListener('dragstart', (e: DragEvent & { target: HTMLElement; dataTransfer: DataTransfer }) => {
   const el = e.target.closest?.<HTMLElement>('[data-tab]');
@@ -954,7 +941,6 @@ const imagesIntoText = (e: DragEvent) => !!(e.target as Element).closest?.('.tak
 const osFiles = (e: DragEvent) => !dragging && !S.dragging && !!window.amethyst?.pathOf && !!e.dataTransfer?.types.includes('Files') && !imagesIntoText(e) && !(e.target as Element).closest?.('[data-drop]');
 const droppedPaths = (e: DragEvent) => [...e.dataTransfer!.files].map((f) => window.amethyst!.pathOf(f)).filter(Boolean);
 main.addEventListener('dragover', (e: DragEvent & { target: HTMLElement; dataTransfer: DataTransfer }) => {
-  showOut(false);
   const other = fromOther(e), os = osFiles(e);
   if (!dragging && !other && !os && !fromTree(e) && !newDragged(e)) return void (hint.hidden = true);
   const s = spotAt(e, !!dragging || other === 'tab');
@@ -1078,15 +1064,11 @@ document.addEventListener('dragover', (e) => {
   if (!own && (fromOther(e) !== 'tab' || main.contains(e.target))) return;
   e.preventDefault();
   e.dataTransfer!.dropEffect = 'move';
-  if (own) showOut((e.target as HTMLElement).closest?.('#side, #status, #activity') || true);
 });
 document.addEventListener('dragover', (e) => {
   if (!dragging || e.defaultPrevented) return;
   e.preventDefault();
   e.dataTransfer!.dropEffect = 'move';
-});
-document.addEventListener('dragleave', (e) => {
-  if (dragging && !e.relatedTarget) showOut(true);
 });
 document.addEventListener('drop', (e) => {
   if (inMain.has(e)) return;
