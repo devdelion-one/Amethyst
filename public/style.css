@@ -419,8 +419,9 @@ body.out-mod .lk:is(a, code, span):not(.miss), body.out-mod .cm-content.pm-mod .
 .ch-acts button { min-height: 20px; padding: 0 8px; border-radius: var(--r-pill); color: var(--text-dim); font-size: var(--fs-xs); }
 .ch-acts .ic { width: 14px; height: 14px; }
 .ch-you > .ch-acts button:has(.ic) { padding: 0 6px; }
-.ch-you { padding-bottom: calc(var(--s2) + 18px); }
-.ch-you > .ch-acts { bottom: 2px; }
+.ch-you { padding-bottom: calc(var(--s2) + 18px); background: none; isolation: isolate; }
+.ch-you::before { content: ""; position: absolute; z-index: -1; inset: 0 0 18px; border-radius: var(--r-lg); background: var(--hover); }
+.ch-you > .ch-acts { right: 0; bottom: 0; }
 .ch-flow > .ch-ai { margin-bottom: -10px; }
 .ch-ai > .ch-acts { position: static; height: 20px; margin: 2px 0 0 -5px; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
 .ch-ai > .ch-acts button { width: 24px; padding: 0; justify-content: center; color: var(--text-faint); }
