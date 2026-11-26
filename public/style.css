@@ -110,29 +110,29 @@ body.resizing-y, body.resizing-y * { cursor: row-resize !important; user-select:
 #activity { position: relative; flex: none; width: var(--act-w); border-radius: var(--r-panel); background: var(--chrome); }
 #switch { position: absolute; inset: 0; }
 #switch > .sv { position: absolute; left: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; width: var(--act-w); height: calc(var(--span, 1) * 32px); margin: 0; padding: 0; border-radius: 0; }
-#switch .sv > :is(button, a), #switch button[data-qk] { position: relative; display: grid; place-items: center; flex: none; width: 28px; min-height: 28px; height: 28px; padding: 0; border-radius: var(--r-sm); text-decoration: none; }
-#switch .sb > :is(#btn-index, #btn-git, #btn-github, #btn-setup, #btn-site, #btn-pins, #btn-win, #btn-fold, #btn-uewin) { border-color: transparent; background: none; color: var(--text-dim); }
-#switch .sb > :is(#btn-index, #btn-git, #btn-github, #btn-setup, #btn-site, #btn-pins, #btn-win, #btn-fold, #btn-uewin):hover { background: var(--hover); color: var(--text-strong); }
-#switch .sb > :is(#btn-index, #btn-git, #btn-github, #btn-setup).on { color: var(--text-strong); }
-#switch .sb > :is(#btn-index, #btn-git, #btn-github, #btn-setup).on::before { content: ""; position: absolute; left: -2px; top: 6px; bottom: 6px; width: 2px; border-radius: var(--r-mark); background: var(--accent); }
-#switch .ic { width: 18px; height: 18px; stroke-width: 1.5; }
-#switch .sv :is(.md-n, .act-n) { position: absolute; top: auto; bottom: -1px; right: -2px; z-index: 1; min-width: 13px; height: 12px; padding: 0 2.5px; font-size: var(--fs-mark); line-height: 10px; box-shadow: 0 0 0 1.5px var(--chrome); }
-#switch .sv :is(.md-n, .act-n):not([data-st="asks"]) { border: 1px solid color-mix(in srgb, var(--text-strong) 35%, var(--line)); background: var(--raised); color: var(--text-strong); }
-#switch .sv .ly-wk { right: 0; bottom: 0; width: 11px; height: 11px; box-shadow: none; }
-#switch .sv .ly-wk .gem { width: 8px; height: 8px; }
+:is(#switch, #dash) .sv > :is(button, a), :is(#switch, #dash) button[data-qk] { position: relative; display: grid; place-items: center; flex: none; width: 28px; min-height: 28px; height: 28px; padding: 0; border-radius: var(--r-sm); text-decoration: none; }
+:is(#switch, #dash) .sb > :is(#btn-index, #btn-git, #btn-github, #btn-setup, #btn-site, #btn-pins, #btn-win, #btn-fold, #btn-dfold, #btn-uewin) { border-color: transparent; background: none; color: var(--text-dim); }
+:is(#switch, #dash) .sb > :is(#btn-index, #btn-git, #btn-github, #btn-setup, #btn-site, #btn-pins, #btn-win, #btn-fold, #btn-dfold, #btn-uewin):hover { background: var(--hover); color: var(--text-strong); }
+:is(#switch, #dash) .sb > :is(#btn-index, #btn-git, #btn-github, #btn-setup).on { color: var(--text-strong); }
+:is(#switch, #dash) .sb > :is(#btn-index, #btn-git, #btn-github, #btn-setup).on::before { content: ""; position: absolute; left: -2px; top: 6px; bottom: 6px; width: 2px; border-radius: var(--r-mark); background: var(--accent); }
+:is(#switch, #dash) .ic { width: 18px; height: 18px; stroke-width: 1.5; }
+:is(#switch, #dash) .sv :is(.md-n, .act-n) { position: absolute; top: auto; bottom: -1px; right: -2px; z-index: 1; min-width: 13px; height: 12px; padding: 0 2.5px; font-size: var(--fs-mark); line-height: 10px; box-shadow: 0 0 0 1.5px var(--chrome); }
+:is(#switch, #dash) .sv :is(.md-n, .act-n):not([data-st="asks"]) { border: 1px solid color-mix(in srgb, var(--text-strong) 35%, var(--line)); background: var(--raised); color: var(--text-strong); }
+:is(#switch, #dash) .sv .ly-wk { right: 0; bottom: 0; width: 11px; height: 11px; box-shadow: none; }
+:is(#switch, #dash) .sv .ly-wk .gem { width: 8px; height: 8px; }
 #app.noagent #switch #btn-newchat { visibility: hidden; }
-#switch #btn-ue :is(.ue-cf, .ue-tm) { display: none; }
-#switch #btn-ue .ue-ic { width: 17px; height: 17px; }
-#switch #btn-ue .ue-st { position: absolute; right: 0; bottom: 0; width: auto; font-size: var(--fs-mark); line-height: 1; }
-#switch #btn-ue .ue-ring { width: 8px; height: 8px; border-width: 1.5px; }
-#switch #btn-more { border-color: transparent; background: none; color: var(--text-dim); }
-#switch #btn-more:hover { border-color: transparent; background: var(--hover); color: var(--text-strong); }
-#switch #btn-more .ic { width: 17px; height: 17px; stroke-width: 1.35; }
-#switch #btn-fold { font-size: var(--fs-md); line-height: 1; }
-#switch #btn-fold.on { background: var(--hover); color: var(--text-strong); }
-#switch .rf-box { position: fixed; z-index: 54; display: flex; flex-wrap: wrap; width: max-content; max-width: calc(6 * 32px + 12px); padding: 6px; border-radius: var(--r-panel); background: var(--raised); box-shadow: var(--float); }
-#switch .rf-box > .sv { position: static; width: 32px; }
-#switch .rf-box > .sv[data-span] { width: auto; height: 32px; padding: 0 3px; }
+:is(#switch, #dash) #btn-ue :is(.ue-cf, .ue-tm) { display: none; }
+:is(#switch, #dash) #btn-ue .ue-ic { width: 17px; height: 17px; }
+:is(#switch, #dash) #btn-ue .ue-st { position: absolute; right: 0; bottom: 0; width: auto; font-size: var(--fs-mark); line-height: 1; }
+:is(#switch, #dash) #btn-ue .ue-ring { width: 8px; height: 8px; border-width: 1.5px; }
+:is(#switch, #dash) #btn-more { border-color: transparent; background: none; color: var(--text-dim); }
+:is(#switch, #dash) #btn-more:hover { border-color: transparent; background: var(--hover); color: var(--text-strong); }
+:is(#switch, #dash) #btn-more .ic { width: 17px; height: 17px; stroke-width: 1.35; }
+:is(#switch, #dash) .rf-btn { font-size: var(--fs-md); line-height: 1; }
+:is(#switch, #dash) .rf-btn.on { background: var(--hover); color: var(--text-strong); }
+:is(#switch, #dash) .rf-box { position: fixed; z-index: 54; display: flex; flex-wrap: wrap; width: max-content; max-width: calc(6 * 32px + 12px); padding: 6px; border-radius: var(--r-panel); background: var(--raised); box-shadow: var(--float); }
+:is(#switch, #dash) .rf-box > .sv { position: static; width: 32px; }
+:is(#switch, #dash) .rf-box > .sv[data-span] { width: auto; height: 32px; padding: 0 3px; }
 .site-ic { background: currentColor; -webkit-mask: url(amethyst.svg) center / contain no-repeat; mask: url(amethyst.svg) center / contain no-repeat; }
 
 #side { position: relative; flex: none; width: var(--side-w, 240px); margin: 0; border: 0; border-radius: var(--r-panel); background: var(--chrome); }
@@ -1322,28 +1322,31 @@ body.fg-toast { margin: 0; overflow: hidden; background: var(--raised); user-sel
 .fg-time { flex: none; min-width: 46px; text-align: right; color: var(--text-dim); font-size: var(--fs-2xs); font-variant-numeric: tabular-nums; }
 .fg-later { flex: none; min-height: 0; height: 16px; padding: 0 3px; color: var(--text-dim); font-size: var(--fs-2xs); }
 .fg-every { flex: none; width: 10px; text-align: center; color: var(--text-dim); font-size: var(--fs-2xs); }
-#switch > .sv.lift { opacity: .3; }
+:is(#switch, #dash > .slots) > .sv.lift { opacity: 0; }
+#dash .sl-box { top: 3px; left: auto; }
 .sl-box { position: absolute; left: 2px; width: 26px; height: 26px; border: 1px dashed color-mix(in srgb, var(--text-faint) 85%, transparent); border-radius: var(--r-sm); opacity: 0; pointer-events: none; transition: opacity var(--t-fast); }
-#switch.dragging .sl-box { opacity: 1; }
-#switch .sl-box.hot { border: 1px solid var(--accent); background: color-mix(in srgb, var(--accent) 18%, transparent); }
-.sv.sl-ghost { position: fixed; z-index: 1000; display: flex; align-items: center; justify-content: center; width: var(--act-w); height: 32px; pointer-events: none; margin: 0; scale: 1.12; border-radius: var(--r-sm); outline: 1px solid var(--accent); background: var(--chrome); box-shadow: var(--float); }
-.sv.sl-ghost > * { width: 26px; height: 26px; min-height: 26px; padding: 0; }
+:is(#switch, #dash > .slots).dragging .sl-box { opacity: 1; }
+:is(#switch, #dash) .sl-box.hot { border: 1px solid var(--accent); background: color-mix(in srgb, var(--accent) 18%, transparent); }
+.sv.sl-ghost { position: fixed; z-index: 1000; display: grid; place-items: center; pointer-events: none; margin: 0; padding: 0; border-radius: var(--r-sm); outline: none; background: none; box-shadow: none; }
+.sv.sl-ghost > :is(button, a) { position: relative; display: grid; place-items: center; width: 100%; height: 100%; min-height: 0; margin: 0; padding: 0; border-radius: var(--r-sm); outline: none; text-decoration: none; box-shadow: var(--float); }
+.sv.sl-ghost > :is(button, a):not(.ly, [data-mode]) { border-color: transparent; background: var(--chrome); color: var(--text-strong); }
+.sv.sl-ghost .ic { width: 18px; height: 18px; stroke-width: 1.5; }
 .sets { display: flex; align-items: center; gap: 4px; border-radius: var(--r-lg); }
 .ly { justify-content: center; width: 28px; min-height: 28px; height: 28px; padding: 0; border: 1px solid color-mix(in srgb, var(--ly-c, var(--text-dim)) 55%, transparent); border-radius: var(--r-sm); background: color-mix(in srgb, var(--ly-c, var(--text-dim)) 10%, transparent); color: var(--ly-c, var(--text)); }
 .ly:hover { background: color-mix(in srgb, var(--ly-c, var(--text-dim)) 24%, transparent); border-color: var(--ly-c, var(--text)); color: var(--ly-c, var(--text-strong)); }
 .ly :is(.ic, .gem) { width: 16px; height: 16px; }
 .ly { position: relative; cursor: grab; touch-action: none; user-select: none; }
-#switch .sets.sorting { counter-reset: n; outline: 1px solid color-mix(in srgb, var(--accent) 65%, transparent); outline-offset: 2px; background: color-mix(in srgb, var(--accent) 7%, transparent); transition: background var(--t-fast), outline-color var(--t-fast); }
-#switch .sets.sorting, #switch .sets.sorting > * { cursor: grabbing; }
-#switch .sets.sorting > :is(.ly, [data-mode]):not(.pj-ghost) { counter-increment: n; transition: transform 160ms ease; }
-#switch .sets.sorting > :is(.ly, [data-mode]):not(.pj-ghost)::after { content: counter(n); position: absolute; left: 2px; bottom: 1px; width: auto; height: auto; margin: 0; background: none; color: currentColor; opacity: .7; font: 600 var(--fs-mark)/1 var(--mono); }
-#switch:has(.sorting) > .sets:not(.sorting) { opacity: .35; transition: opacity var(--t-fast); }
-#switch .sets.sorting > .ph:is(.ly, [data-mode]):not(.pj-ghost)::after { inset: 0; display: grid; place-items: center; color: var(--accent); opacity: 1; font-size: var(--fs-xs); }
-#switch .sets > .pj-ghost { display: flex; align-items: center; justify-content: center; padding: 0; border: 0; }
-#switch .sets > .pj-ghost > :is(.ic, .gem) { width: 16px; height: 16px; }
-#switch .sets.sorting.out { outline-color: transparent; background: none; }
-#switch .sets.out > .ph:is(.ly, [data-mode]):not(.pj-ghost)::after { color: var(--text-dim); }
-#switch .sets > .landed { animation: sw-landed 900ms ease-out; }
+:is(#switch, #dash) .sets.sorting { counter-reset: n; outline: 1px solid color-mix(in srgb, var(--accent) 65%, transparent); outline-offset: 2px; background: color-mix(in srgb, var(--accent) 7%, transparent); transition: background var(--t-fast), outline-color var(--t-fast); }
+:is(#switch, #dash) .sets.sorting, :is(#switch, #dash) .sets.sorting > * { cursor: grabbing; }
+:is(#switch, #dash) .sets.sorting > :is(.ly, [data-mode]):not(.pj-ghost) { counter-increment: n; transition: transform 160ms ease; }
+:is(#switch, #dash) .sets.sorting > :is(.ly, [data-mode]):not(.pj-ghost)::after { content: counter(n); position: absolute; left: 2px; bottom: 1px; width: auto; height: auto; margin: 0; background: none; color: currentColor; opacity: .7; font: 600 var(--fs-mark)/1 var(--mono); }
+:is(#switch, #dash > .slots):has(.sorting) > .sets:not(.sorting) { opacity: .35; transition: opacity var(--t-fast); }
+:is(#switch, #dash) .sets.sorting > .ph:is(.ly, [data-mode]):not(.pj-ghost)::after { inset: 0; display: grid; place-items: center; color: var(--accent); opacity: 1; font-size: var(--fs-xs); }
+:is(#switch, #dash) .sets > .pj-ghost { display: flex; align-items: center; justify-content: center; padding: 0; border: 0; }
+:is(#switch, #dash) .sets > .pj-ghost > :is(.ic, .gem) { width: 16px; height: 16px; }
+:is(#switch, #dash) .sets.sorting.out { outline-color: transparent; background: none; }
+:is(#switch, #dash) .sets.out > .ph:is(.ly, [data-mode]):not(.pj-ghost)::after { color: var(--text-dim); }
+:is(#switch, #dash) .sets > .landed { animation: sw-landed 900ms ease-out; }
 @keyframes sw-landed { 0%, 30% { box-shadow: 0 0 0 2px var(--accent); } 100% { box-shadow: 0 0 0 2px transparent; } }
 .ly.cur { border-color: var(--ly-c, var(--accent)); background: color-mix(in srgb, var(--ly-c, var(--accent)) 14%, transparent); box-shadow: inset 0 0 0 1px var(--ly-c, var(--accent)); color: var(--ly-c, var(--text-strong)); }
 .ly-add { position: relative; justify-content: center; flex: none; width: 21px; height: 21px; min-height: 21px; padding: 0; border: 0; color: var(--text); }
@@ -5454,8 +5457,8 @@ html.phone .ch-lv, html.phone .ch-tg, html.phone .ch-wt, html.phone .ch-mic { di
 .sp-who span { color: var(--text-dim); font-size: var(--fs-xs); }
 .sp-all { align-self: flex-end; color: var(--danger); }
 
-#activity #switch :is(button, a) { border-color: transparent; background: none; box-shadow: none; }
-#activity #switch :is(button, a):hover { border-color: transparent; background: color-mix(in srgb, var(--text) 10%, transparent); box-shadow: none; }
-#activity #switch :is(button, a):not(.ly, [data-mode], #btn-newchat) { color: var(--text-strong); }
-#activity #switch :is(button, a):is(.on, .cur), #activity #switch :is(button, a):is(.on, .cur):hover { border-color: transparent; background: color-mix(in srgb, var(--text) 30%, transparent); }
-#activity #switch :is(button, a):is(.on, .cur):not(.mk)::before { content: none; }
+:is(#activity #switch, #dash) :is(button, a) { border-color: transparent; background: none; box-shadow: none; }
+:is(#activity #switch, #dash) :is(button, a):hover { border-color: transparent; background: color-mix(in srgb, var(--text) 10%, transparent); box-shadow: none; }
+:is(#activity #switch, #dash) :is(button, a):not(.ly, [data-mode], #btn-newchat) { color: var(--text-strong); }
+:is(#activity #switch, #dash) :is(button, a):is(.on, .cur), :is(#activity #switch, #dash) :is(button, a):is(.on, .cur):hover { border-color: transparent; background: color-mix(in srgb, var(--text) 30%, transparent); }
+:is(#activity #switch, #dash) :is(button, a):is(.on, .cur):not(.mk)::before { content: none; }

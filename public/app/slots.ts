@@ -1,25 +1,36 @@
-import { atLaunch, atWs, levelKey } from '../base/model.ts';
+import { atWs, levelKey } from '../base/model.ts';
 import { onSize } from '../base/measure.ts';
 import { onOutside } from '../base/lift.ts';
 import { $, amKey, store } from '../base/util.ts';
 
-export type SlotView = { kind: string; ref: string; html: string; shown: boolean; g?: string };
+export type SlotView = { kind: string; ref: string; html: string; shown: boolean; g?: string; name?: string };
 type Spots = Record<string, number>;
+export type Side = 'rail' | 'dash';
+export type Spot = { s: number; side: Side };
 
 export const PITCH = 32;
 const viewKey = () => `switch:rail:${levelKey()}${amKey}`;
 const BTN_KEY = `switch:rail${amKey}`;
+const dashViewKey = () => `switch:dash:${levelKey()}${amKey}`;
+const DASH_KEY = `switch:dash${amKey}`;
 const isBtn = (ref: string) => ref.startsWith('btn:') || ref.startsWith('pin:');
 const isPin = (ref: string) => ref.startsWith('pin:');
 const BTN_AT: Spots = { 'btn:index': 0, 'btn:newchat': 5, 'btn:git': 9, 'btn:github': 10, 'btn:setup': -1, 'btn:qpwsh': -3, 'btn:qterm': -4, 'btn:scratch': -5, 'pin:folder': -6, 'pin:txt': -7, 'pin:md': -8, 'pin:file': -9, 'btn:more': -10 };
 const VIEW_AT: Spots = { editor: 2, orch: 3 };
+const DASH_AT: Spots = { 'btn:newchat': -1 };
 const spots = (): Spots => ({ ...store.get(BTN_KEY, BTN_AT), ...store.get(viewKey(), {}) });
+const dashSpots = (): Spots => ({ ...store.get(DASH_KEY, DASH_AT), ...store.get(dashViewKey(), {}) });
+const part = (at: Spots, b: boolean) => Object.fromEntries(Object.entries(at).filter(([r]) => isBtn(r) === b));
 function save(at: Spots) {
-  const part = (b: boolean) => Object.fromEntries(Object.entries(at).filter(([r]) => isBtn(r) === b));
-  store.set(BTN_KEY, part(true));
-  store.set(viewKey(), part(false));
+  store.set(BTN_KEY, part(at, true));
+  store.set(viewKey(), part(at, false));
+}
+function saveDash(at: Spots) {
+  store.set(DASH_KEY, part(at, true));
+  store.set(dashViewKey(), part(at, false));
 }
 const kindOf = (ref: string) => ref.slice(0, ref.indexOf(':'));
+export const inDash = (ref: string) => Number.isInteger(dashSpots()[ref]);
 
 const RAIL: [string, string, 't' | 'b', string][] = [
   ['btn:index', '#btn-index', 't', 'strip'],
@@ -52,11 +63,8 @@ export function btnShown(ref: string) {
   const el = elOf(ref);
   return !el.hidden && !el.classList.contains('off');
 }
-const DASH_AT: Spots = { 'btn:newchat': -1 };
-export const inDash = (ref: string) => ref in DASH_AT;
 const btnView = ([ref, , , g]: (typeof RAIL)[number]): SlotView => ({ kind: 'btn', ref, html: '', shown: btnShown(ref), g });
-const railViews = (end: 't' | 'b'): SlotView[] => RAIL.filter((x) => x[2] === end && !inDash(x[0])).map(btnView);
-export const dashViews = (): SlotView[] => RAIL.filter((x) => inDash(x[0])).map(btnView);
+const railViews = (end: 't' | 'b'): SlotView[] => RAIL.filter((x) => x[2] === end).map(btnView);
 const dashPos = (s: number) => (s < 0 ? `right:${local(s) * PITCH}px` : `left:${s * PITCH}px`);
 export const topBtns = () => railViews('t');
 export function bottomBtns() {
@@ -85,10 +93,17 @@ function freeFrom(taken: Map<string, string>, r: string, e: string, from: number
 }
 export const absCells = (r: string, s: number, n: number) => Array.from({ length: spanOf(r) }, (_, k) => (s < 0 ? n - 1 - local(s) - k : s + k));
 
-let aimed: { kind: string; slot: number | null } | null = null;
-export const aim = (kind: string, slot: number | null) => (aimed = { kind, slot });
+let aimed: { kind: string; slot: number | null; side: Side } | null = null;
+export const aim = (kind: string, slot: number | null, side: Side = 'rail') => (aimed = { kind, slot, side });
 
+let cells = 0;
 const railN = () => cells || Math.max(1, Math.floor($('#switch').clientHeight / PITCH));
+const dashN = () => Math.floor(($('#dash > .slots') as HTMLElement).clientWidth / PITCH);
+type Surf = { side: Side; get: () => Spots; put: (at: Spots) => void; n: () => number; last: Map<number, string>; el: () => HTMLElement; x: boolean; seen: Set<string>; seenAt: string; fold: boolean; off: () => void; size: number };
+const RAIL_S: Surf = { side: 'rail', get: spots, put: save, n: railN, last: new Map(), el: () => $<HTMLElement>('#switch'), x: false, seen: new Set(), seenAt: '', fold: false, off: () => {}, size: 0 };
+const DASH_S: Surf = { side: 'dash', get: dashSpots, put: saveDash, n: dashN, last: new Map(), el: () => $<HTMLElement>('#dash > .slots'), x: true, seen: new Set(), seenAt: '', fold: false, off: () => {}, size: 0 };
+const SURFS = [RAIL_S, DASH_S];
+const surf = (side: Side) => (side === 'dash' ? DASH_S : RAIL_S);
 const onRail = (r: string, s: number, n: number) => absCells(r, s, n).filter((c) => c >= 0 && c < n);
 function board(n: number) {
   const keys = new Map<string, string>(), abs = new Set<number>();
@@ -123,24 +138,23 @@ function migrate(at: Spots) {
   return true;
 }
 
-let seen = new Set<string>(), seenAt = '';
-export function placeAll(views: SlotView[], dry = false): { at: Spots; first: boolean; fresh: string[] } {
-  const first = store.get(viewKey(), null) == null, had = spots(), at: Spots = { ...had }, refs = views.map((v) => v.ref), known = new Set(refs), n = railN();
-  const was = migrate(at);
+export function placeAll(views: SlotView[], dry = false, sf: Surf = RAIL_S): { at: Spots; first: boolean; fresh: string[] } {
+  const rail = sf === RAIL_S, first = rail && store.get(viewKey(), null) == null, had = sf.get(), at: Spots = { ...had }, refs = views.map((v) => v.ref), known = new Set(refs), n = sf.n();
+  const was = rail && migrate(at);
   if (first) for (const [k, s] of Object.entries(VIEW_AT)) {
     const r = views.find((v) => v.kind === k)?.ref;
     if (r && !(r in at)) at[r] = s;
   }
-  if (!dry && seenAt !== viewKey()) (seen = new Set()), (seenAt = viewKey());
-  const boot = dry || !seen.size, shown = views.filter((v) => v.shown).map((v) => v.ref);
+  if (!dry && sf.seenAt !== viewKey()) (sf.seen = new Set()), (sf.seenAt = viewKey());
+  const boot = dry || !sf.seen.size, shown = views.filter((v) => v.shown).map((v) => v.ref);
   const pri = (rs: string[]) => [...rs.filter(isBtn), ...rs.filter((r) => !isBtn(r))];
   const bd = board(n), fresh: string[] = [];
   const keep = (r: string) => !first || !isBtn(r);
-  for (const r of pri(shown.filter((r) => boot || seen.has(r)))) {
+  for (const r of pri(shown.filter((r) => boot || sf.seen.has(r)))) {
     if (bd.keyFree(r, at[r])) bd.take(r, at[r]);
     else delete at[r];
   }
-  for (const r of pri(shown.filter((r) => !boot && !seen.has(r)))) {
+  for (const r of pri(shown.filter((r) => !boot && !sf.seen.has(r)))) {
     if (!Number.isInteger(at[r])) continue;
     if (bd.free(r, at[r])) {
       bd.take(r, at[r]);
@@ -167,7 +181,7 @@ export function placeAll(views: SlotView[], dry = false): { at: Spots; first: bo
       }
     }
     let s = freeFrom(bd.keys, r, e, from, (t) => bd.free(r, t));
-    if (!dry && aimed && aimed.kind === kindOf(r)) {
+    if (!dry && aimed && aimed.side === sf.side && aimed.kind === kindOf(r)) {
       if (aimed.slot != null && bd.free(r, aimed.slot)) s = aimed.slot;
       aimed = null;
     }
@@ -176,13 +190,38 @@ export function placeAll(views: SlotView[], dry = false): { at: Spots; first: bo
     bd.take(r, s);
     if (keep(r)) fresh.push(r);
   });
-  if (!dry) seen = new Set(shown);
-  if (!dry && (first || was || fresh.length || refs.some((r) => had[r] !== at[r]))) save(at);
+  if (!dry) sf.seen = new Set(shown);
+  if (!dry && (first || was || fresh.length || refs.some((r) => had[r] !== at[r]))) sf.put(at);
   return { at, first, fresh };
 }
 
+function landAim(all: SlotView[]) {
+  if (!aimed || aimed.side !== 'dash') return;
+  const R = spots(), D = dashSpots(), k = aimed.kind;
+  const v = all.findLast((x) => x.shown && kindOf(x.ref) === k && !(x.ref in R) && !(x.ref in D));
+  if (!v) return;
+  if (aimed.slot != null) {
+    D[v.ref] = aimed.slot;
+    saveDash(D);
+  }
+  aimed = null;
+}
+export function placeBoth(all: SlotView[]) {
+  landAim(all);
+  const d = dashSpots(), dash = all.filter((v) => Number.isInteger(d[v.ref])), rail = all.filter((v) => !Number.isInteger(d[v.ref]));
+  const r = placeAll(rail);
+  const dd = DASH_S.n() > 0 ? placeAll(dash, false, DASH_S) : { at: d, fresh: [] as string[] };
+  return { at: r.at, first: r.first, fresh: [...r.fresh, ...dd.fresh], rail, dash, dashAt: dd.at };
+}
+export function orderAt() {
+  const o: Record<string, number> = {};
+  for (const [k, s] of Object.entries(spots())) if (Number.isInteger(s)) o[k] = s < 0 ? 1e6 + s : s;
+  for (const [k, s] of Object.entries(dashSpots())) if (Number.isInteger(s)) o[k] = -1e7 + (s < 0 ? 5e5 - local(s) : s);
+  return o;
+}
+
 export function picHtml(views: SlotView[], fill: (v: SlotView) => string) {
-  const all = views.map((v) => ({ ...v, shown: true, html: fill(v) })).filter((v) => v.html), { at } = placeAll(all, true);
+  const all = views.filter((v) => !inDash(v.ref)).map((v) => ({ ...v, shown: true, html: fill(v) })).filter((v) => v.html), { at } = placeAll(all, true);
   let top = 0, bot = 0;
   for (const v of all) {
     const s = at[v.ref];
@@ -193,48 +232,63 @@ export function picHtml(views: SlotView[], fill: (v: SlotView) => string) {
   const n = Math.max(cells, top + bot);
   return `<nav id="activity" class="hr-rail" style="height:${n * PITCH}px"><div id="switch" class="slots">${all.filter((v) => Number.isInteger(at[v.ref])).map((v) => navOf(v, posOf(at[v.ref]))).join('')}</div></nav>`;
 }
+export function dashPicHtml(views: SlotView[], fill: (v: SlotView) => string) {
+  const d = dashSpots(), all = views.filter((v) => Number.isInteger(d[v.ref])).map((v) => ({ ...v, shown: true, html: fill(v) })).filter((v) => v.html);
+  let l = 0, r = 0;
+  for (const v of all) d[v.ref] < 0 ? (r = Math.max(r, local(d[v.ref]) + 1)) : (l = Math.max(l, d[v.ref] + 1));
+  return `<header id="dash" class="hr-dash" style="width:${Math.max(7, l + r + 1) * PITCH}px"><div class="slots">${all.map((v) => navOf(v, dashPos(d[v.ref]))).join('')}</div></header>`;
+}
 
-export function moveRef(ref: string, slot: number, refs: string[], shown = refs) {
-  const at = spots(), n = railN();
-  migrate(at);
-  const was = at[ref];
-  if (was === slot) return false;
+export function moveRef(ref: string, slot: number, refs: string[], shown = refs, side: Side = 'rail') {
+  const R = spots(), D = dashSpots();
+  migrate(R);
+  const inD = (r: string) => Number.isInteger(D[r]);
+  const src = inD(ref) ? DASH_S : RAIL_S, dst = surf(side), sAt = src === DASH_S ? D : R, at = dst === DASH_S ? D : R;
+  const was = sAt[ref], same = src === dst;
+  if (same && was === slot) return false;
+  const n = dst.n(), mine = shown.filter((r) => r !== ref && inD(r) === (dst === DASH_S));
   for (const [o, q] of Object.entries(at)) if (!refs.includes(o) && overlap(o, q, ref, slot)) delete at[o];
-  const mine = onRail(ref, slot, n);
-  const hit = shown.filter((r) => r !== ref && Number.isInteger(at[r]) && (overlap(r, at[r], ref, slot) || onRail(r, at[r], n).some((c) => mine.includes(c))));
+  const cs = onRail(ref, slot, n);
+  const hit = mine.filter((r) => Number.isInteger(at[r]) && (overlap(r, at[r], ref, slot) || onRail(r, at[r], n).some((c) => cs.includes(c))));
   const from: Spots = Object.fromEntries(hit.map((r) => [r, at[r]]));
+  if (!same) delete sAt[ref];
   at[ref] = slot;
   const bd = board(n);
   bd.take(ref, slot);
-  for (const r of shown) if (r !== ref && !hit.includes(r) && Number.isInteger(at[r])) bd.take(r, at[r]);
-  for (const r of hit) {
-    const s = Number.isInteger(was) && bd.free(r, was) ? was : nearestFree(bd, r, from[r], n);
+  for (const r of mine) if (!hit.includes(r) && Number.isInteger(at[r])) bd.take(r, at[r]);
+  hit.forEach((r, i) => {
+    if (!same && !i && Number.isInteger(was)) {
+      delete at[r];
+      sAt[r] = was;
+      return;
+    }
+    const s = same && Number.isInteger(was) && bd.free(r, was) ? was : nearestFree(bd, r, from[r], n);
     if (s == null) delete at[r];
     else {
       at[r] = s;
       bd.take(r, s);
     }
-  }
-  save(at);
+  });
+  save(R);
+  saveDash(D);
   return true;
 }
 
-let cells = 0;
-const lastAt = new Map<number, string>();
-const spotAt = (c: number, n = cells) => (c < n / 2 ? c : -(n - 1 - c) - 1);
-export function freeNear(ref: string, refs: string[]) {
-  const at = spots(), s = at[ref];
+const spotAt = (c: number, n: number) => (c < n / 2 ? c : -(n - 1 - c) - 1);
+export function freeNear(ref: string, refs: string[]): Spot | null {
+  const sf = inDash(ref) ? DASH_S : RAIL_S, at = sf.get(), s = at[ref];
   if (!Number.isInteger(s)) return null;
-  return freeFrom(occupied(at, refs), '?', s < 0 ? 'b' : 't', local(s) + spanOf(ref));
+  const D = dashSpots(), mine = refs.filter((r) => Number.isInteger(D[r]) === (sf === DASH_S));
+  return { s: freeFrom(occupied(at, mine), '?', s < 0 ? 'b' : 't', local(s) + spanOf(ref)), side: sf.side };
 }
-export function freeAt(y: number) {
-  const c = nearest(y);
-  return c == null || lastAt.has(c) ? null : spotAt(c);
+export function freeAt(p: number, side: Side = 'rail'): Spot | null {
+  const sf = surf(side), c = nearest(sf, p);
+  return c == null || sf.last.has(c) ? null : { s: spotAt(c, sf.x ? sf.n() : cells), side };
 }
-function nearest(y: number) {
+function nearest(sf: Surf, p: number) {
   let best: number | null = null, d = Infinity;
-  for (const b of $<HTMLElement>('#switch').querySelectorAll<HTMLElement>(':scope > .sl-box')) {
-    const r = b.getBoundingClientRect(), m = Math.abs(r.top + r.height / 2 - y);
+  for (const b of sf.el().querySelectorAll<HTMLElement>(':scope > .sl-box')) {
+    const r = b.getBoundingClientRect(), m = Math.abs((sf.x ? r.left + r.width / 2 : r.top + r.height / 2) - p);
     if (m < d) (d = m), (best = +b.dataset.i!);
   }
   return best;
@@ -261,36 +315,36 @@ function fit(views: SlotView[], at: Spots, n: number) {
   }
 }
 
-let foldOpen = false;
-const posOf = (s: number) => (s < 0 ? `bottom:${local(s) * PITCH}px` : `top:${s * PITCH}px`);
+const posOf = (s: number, x = false) => (s < 0 ? `${x ? 'right' : 'bottom'}:${local(s) * PITCH}px` : `${x ? 'left' : 'top'}:${s * PITCH}px`);
 const navOf = (v: SlotView, style: string) => {
   const span = spanOf(v.ref), cls = v.kind === 'btn' ? 'sv sb' : 'sets sv';
   return `<nav class="${cls}" data-kind="${v.kind}" data-ref="${v.ref}"${v.g ? ` data-g="${v.g}"` : ''}${span > 1 ? ` data-span="${span}"` : ''} style="${style}${span > 1 ? `;--span:${span}` : ''}" aria-label="${v.kind === 'btn' ? v.ref.slice(4) : v.kind}">${v.html}</nav>`;
 };
-export const dashHtml = (views: SlotView[]) => views.filter((v) => v.shown).map((v) => navOf(v, dashPos(DASH_AT[v.ref]))).join('');
-export const dashPicHtml = (fill: (v: SlotView) => string) => `<header id="dash" class="hr-dash"><div class="slots">${dashHtml(dashViews().map((v) => ({ ...v, shown: true, html: fill(v) })).filter((v) => v.html))}</div></header>`;
 
-export function slotHtml(views: SlotView[], at: Spots) {
-  if (!cells) cells = Math.floor($('#switch').clientHeight / PITCH);
-  const shown = views.filter((v) => v.shown && Number.isInteger(at[v.ref])), n = Math.max(cells, 1);
+export function slotHtml(views: SlotView[], at: Spots, side: Side = 'rail') {
+  const sf = surf(side), x = sf.x;
+  if (!x && !cells) cells = Math.floor($('#switch').clientHeight / PITCH);
+  const shown = views.filter((v) => v.shown && Number.isInteger(at[v.ref])), n = Math.max(x ? sf.n() : cells, 1);
   const { live, folded, more } = fit(shown, at, n);
-  lastAt.clear();
-  for (const [r, cs] of live) for (const c of cs) lastAt.set(c, r);
-  if (more != null) lastAt.set(more, 'btn:fold');
+  const [A, B] = x ? ['left', 'right'] : ['top', 'bottom'];
+  sf.last.clear();
+  for (const [r, cs] of live) for (const c of cs) sf.last.set(c, r);
+  if (more != null) sf.last.set(more, 'btn:fold');
   const low = (r: string | undefined) => (r && live.has(r) ? Math.max(...live.get(r)!) >= n / 2 : false);
   const boxPos = (c: number) => {
-    const r = lastAt.get(c);
-    return (r && r !== 'btn:fold' ? low(r) : c >= n / 2) ? `bottom:${(n - 1 - c) * PITCH + 3}px` : `top:${c * PITCH + 3}px`;
+    const r = sf.last.get(c);
+    return (r && r !== 'btn:fold' ? low(r) : c >= n / 2) ? `${B}:${(n - 1 - c) * PITCH + 3}px` : `${A}:${c * PITCH + 3}px`;
   };
   const navPos = (r: string) => {
     const cs = live.get(r)!;
-    return low(r) ? `bottom:${(n - 1 - Math.max(...cs)) * PITCH}px` : `top:${Math.min(...cs) * PITCH}px`;
+    return low(r) ? `${B}:${(n - 1 - Math.max(...cs)) * PITCH}px` : `${A}:${Math.min(...cs) * PITCH}px`;
   };
   const boxes = Array.from({ length: n }, (_, c) => `<i class="sl-box" data-i="${c}" style="${boxPos(c)}"></i>`).join('');
   const navs = shown.filter((v) => live.has(v.ref)).map((v) => navOf(v, navPos(v.ref))).join('');
   const byRank = folded.map((r) => shown.find((v) => v.ref === r)!);
-  const fold = more == null ? '' : `<nav class="sv sb rf-at" data-kind="btn" data-ref="btn:fold" style="${posOf(spotAt(more, n))}" aria-label="more"><button id="btn-fold" class="${foldOpen ? 'on' : ''}" title="More&#10;The buttons that don't fit in the rail. Make the window taller to see them in it." aria-label="more of the rail" aria-expanded="${foldOpen}">⋯</button></nav><div class="rf-box"${foldOpen ? '' : ' hidden'}>${byRank.map((v) => navOf(v, '')).join('')}</div>`;
-  if (more == null) foldOpen = false;
+  const where = x ? 'dashboard. Make the window wider' : 'rail. Make the window taller';
+  const fold = more == null ? '' : `<nav class="sv sb rf-at" data-kind="btn" data-ref="btn:fold" style="${posOf(spotAt(more, n), x)}" aria-label="more"><button id="${x ? 'btn-dfold' : 'btn-fold'}" class="rf-btn${sf.fold ? ' on' : ''}" title="More&#10;The buttons that don't fit in the ${where} to see them in it." aria-label="more of the ${x ? 'dashboard' : 'rail'}" aria-expanded="${sf.fold}">⋯</button></nav><div class="rf-box"${sf.fold ? '' : ' hidden'}>${byRank.map((v) => navOf(v, '')).join('')}</div>`;
+  if (more == null) sf.fold = false;
   return boxes + navs + fold;
 }
 
@@ -303,37 +357,45 @@ export function pullBtns(sw: HTMLElement) {
 }
 export function homeBtns(sw: HTMLElement) {
   for (const [ref, sel] of RAIL) {
-    const el = $<HTMLElement>(sel), at = sw.querySelector<HTMLElement>(`.sv[data-ref="${ref}"]`) || $<HTMLElement>('#dash').querySelector<HTMLElement>(`.sv[data-ref="${ref}"]`) || home();
+    const el = $<HTMLElement>(sel), at = sw.querySelector<HTMLElement>(`.sv[data-ref="${ref}"]`) || DASH_S.el().querySelector<HTMLElement>(`.sv[data-ref="${ref}"]`) || home();
     if (el.parentNode !== at) at.append(el);
   }
-  placeFold(sw);
+  SURFS.forEach(placeFold);
 }
 
-let offFold = () => {};
-function placeFold(sw: HTMLElement) {
-  const box = sw.querySelector<HTMLElement>('.rf-box'), b = sw.querySelector<HTMLElement>('#btn-fold');
+function placeFold(sf: Surf) {
+  const sw = sf.el(), box = sw.querySelector<HTMLElement>('.rf-box'), b = sw.querySelector<HTMLElement>('.rf-btn');
   if (!box || !b || box.hidden) return;
-  const r = b.getBoundingClientRect(), rail = $('#activity').getBoundingClientRect();
-  box.style.left = rail.right + 6 + 'px';
+  const r = b.getBoundingClientRect();
+  if (sf.x) {
+    const w = box.offsetWidth, l = r.left + r.width / 2 < innerWidth / 2 ? r.left : r.right - w;
+    box.style.bottom = '';
+    box.style.top = $('#dash').getBoundingClientRect().bottom + 6 + 'px';
+    box.style.left = Math.max(8, Math.min(l, innerWidth - w - 8)) + 'px';
+    return;
+  }
+  box.style.top = '';
+  box.style.left = $('#activity').getBoundingClientRect().right + 6 + 'px';
   box.style.bottom = Math.max(8, innerHeight - r.bottom - 3) + 'px';
 }
-function setFold(sw: HTMLElement, on: boolean) {
-  foldOpen = on;
-  const box = sw.querySelector<HTMLElement>('.rf-box'), b = sw.querySelector<HTMLElement>('#btn-fold');
+function setFold(sf: Surf, on: boolean) {
+  sf.fold = on;
+  const sw = sf.el(), box = sw.querySelector<HTMLElement>('.rf-box'), b = sw.querySelector<HTMLElement>('.rf-btn');
   if (box) box.hidden = !on;
   b?.classList.toggle('on', on);
   b?.setAttribute('aria-expanded', String(on));
-  offFold();
-  offFold = () => {};
+  sf.off();
+  sf.off = () => {};
   if (!on) return;
-  placeFold(sw);
-  offFold = onOutside(['#switch .rf-box', '#btn-fold', '#colormenu'], () => setFold(sw, false), { esc: true });
+  placeFold(sf);
+  const id = sf.x ? '#dash > .slots' : '#switch';
+  sf.off = onOutside([`${id} .rf-box`, `${id} .rf-btn`, '#colormenu'], () => setFold(sf, false), { esc: true });
 }
-export function watchFold(sw: HTMLElement) {
-  sw.addEventListener('click', (e) => {
+export function watchFold() {
+  for (const sf of SURFS) sf.el().addEventListener('click', (e) => {
     const t = e.target as Element;
-    if (t.closest('#btn-fold')) return setFold(sw, !foldOpen);
-    if (t.closest('.rf-box') && t.closest('button, a')) setTimeout(() => setFold(sw, false));
+    if (t.closest('.rf-btn')) return setFold(sf, !sf.fold);
+    if (t.closest('.rf-box') && t.closest('button, a')) setTimeout(() => setFold(sf, false));
   });
 }
 
@@ -345,6 +407,16 @@ export function watchSlots(sw: HTMLElement, repaint: () => void) {
       const n = Math.max(1, Math.floor(e.contentBoxSize[0].blockSize / PITCH));
       if (n === cells) return;
       cells = n;
+      repaint();
+    },
+  });
+  onSize(DASH_S.el(), {
+    name: 'dash.slots',
+    live: true,
+    write: (_, [e]) => {
+      const n = Math.floor(e.contentBoxSize[0].inlineSize / PITCH);
+      if (n === DASH_S.size) return;
+      DASH_S.size = n;
       repaint();
     },
   });
@@ -361,6 +433,7 @@ export function watchSlots(sw: HTMLElement, repaint: () => void) {
 export const railCells = () => cells;
 let again = () => {};
 export const railChanged = () => again();
+export const dragging = () => SURFS.some((s) => s.el().classList.contains('dragging'));
 
 let eat = false;
 addEventListener('click', (e) => {
@@ -370,107 +443,134 @@ addEventListener('click', (e) => {
   e.preventDefault();
 }, true);
 
-function drag(e: PointerEvent, sw: HTMLElement, src: HTMLElement, span: number, done: (cell: number) => void) {
-  const x0 = e.clientX, y0 = e.clientY, at = src.getBoundingClientRect(), dx = x0 - at.left, dy = y0 - at.top;
-  let ghost: HTMLElement | null = null, hot = -1;
-  const cellOf = (ev: PointerEvent) => {
-    const c = nearest(ev.clientY - dy + (span * PITCH) / 2 - ((span - 1) * PITCH) / 2);
-    return c == null ? -1 : Math.min(cells - span, Math.max(0, c));
+const shownEl = (el: HTMLElement) => el.getClientRects().length > 0;
+const dist = (r: DOMRect, x: number, y: number) => Math.hypot(Math.max(r.left - x, 0, x - r.right), Math.max(r.top - y, 0, y - r.bottom));
+function surfAt(x: number, y: number) {
+  const d = DASH_S.el(), a = RAIL_S.el();
+  if (!shownEl(d)) return RAIL_S;
+  if (!shownEl(a)) return DASH_S;
+  return dist(d.getBoundingClientRect(), x, y) < dist($('#activity').getBoundingClientRect(), x, y) ? DASH_S : RAIL_S;
+}
+function drag(e: PointerEvent, src: HTMLElement, done: (sf: Surf, cell: number) => void) {
+  const btn = src.querySelector<HTMLElement>(':scope > :is(button, a)') || src;
+  const x0 = e.clientX, y0 = e.clientY, at = btn.getBoundingClientRect(), dx = x0 - at.left, dy = y0 - at.top;
+  let ghost: HTMLElement | null = null, hot: [Surf, number] | null = null;
+  const cellOf = (ev: { clientX: number; clientY: number }): [Surf, number] | null => {
+    const sf = surfAt(ev.clientX, ev.clientY), n = sf.x ? sf.n() : cells;
+    const c = nearest(sf, sf.x ? ev.clientX - dx + at.width / 2 : ev.clientY - dy + at.height / 2);
+    return c == null ? null : [sf, Math.min(n - 1, Math.max(0, c))];
   };
-  const light = (i: number) => {
-    if (i === hot) return;
-    sw.querySelectorAll('.sl-box.hot').forEach((x) => x.classList.remove('hot'));
-    hot = i;
-    for (let k = 0; i >= 0 && k < span; k++) sw.querySelector(`.sl-box[data-i="${i + k}"]`)?.classList.add('hot');
+  const light = (h: [Surf, number] | null) => {
+    if (h?.[0] === hot?.[0] && h?.[1] === hot?.[1]) return;
+    for (const s of SURFS) s.el().querySelectorAll('.sl-box.hot').forEach((x) => x.classList.remove('hot'));
+    hot = h;
+    if (h) h[0].el().querySelector(`:scope > .sl-box[data-i="${h[1]}"]`)?.classList.add('hot');
   };
   const move = (ev: PointerEvent) => {
     if (!ghost) {
       if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 5) return;
-      ghost = src.cloneNode(true) as HTMLElement;
-      ghost.classList.add('sl-ghost');
-      ghost.removeAttribute('style');
-      for (const x of [ghost, ...ghost.querySelectorAll('[id], [title]')]) {
-        x.removeAttribute('id');
-        x.removeAttribute('title');
-      }
+      const copy = btn.cloneNode(true) as HTMLElement;
+      for (const x of [copy, ...copy.querySelectorAll('[title]')]) x.removeAttribute('title');
+      copy.classList.remove('landed', 'peek');
+      ghost = document.createElement('div');
+      ghost.className = src.className + ' sl-ghost';
+      ghost.dataset.kind = src.dataset.kind || '';
+      ghost.style.cssText = `width:${at.width}px;height:${at.height}px`;
+      ghost.append(copy);
       document.body.append(ghost);
       src.classList.add('lift');
-      sw.classList.add('dragging');
+      for (const s of SURFS) s.el().classList.add('dragging');
     }
     ghost.style.left = ev.clientX - dx + 'px';
     ghost.style.top = ev.clientY - dy + 'px';
     light(cellOf(ev));
   };
-  const up = (ev: PointerEvent) => {
+  const stop = () => {
     removeEventListener('pointermove', move);
     removeEventListener('pointerup', up);
     removeEventListener('pointercancel', up);
-    if (!ghost) return;
+    removeEventListener('keydown', key, true);
+    if (!ghost) return false;
     ghost.remove();
     src.classList.remove('lift');
-    sw.classList.remove('dragging');
+    for (const s of SURFS) s.el().classList.remove('dragging');
     eat = true;
     setTimeout(() => (eat = false), 0);
-    light(-1);
-    const c = cellOf(ev);
-    if (ev.type === 'pointerup' && c >= 0) done(c);
+    light(null);
+    return true;
+  };
+  const up = (ev: PointerEvent) => {
+    const h = ghost ? cellOf(ev) : null;
+    if (!stop()) return;
+    if (ev.type === 'pointerup' && h) done(h[0], h[1]);
+    else railChanged();
+  };
+  const key = (ev: KeyboardEvent) => {
+    if (ev.key !== 'Escape' || !ghost) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    stop();
+    railChanged();
   };
   addEventListener('pointermove', move);
   addEventListener('pointerup', up);
   addEventListener('pointercancel', up);
+  addEventListener('keydown', key, true);
 }
 
-export function slotDrag(sw: HTMLElement, drop: (ref: string, slot: number) => void) {
-  sw.addEventListener('pointerdown', (e) => {
-    const nav = (e.target as Element).closest<HTMLElement>('#switch > .sv'), b = (e.target as Element).closest<HTMLElement>('button, a');
-    if (!nav || !b || e.button !== 0 || isPin(nav.dataset.ref!) || nav.dataset.ref === 'btn:fold') return;
-    const ref = nav.dataset.ref!, span = Number(nav.dataset.span) || 1;
-    drag(e, sw, nav, span, (c) => {
-      const other = lastAt.get(c);
-      const s = other && other !== ref && other !== 'btn:fold' ? spots()[other] : spotAt(c);
-      const slot = s < 0 && span > 1 ? s + (span - 1) : s;
-      drop(ref, slot);
-    });
+const target = (sf: Surf, ref: string, c: number) => {
+  const other = sf.last.get(c);
+  return other && other !== ref && other !== 'btn:fold' ? sf.get()[other] : spotAt(c, sf.x ? sf.n() : cells);
+};
+export function slotDrag(drop: (ref: string, slot: number, side: Side) => void) {
+  for (const sf of SURFS) sf.el().addEventListener('pointerdown', (e) => {
+    const nav = (e.target as Element).closest<HTMLElement>('.sv'), b = (e.target as Element).closest<HTMLElement>('button, a');
+    if (!nav || nav.parentElement !== sf.el() || !b || e.button !== 0 || isPin(nav.dataset.ref!) || nav.dataset.ref === 'btn:fold') return;
+    const ref = nav.dataset.ref!;
+    drag(e, nav, (t, c) => drop(ref, target(t, ref, c), t.side));
   });
 }
+
 export const railSpots = () => spots();
 
 let pinDrag = '';
 export const setPinDrag = (ref: string) => (pinDrag = ref);
-export function pinDropIn(sw: HTMLElement, drop: (ref: string, slot: number) => void) {
-  const cellOf = (e: DragEvent) => {
-    if (!pinDrag || (e.target as Element).closest('.rf-box')) return -1;
-    const c = nearest(e.clientY);
-    return c == null ? -1 : c;
-  };
-  const light = (c: number) => {
-    sw.querySelectorAll('.sl-box.hot').forEach((x) => x.classList.remove('hot'));
-    if (c >= 0) sw.querySelector(`.sl-box[data-i="${c}"]`)?.classList.add('hot');
-  };
-  const end = () => {
-    sw.classList.remove('dragging');
-    light(-1);
-  };
-  sw.addEventListener('dragover', (e) => {
-    if (!pinDrag) return;
-    sw.classList.add('dragging');
-    const c = cellOf(e);
-    light(c);
-    if (c < 0) return;
-    e.preventDefault();
-    e.dataTransfer!.dropEffect = 'move';
-  });
-  sw.addEventListener('dragleave', (e) => {
-    if (!sw.contains(e.relatedTarget as Node | null)) end();
-  });
-  sw.addEventListener('drop', (e) => {
-    const c = cellOf(e), ref = pinDrag;
-    end();
-    if (c < 0) return;
-    e.preventDefault();
-    e.stopPropagation();
-    const other = lastAt.get(c);
-    drop(ref, other && other !== ref && other !== 'btn:fold' ? spots()[other] : spotAt(c));
-  });
-  document.addEventListener('dragend', end);
+export function pinDropIn(drop: (ref: string, slot: number, side: Side) => void) {
+  for (const sf of SURFS) {
+    const sw = sf.el();
+    const cellOf = (e: DragEvent) => {
+      if (!pinDrag || (e.target as Element).closest('.rf-box')) return -1;
+      const c = nearest(sf, sf.x ? e.clientX : e.clientY);
+      return c == null ? -1 : c;
+    };
+    const light = (c: number) => {
+      sw.querySelectorAll('.sl-box.hot').forEach((x) => x.classList.remove('hot'));
+      if (c >= 0) sw.querySelector(`:scope > .sl-box[data-i="${c}"]`)?.classList.add('hot');
+    };
+    const end = () => {
+      sw.classList.remove('dragging');
+      light(-1);
+    };
+    sw.addEventListener('dragover', (e) => {
+      if (!pinDrag) return;
+      sw.classList.add('dragging');
+      const c = cellOf(e);
+      light(c);
+      if (c < 0) return;
+      e.preventDefault();
+      e.dataTransfer!.dropEffect = 'move';
+    });
+    sw.addEventListener('dragleave', (e) => {
+      if (!sw.contains(e.relatedTarget as Node | null)) end();
+    });
+    sw.addEventListener('drop', (e) => {
+      const c = cellOf(e), ref = pinDrag;
+      end();
+      if (c < 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      drop(ref, target(sf, ref, c), sf.side);
+    });
+    document.addEventListener('dragend', end);
+  }
 }

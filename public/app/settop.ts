@@ -12,14 +12,14 @@ import { esc } from '../base/util.ts';
 import { addPart, box, isOn, mark, markAll, pic, rowHtml, subh, wordsOf } from './setstd.ts';
 import type { At, Row } from './setstd.ts';
 
-export const TOP_LEAD = 'What shows in the left rail. Click a switch to hide or show a button. Right-clicking the rail does the same, and dragging a button moves it to another cell.';
+export const TOP_LEAD = 'What shows in the left rail. Click a switch to hide or show a button. Right-clicking the rail does the same, and dragging a button moves it to another cell, also into the dashboard and back.';
 type Tray = (typeof TOPBAR)[number];
 type TopRow = Tray['rows'][number];
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const TRAYS: Record<string, [string, string]> = {
   strip: ['Panels', 'They start at the top of the rail.'],
   modes: ['Modes', 'They start under the panels. Each layout and set has a button of its own under its mode.'],
-  agent: ['Agents', 'New agent sits in the dashboard, at its right end.'],
+  agent: ['Agents', 'New agent starts in the dashboard, at its right end.'],
   make: ['Create', 'The tools from here on start at the bottom of the rail, above the site button.'],
   quick: ['Quick tools', ''],
   ue: ['Unreal', 'Only while Unreal Engine 5 support is on, in Settings, Unreal, in a project with a .uproject.'],
@@ -56,7 +56,7 @@ const dbgRows = (): Row[] => (pref('ue:on') && pref('debug:on') ? items('debug:o
 
 const WK_SEL: Record<string, string> = { edWork: '.sets[data-kind=editor] .ly-wk', 'switch:wkOn': '.sets[data-kind=chat] .ly-wk' };
 const rowOf = (a: At) => TOPBAR.flatMap((g) => g.rows).find((r) => r.k === a.key && (r.id || '') === (a.id || ''));
-const topSel = (a: At) => (a.key === 'modesHidden' ? `#switch .sets[data-kind=${a.id}] > button` : rowOf(a)?.sel || '');
+const topSel = (a: At) => (a.key === 'modesHidden' ? `:is(#switch, #dash) .sets[data-kind=${a.id}] > button` : rowOf(a)?.sel || '');
 const sel = (a: At) => DASH_SEL[a.key] || WK_SEL[a.key] || (a.place === 'top' ? topSel(a) : a.key === 'quick:pins' ? `[data-qk="${a.id}"]` : BTN_OF[`${a.key}:${a.id}`] || '');
 
 const frag = (html: string) => {
@@ -86,7 +86,12 @@ const fill = (v: SlotView) => {
   return el.outerHTML;
 };
 const railHtml = () => picHtml(railViews().filter(inPic), fill);
-const dashPic = () => dashPicHtml(fill);
+const dashPic = () => dashPicHtml(railViews().filter(inPic), fill);
+const rowInDash = (a: At) => {
+  if (a.key === 'modesHidden') return !!railViews().find((v) => v.kind === a.id && inDash(v.ref));
+  const r = rowOf(a), ref = r && railViews().find((v) => v.kind === 'btn' && railSel(v.ref) === r.sel)?.ref;
+  return !!ref && inDash(ref);
+};
 const DASH_SEL: Record<string, string> = { 'dash:on': '#dash' };
 const dashRow = (): Row => ({ id: 'dash:on', key: 'dash:on', at: [{ key: 'dash:on', place: 'dash' }], ctl: () => keyChip('dashKey') });
 
@@ -117,7 +122,7 @@ const dbgBar = () => {
 
 function example(a: At) {
   if (a.place === 'dash') return pic(mark(dashPic(), [a], sel, a), 'dash', ' hr-ex');
-  if (a.place === 'top' && a.id && inDash(`btn:${a.id}`)) return pic(mark(dashPic(), [a], sel, a), 'top', ' hr-ex');
+  if (a.place === 'top' && rowInDash(a)) return pic(mark(dashPic(), [a], sel, a), 'top', ' hr-ex');
   if (a.place === 'top') return pic(markAll(railHtml(), barRows().map((r) => r.at[0]), sel, a), 'top', ' hr-ex hr-railfig');
   if (a.place === 'make') return pic(mark(makePic(), pinRows().map((r) => r.at[0]), sel, a), 'make', ' hr-ex hr-railfig');
   if (a.place === 'edbtn' || a.place === 'modebtn') return pic(mark(wkPic(a.place, isOn(a)), [a], sel, a), a.place, ' hr-ex hr-railfig');
@@ -136,9 +141,9 @@ export function topHtml() {
     rows += subh(TRAYS[t.g][0]) + sub(TRAYS[t.g][1]) + t.rows.map((r) => rowHtml(barRow(r))).join('');
     if (t.g === 'make' && pinRows().length) rows += subh('Pinned under new') + sub('Buttons that make one thing in one click. They sit just under new. Pick which ones.') + pinRows().map(rowHtml).join('');
   }
-  return box('top', 'Left rail', rows, 'The column of buttons down the left edge of the main window: the panels at the top, then the modes, and the tools at the bottom. Drag a button to another cell to move it. Only Window 1 has one.') +
+  return box('top', 'Left rail', rows, 'The column of buttons down the left edge of the main window: the panels at the top, then the modes, and the tools at the bottom. Drag a button to another cell to move it, or up into the dashboard. Only Window 1 has one.') +
     box('topalso', 'Also on the left rail', alsoRows().map(rowHtml).join('')) +
-    box('dash', 'Dashboard', rowHtml(dashRow()), 'The row above the windows, with start agent at its right end. Only Window 1 has one.');
+    box('dash', 'Dashboard', rowHtml(dashRow()), 'The row above the windows. It starts with start agent at its right end. Drag any rail button into it, or back to the rail. Right-click an empty cell to put a button there. Only Window 1 has one.');
 }
 export const ueBarHtml = () => (ueRows().length ? box('uebar', "Unreal build window's bar", ueRows().map(rowHtml).join(''), 'The bar at the top of the Unreal build window, and the bar over each of its logs. Right-clicking either bar hides and shows the same buttons.') : '');
 export const dbgBarHtml = () => (dbgRows().length ? box('dbgbar', "Debug column's bar", dbgRows().map(rowHtml).join(''), 'The bar at the top of the debug column, with the steps and stop. Right-clicking it hides and shows the same buttons.') : '');

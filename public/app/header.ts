@@ -294,19 +294,20 @@ usePins({
   views: () => (['pj', 'ws'] as const).flatMap((a) => quickOrder(a).map((k) => ({ kind: 'btn', ref: `pin:${k}`, html: qBtn(k), shown: a === 'pj' && !atWs() && pinned(a).includes(k), g: 'make' }))),
   groups: () => [shownQuick('pj')],
 });
-const rail = $<HTMLElement>('#switch');
-rail.addEventListener('click', (e) => {
-  const b = (e.target as HTMLElement).closest<HTMLElement>('[data-qk]');
-  if (b) MAKE[b.dataset.qk!][4]();
-});
-rail.addEventListener('dragstart', (e) => {
-  const b = (e.target as HTMLElement).closest<HTMLElement>('[data-qk]');
-  if (!b) return;
-  qDrag = b;
-  setPinDrag(`pin:${b.dataset.qk}`);
-  if (!b.dataset.drag) e.dataTransfer!.setData('text/plain', '');
-  requestAnimationFrame(() => qDrag?.classList.add('ph'));
-});
+for (const rail of [$<HTMLElement>('#switch'), $<HTMLElement>('#dash')]) {
+  rail.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLElement>('[data-qk]');
+    if (b) MAKE[b.dataset.qk!][4]();
+  });
+  rail.addEventListener('dragstart', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLElement>('[data-qk]');
+    if (!b) return;
+    qDrag = b;
+    setPinDrag(`pin:${b.dataset.qk}`);
+    if (!b.dataset.drag) e.dataTransfer!.setData('text/plain', '');
+    requestAnimationFrame(() => qDrag?.classList.add('ph'));
+  });
+}
 document.addEventListener('dragend', () => {
   setPinDrag('');
   if (!qDrag) return;
@@ -413,10 +414,10 @@ onPref('barend:off', paintBtns);
 
 function newMenu(e?: Event) {
   const page = (e?.currentTarget as HTMLElement | null)?.closest<HTMLElement>('.st-newg');
-  const b = (page || $<HTMLElement>('#btn-more'))!.getBoundingClientRect();
+  const b = (page || $<HTMLElement>('#btn-more'))!.getBoundingClientRect(), under = !page && !!$('#btn-more').closest('#dash');
   const row = (k: string) =>
     `<div class="qk-row"><button class="mi" data-mk="${k}" ${drag(k)}${rowTip(k)}><i class="qk-g">${icon(k)}</i>${esc(MAKE[k][1])}<span class="d">${esc(MAKE[k][2])}</span></button></div>`;
-  popMenu(page ? b.left : b.right + 6, page ? b.bottom + 6 : b.top, MENU[at()].map(row).join(''), (btn) => btn.dataset.mk && MAKE[btn.dataset.mk][4]());
+  popMenu(page || under ? b.left : b.right + 6, page || under ? b.bottom + 6 : b.top, MENU[at()].map(row).join(''), (btn) => btn.dataset.mk && MAKE[btn.dataset.mk][4]());
 }
 const mb = $('#btn-more');
 mb.innerHTML = ICONS.newAny;

@@ -1,40 +1,41 @@
-import { bands, dashPick, dashRow, ICONS, menuHead, popMenu } from '../base/controls.ts';
 import { atLaunch, atWs } from '../base/model.ts';
 import { tell } from '../base/notify.ts';
 import { onPref, pref, setPref } from '../base/prefs.ts';
 import { $ } from '../base/util.ts';
-import { dashHtml, dashViews, pullBtns, railSel } from './slots.ts';
+import { pullBtns, railChanged, slotHtml } from './slots.ts';
+import type { SlotView } from './slots.ts';
 
 const box = () => $<HTMLElement>('#dash');
 const cells = () => $<HTMLElement>('#dash > .slots');
 const otherWin = () => document.documentElement.classList.contains('xwin');
-let drawn: string | null = null;
+let drawn: string | null = null, any = true;
 
-export function paintDash() {
-  const views = dashViews(), html = dashHtml(views), c = cells();
-  if (drawn !== html) {
-    drawn = html;
-    pullBtns(c);
-    c.innerHTML = html;
-  }
-  for (const v of views) {
-    const nav = c.querySelector<HTMLElement>(`.sv[data-ref="${v.ref}"]`), el = $<HTMLElement>(railSel(v.ref));
-    if (nav && el.parentNode !== nav) nav.append(el);
-  }
-  const show = !!pref('dash:on') && !atLaunch() && !atWs() && !otherWin() && !!html;
+export function showDash(has = any) {
+  any = has;
+  const show = !!pref('dash:on') && !atLaunch() && !otherWin() && (!atWs() || has);
   $('#app').classList.toggle('nodash', !show);
   box().hidden = !show;
+  return show;
+}
+
+export function drawDash(views: SlotView[], at: Record<string, number>) {
+  const c = cells();
+  if (box().hidden || c.classList.contains('dragging')) return;
+  const html = slotHtml(views, at, 'dash');
+  if (drawn === html) return;
+  drawn = html;
+  pullBtns(c);
+  c.innerHTML = html;
 }
 
 export function toggleDash() {
   if (otherWin()) return tell($('#shell'), { title: 'This window has no dashboard', line: 'Only Window 1 has one', ms: 2500 });
-  if (atLaunch() || atWs()) return tell($('#shell'), { title: 'There is no dashboard on this screen', line: 'It shows inside a project', ms: 2500 });
+  if (atLaunch() || (atWs() && !any)) return tell($('#shell'), { title: 'There is no dashboard on this screen', line: 'It shows inside a project', ms: 2500 });
   setPref('dash:on', !pref('dash:on'));
 }
 
-onPref('dash:on', paintDash);
-box().addEventListener('contextmenu', (e: MouseEvent) => {
-  if (e.defaultPrevented) return;
-  e.preventDefault();
-  popMenu(e.clientX, e.clientY, menuHead(ICONS.topDash, 'dashboard') + bands({ actions: dashRow() }), (b) => dashPick(b));
+onPref('dash:on', () => {
+  showDash();
+  drawn = null;
+  railChanged();
 });

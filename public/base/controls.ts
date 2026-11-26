@@ -818,7 +818,7 @@ export function topBarMenu(x: number, y: number, o: TopOpts = {}) {
       return inner ? subLabel(name) + inner : '';
     };
     const tools = TOPBAR.map((g) => g.g).filter((g) => g !== 'strip' && g !== 'modes');
-    html = menuHead(ICONS.strip, 'rail') + bands({ actions: ((o.acts ?? railActs.rows()) || '') + dashRow(), buttons: band('panels', ['strip']) + band('modes', ['modes']) + band('tools', tools) });
+    html = (o.head || menuHead(ICONS.strip, 'rail')) + bands({ actions: ((o.acts ?? railActs.rows()) || '') + dashRow(), buttons: band('panels', ['strip']) + band('modes', ['modes']) + band('tools', tools) });
   } else {
     const g = TOPBAR.find((t) => t.g === o.tray)!;
     html = (o.head || menuHead(g.icon?.() || '', g.name)) + bands({ actions: (o.acts || '') + (g.acts?.() || ''), options: o.opts, buttons: (o.buttons || '') + rowsOf(g), pick: o.pick, other: `<button class="mi tb-all" data-tball><i class="tb-ic">${ICONS.strip}</i><span class="mi-n">all rail buttons</span><span class="kc">›</span></button>` });

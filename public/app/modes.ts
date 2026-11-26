@@ -1,11 +1,11 @@
 import { filesChanged, setMark, togglePin } from './actions.ts';
 import { markMenu } from '../base/agentrow.ts';
 import { agentMenu, launchAgent, pinOf } from '../base/agentmenu.ts';
-import { ask, barMenu, flyFocus, ICONS, keepMenu, keyChip, menuHead, modeOrder, popMenu, railActions, setSwatches, sortable, sorting, topBarMenu, topRow } from '../base/controls.ts';
+import { ask, barMenu, flyFocus, ICONS, keepMenu, keyChip, menuHead, modeOrder, popMenu, railActions, setSwatches, sortable, sorting, subLabel, TOPBAR, topBarMenu, topRow } from '../base/controls.ts';
 import { addSet, freeCell, setsHolding, agentLine, createDeck, dropSet, inCells, markSet, moveAway, moveSet, moveSetChats, cellsOf, chatsFromOrch, setChatsToOrch, nextColor, nextSet, orderHex, putInSet, restoreSet, swapInSet, setAgents, setAway, setColor, setInfo, setInfos, setOf, setOn, sets, setsMenu, setTurn, shareDeck, showSet, takeHere, toOrch } from '../decks/deck.ts';
-import { aim, bottomBtns, freeAt, freeNear, homeBtns, moveRef, pinDropIn, placeAll, pullBtns, railSpots, slotDrag, slotHtml, topBtns, watchFold, watchSlots } from './slots.ts';
-import type { SlotView } from './slots.ts';
-import { paintDash } from './topdash.ts';
+import { aim, bottomBtns, btnShown, dragging, freeAt, freeNear, homeBtns, inDash, moveRef, orderAt, pinDropIn, placeBoth, pullBtns, railSel, slotDrag, slotHtml, topBtns, watchFold, watchSlots } from './slots.ts';
+import type { Side, SlotView, Spot } from './slots.ts';
+import { drawDash, showDash } from './topdash.ts';
 import type { MoveHow } from '../decks/deck.ts';
 import { agentHead, headClick, reportMenu } from './chathead.ts';
 import type { HeadCan } from './chathead.ts';
@@ -223,10 +223,9 @@ export function renderModes() {
 
 export function paintSwitch() {
   paintHere();
-  paintDash();
   const sw = $('#switch');
   sw.hidden = atLaunch();
-  if (sw.hidden) return;
+  if (sw.hidden) return void showDash(false);
   const m = mode(), ws = atWs(), lys = editors();
   const marks = (info: Info, k: string) => {
     const st = info.asks ? 'asks' : info.done ? 'done' : '';
@@ -274,11 +273,13 @@ export function paintSwitch() {
   views.sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind));
   const all = [...topBtns(), ...views, ...bottomBtns()];
   lastAll = all;
-  const { at, first, fresh } = placeAll(all);
+  showDash(all.some((v) => v.shown && inDash(v.ref)));
+  const { at, first, fresh, rail, dash, dashAt } = placeBoth(all);
   if (!ws && first) freezeColors();
-  if (!ws && fresh.some((r) => !r.startsWith('btn:'))) syncOrders(at);
-  if (sw.classList.contains('dragging')) return;
-  const html = slotHtml(all, at);
+  if (!ws && fresh.some((r) => !r.startsWith('btn:'))) syncOrders();
+  if (dragging()) return;
+  drawDash(dash, dashAt);
+  const html = slotHtml(rail, at);
   if (drawn !== html) {
     drawn = html;
     pullBtns(sw);
@@ -296,9 +297,9 @@ function freezeColors() {
     setTurn(k, Math.max(0, list.length - 1));
   }
 }
-const seq = (s: number | undefined) => (s == null ? 1e9 : s < 0 ? 1e6 + s : s);
-function syncOrders(at: Record<string, number>) {
-  const by = (k: string, ids: string[]) => [...ids].sort((a, b) => seq(at[`${k}:${a}`]) - seq(at[`${k}:${b}`]));
+function syncOrders() {
+  const o = orderAt(), seq = (r: string) => o[r] ?? 1e9;
+  const by = (k: string, ids: string[]) => [...ids].sort((a, b) => seq(`${k}:${a}`) - seq(`${k}:${b}`));
   by('editor', eds.map((e) => e.id)).forEach((id, i) => eds[i]?.id !== id && moveEditor(id, i));
   for (const k of SLOT_KINDS) by(k, sets(k).list.map((x) => x.id)).forEach((id, i) => sets(k).list[i]?.id !== id && moveSet(k, id, i));
 }
@@ -310,27 +311,27 @@ const allRefs = () => [
 ];
 export const NEW_KINDS: [string, string][] = [['chat', 'agents set'], ['editor', 'editor layout'], ['term', 'terminals']];
 export const NEW_BINDS: Record<string, string> = { chat: 'newSetChat', editor: 'newLayout', term: 'newSetTerm' };
-export function newView(kind: string, slot: number | null = null) {
+export function newView(kind: string, slot: Spot | null = null) {
   if (atLaunch() || atWs()) return;
-  aim(kind, slot);
+  aim(kind, slot ? slot.s : null, slot?.side);
   if (kind === 'editor') return addEditor(nextColor('editor'));
   toSet(kind, (addSet(kind), setOn(kind)));
 }
 function landSlot(ref: string) {
-  const b = $<HTMLElement | null>(`#switch .sv[data-ref="${CSS.escape(ref)}"] > :is(button, a)`);
+  const b = $<HTMLElement | null>(`:is(#switch, #dash) .sv[data-ref="${CSS.escape(ref)}"] > :is(button, a)`);
   b?.classList.add('landed');
   b?.addEventListener('animationend', () => b.classList.remove('landed'), { once: true });
 }
-function dropRef(ref: string, slot: number) {
-  if (!moveRef(ref, slot, allRefs(), lastAll.filter((v) => v.shown).map((v) => v.ref))) return;
+function dropRef(ref: string, slot: number, side: Side = 'rail') {
+  if (!moveRef(ref, slot, allRefs(), lastAll.filter((v) => v.shown).map((v) => v.ref), side)) return paintSwitch();
   drawn = '';
   paintSwitch();
-  if (!atWs()) syncOrders(railSpots());
+  if (!atWs()) syncOrders();
   landSlot(ref);
 }
-slotDrag($('#switch'), dropRef);
-pinDropIn($('#switch'), dropRef);
-watchFold($('#switch'));
+slotDrag(dropRef);
+pinDropIn(dropRef);
+watchFold();
 watchSlots($('#switch'), () => {
   drawn = '';
   paintSwitch();
@@ -670,12 +671,12 @@ menu.addEventListener('menuclose', () => (unpeek(), (peek = null)));
 const CLOSES: Record<string, string> = { editor: 'Its tabs close.', chat: 'You choose where its chats go: orchestration, another set, or they end.', term: 'Its terminals stop.' };
 const READ_ICON = '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>';
 const X_ICON ='<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg>';
-function newRowsAt(at: number | null) {
+function newRowsAt(at: Spot | null) {
   const slotTip = at == null ? 'It opens in the first free cell of the rail.' : 'It opens in the free cell next to where you right-clicked.';
   return !atWs() ? NEW_KINDS.filter(([k]) => !isOff('modesHidden', k)).map(([k, label]) => `<button class="mi" data-newv="${k}" title="${esc(`New ${label}
 ${slotTip}`)}"><i class="tb-ic">${k === 'editor' ? modeGem('editor') : MODES[k].icon!()}</i><span class="mi-n">new ${label}</span>${keyChip(NEW_BINDS[k])}</button>`).join('') : '';
 }
-function modesMenu(x: number, y: number, kind = '', b: HTMLElement | null = null, again = false, at: number | null = null) {
+function modesMenu(x: number, y: number, kind = '', b: HTMLElement | null = null, again = false, at: Spot | null = null) {
   if (!again) fly = '';
   const ed = kind === 'editor', w = ed ? 'layout' : 'set';
   const sub = !!b && ('ed' in b.dataset || 'set' in b.dataset);
@@ -706,7 +707,7 @@ ${PREFS[k].desc}`)}"`;
       return (fly ? flyFocus() : $<HTMLElement>(`#colormenu [data-fly="${d.fly}"]`))?.focus();
     }
     if (id != null && picked(p, kind, id)) {
-      const fresh = $<HTMLElement | null>(`#switch .sets[data-kind="${kind}"] [data-${ed ? 'ed' : 'set'}="${CSS.escape(id)}"]`);
+      const fresh = $<HTMLElement | null>(`:is(#switch, #dash) .sets[data-kind="${kind}"] [data-${ed ? 'ed' : 'set'}="${CSS.escape(id)}"]`);
       if (!fresh) return;
       modesMenu(x, y, kind, fresh, true, at);
       return flyFocus()?.focus();
@@ -717,26 +718,65 @@ ${PREFS[k].desc}`)}"`;
   } });
   keepMenu(() => modesMenu(x, y, kind, b?.isConnected ? b : null, true, at));
 }
-$('#switch').addEventListener('contextmenu', (e: MouseEvent) => {
+const SURFS = ['#switch', '#dash'];
+for (const q of SURFS) $(q).addEventListener('contextmenu', (e: MouseEvent) => {
   const b = (e.target as Element).closest<HTMLElement>('[data-mode],[data-ed],[data-set]');
-  if (!b) return;
+  if (!b || b.closest('.sl-ghost')) return;
   e.preventDefault();
   const nav = b.closest<HTMLElement>('.sets')!;
   modesMenu(e.clientX, e.clientY, nav.dataset.kind!, b, false, nav.dataset.ref ? freeNear(nav.dataset.ref, allRefs()) : null);
 });
-const newPick = (b: HTMLElement, at: number | null) => b.dataset.newv && newView(b.dataset.newv, at);
-railActions(() => newRowsAt(null), newPick);
-barMenu('#switch', '', {
-  open: (_el, e) => {
-    const at = freeAt(e.clientY);
-    topBarMenu(e.clientX, e.clientY, { acts: newRowsAt(at), onPick: (b) => newPick(b, at) });
-  },
-});
+const newPick = (b: HTMLElement, at: Spot | null) => b.dataset.newv && newView(b.dataset.newv, at);
+railActions(() => newRowsAt(null), (b) => newPick(b, null));
+const btnRow = (ref: string) => TOPBAR.flatMap((g) => g.rows).find((r) => r.sel === railSel(ref));
+const svgOf = (html: string) => html.match(/<svg[\s\S]*?<\/svg>/)?.[0] || '';
+const setWord = (v: SlotView) => {
+  const n = v.html.match(/data-n="(\d+)"/)?.[1], label = v.kind === 'editor' ? 'editor' : MODES[v.kind]?.label || v.kind;
+  return n ? `${label} ${v.kind === 'editor' ? 'layout' : 'set'} ${n}` : label;
+};
+function putList(side: Side) {
+  const rows: { ref: string; name: string; icon: string; hidden: boolean; unhide: () => unknown }[] = [];
+  for (const v of lastAll) {
+    if (v.shown && inDash(v.ref) === (side === 'dash')) continue;
+    if (v.ref.startsWith('pin:')) {
+      if (v.shown) rows.push({ ref: v.ref, name: `new ${v.html.match(/aria-label="([^"]*)"/)?.[1] || v.ref.slice(4)}`, icon: svgOf(v.html), hidden: false, unhide: () => {} });
+      continue;
+    }
+    if (v.kind === 'btn') {
+      const r = btnRow(v.ref);
+      if (!r || (r.when && !r.when())) continue;
+      const hidden = !btnShown(v.ref);
+      rows.push({ ref: v.ref, name: r.label, icon: r.icon(), hidden, unhide: () => (r.id ? setOff(r.k, r.id, false) : setPref(r.k, true)) });
+      continue;
+    }
+    if (atWs()) continue;
+    rows.push({ ref: v.ref, name: setWord(v), icon: svgOf(v.html), hidden: !v.shown, unhide: () => setOff('modesHidden', v.kind, false) });
+  }
+  return rows;
+}
+const putRows = (at: Spot) => putList(at.side).map((r) => `<button class="mi" data-put="${esc(r.ref)}" title="${esc(`${r.name.charAt(0).toUpperCase() + r.name.slice(1)}
+${r.hidden ? 'Hidden now. It shows again, in this cell.' : `Moves it from the ${at.side === 'dash' ? 'rail' : 'dashboard'} to this cell.`}`)}"><i class="tb-ic">${r.icon}</i><span class="mi-n">${esc(r.name)}${r.hidden ? ' (hidden)' : ''}</span></button>`).join('');
+function putHere(ref: string, at: Spot) {
+  const row = putList(at.side).find((r) => r.ref === ref);
+  if (!row) return;
+  dropRef(ref, at.s, at.side);
+  if (row.hidden) row.unhide();
+}
+function slotMenu(e: MouseEvent, side: Side) {
+  const at = freeAt(side === 'dash' ? e.clientX : e.clientY, side), put = at && side === 'dash' ? putRows(at) : '';
+  topBarMenu(e.clientX, e.clientY, {
+    head: side === 'dash' ? menuHead(ICONS.topDash, 'dashboard') : undefined,
+    acts: newRowsAt(at) + (put ? subLabel('put here') + put : ''),
+    onPick: (b) => (b.dataset.put && at ? putHere(b.dataset.put, at) : newPick(b, at)),
+  });
+}
+barMenu('#switch', '', { open: (_el, e) => slotMenu(e, 'rail') });
+barMenu('#dash', '', { open: (_el, e) => slotMenu(e, 'dash') });
 onPref('modesHidden', () => {
   drawn = '';
   paintSwitch();
 });
-$('#switch').addEventListener('click', (e: MouseEvent) => {
+for (const q of SURFS) $(q).addEventListener('click', (e: MouseEvent) => {
   const b = (e.target as Element).closest<HTMLElement>('[data-mode],[data-ed],[data-ed-add],[data-set],[data-set-add]');
   if (!b) return;
   const k = b.closest<HTMLElement>('.sets')!.dataset.kind!;
