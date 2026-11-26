@@ -1,6 +1,7 @@
 import { bound, onTwice, show } from './binds.ts';
 import { CAPTURE_NOTE, keyText, pressKey, pressTwice } from './keycap.ts';
 import { tipCard } from './tipcard.ts';
+import { codeBox } from './codebox.ts';
 import type { TipKey } from './tipcard.ts';
 import { icon } from './icon.ts';
 import { dirIcon, fileIcon, fileTint, nameHtml } from './filelook.ts';
@@ -28,6 +29,7 @@ interface AskOpts {
   text?: string;
   warn?: string;
   safe?: string;
+  code?: string;
   value?: string;
   placeholder?: string;
   confirm?: boolean;
@@ -1343,7 +1345,7 @@ new MutationObserver((list) => {
   }
 }).observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['title'] });
 
-export function ask({ title, text = '', warn = '', safe = '', value = '', placeholder = '', confirm = false, choices = null, pick = null, tick = null, tick2 = null, label = '', about = '', folder = null, blank = false, list = null, checks = null, ticks = null, menu = null, end = null, main = null }: AskOpts) {
+export function ask({ title, text = '', warn = '', safe = '', code, value = '', placeholder = '', confirm = false, choices = null, pick = null, tick = null, tick2 = null, label = '', about = '', folder = null, blank = false, list = null, checks = null, ticks = null, menu = null, end = null, main = null }: AskOpts) {
   return new Promise<any>((resolve) => {
     const m = $('#modal');
     const inp = m.querySelector('input');
@@ -1469,6 +1471,11 @@ export function ask({ title, text = '', warn = '', safe = '', value = '', placeh
       m.querySelector('p').insertAdjacentHTML('afterend', `<div class="m-list">${lines.map((l) => `<div class="m-li"><i aria-label="${esc(l.kind)}s">${gem(l.kind)}</i><span>${l.names.map(esc).join(', ')}</span></div>`).join('')}</div>`);
       added.push(m.querySelector('.m-list'));
     }
+    if (code != null) {
+      m.querySelector('p').insertAdjacentHTML('afterend', codeBox(code));
+      added.push(m.querySelector('.m-codebox'));
+      m.querySelector('.box').classList.add('m-wide');
+    }
     inp.hidden = confirm;
     inp.value = value;
     inp.placeholder = placeholder;
@@ -1492,6 +1499,7 @@ export function ask({ title, text = '', warn = '', safe = '', value = '', placeh
       m.hidden = true;
       row.innerHTML = plain;
       for (const el of added) el.remove();
+      m.querySelector('.box').classList.remove('m-wide');
       para.style.minHeight = '';
       if (folder) inp.removeEventListener('input', follow);
       hideTip();

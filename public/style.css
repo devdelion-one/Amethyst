@@ -2387,6 +2387,11 @@ button[data-qk].ph > * { visibility: hidden; }
 #modal, #keys { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: color-mix(in srgb, var(--veil) 55%, transparent); }
 #modal .box, #keys .box { display: grid; gap: var(--s3); padding: var(--s4); background: var(--raised); box-shadow: var(--float); border: 0; border-radius: var(--r-panel); }
 #modal .box { width: min(440px, 92vw); }
+#modal .box.m-wide { width: min(720px, 92vw); }
+#modal .m-codebox { display: grid; gap: 4px; min-width: 0; }
+#modal .m-lines { color: var(--text-dim); font-size: var(--fs-xs); }
+#modal .m-code { max-height: min(50vh, 24em); }
+#modal .m-hid { color: var(--danger); }
 #modal .box > .bt, #keys .box > .bt { margin: 0; color: var(--text-strong); font: 600 var(--fs-lg)/1.3 var(--font-display); text-transform: none; letter-spacing: 0; }
 #keys .box { width: min(1040px, 94vw); max-height: 90vh; grid-template-rows: auto minmax(0, 1fr) auto; }
 #keys .box > .x { top: var(--s3); right: var(--s3); }

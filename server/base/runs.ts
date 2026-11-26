@@ -5,7 +5,8 @@ import type { Routes } from '../../public/base/types.ts';
 type Out = (e: Record<string, unknown>) => void;
 type Body = Record<string, unknown> | null | undefined;
 export type End = 'yes' | 'no' | 'gone' | 'timeout' | 'nowindow';
-export type What = { title: string; text: string; warn?: string };
+export type What = { title: string; text: string; warn?: string; code?: string };
+export const CODE_MAX = 20000;
 type Ask = What & { id: number; done: (how: End) => void };
 
 let hooks = { free: (_b: Body) => true, who: (_b: Body) => 'An agent outside Amethyst or a terminal' };
@@ -19,7 +20,7 @@ let next = 1;
 export const during = <T>(signal: AbortSignal, run: () => T): T => hangup.run(signal, run);
 export const free = (body: Body) => hooks.free(body);
 export const whoAsks = (body: Body) => hooks.who(body);
-const pub = (a: Ask) => ({ id: a.id, title: a.title, text: a.text, warn: a.warn || '' });
+const pub = (a: Ask) => ({ id: a.id, title: a.title, text: a.text, warn: a.warn || '', ...(a.code != null && { code: a.code }) });
 const say = (e: Record<string, unknown>) => subs.forEach((out) => out(e));
 
 export function follow(out: Out) {
@@ -66,7 +67,9 @@ export const SAID: Record<Exclude<End, 'yes'>, string> = {
 
 export async function mayRun(body: Body, what: (who: string) => What, seconds = 0) {
   if (free(body)) return;
-  const how = await ask(what(whoAsks(body)), seconds);
+  const w = what(whoAsks(body));
+  if (w.code != null && w.code.length > CODE_MAX) throw new HttpError(400, `too long to show in the prompt: at most ${CODE_MAX.toLocaleString('en-US')} characters; split it`);
+  const how = await ask(w, seconds);
   if (how !== 'yes') throw new HttpError(403, SAID[how]);
 }
 

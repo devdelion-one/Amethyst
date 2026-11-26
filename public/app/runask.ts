@@ -6,7 +6,7 @@ import { WIN } from '../base/windows.ts';
 
 type Item = { id: number };
 type Ev<T> = { type: string; ask?: T; id?: number };
-type Prompt = { title: string; text: string; warn: string };
+type Prompt = { title: string; text: string; warn: string; code?: string };
 
 export function askQueue<T extends Item>(what: Record<string, unknown>, show: (a: T) => Prompt, answer: (a: T, yes: boolean) => Promise<unknown>) {
   if (WIN !== 1 || location.pathname === '/ue.html') return;
@@ -43,4 +43,4 @@ export function askQueue<T extends Item>(what: Record<string, unknown>, show: (a
   });
 }
 
-askQueue<Item & Prompt>({ runask: true }, (a) => ({ title: a.title, text: a.text, warn: a.warn }), (a, yes) => api('POST', '/api/runs/ask', { id: a.id, yes }));
+askQueue<Item & Prompt>({ runask: true }, (a) => ({ title: a.title, text: a.text, warn: a.warn, code: a.code }), (a, yes) => api('POST', '/api/runs/ask', { id: a.id, yes }));

@@ -967,8 +967,8 @@ const ROUTES: Routes = {
     const w = whoOf(body, root), b = { ...(body || {}) }, e = String(b.expr ?? '').trim();
     if (changes(e)) {
       allow(w, 'An evaluate with a call or an assignment', ' It could change the program.');
-      const call = /\(/.test(e), shown = e.length > 80 ? e.slice(0, 79) + '…' : e;
-      await runs.mayRun(body, (who) => ({ title: `Allow ${call ? 'a call' : 'a change'} in the program you're debugging?`, text: `${who} wants to evaluate ${shown}, which ${call ? 'calls a function' : 'changes a value'}.` }));
+      const call = /\(/.test(e);
+      await runs.mayRun(body, (who) => ({ title: `Allow ${call ? 'a call' : 'a change'} in the program you're debugging?`, text: `${who} wants to evaluate this, which ${call ? 'calls a function' : 'changes a value'}.`, code: e }));
     }
     if (w.agent) b.context = 'watch';
     if (b.frame != null && !b.frameId) b.frameId = await frameAt(w.root, b.frame);

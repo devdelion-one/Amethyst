@@ -924,11 +924,6 @@ function sayMade(r: any) {
   return out;
 }
 
-const previewSnippet = (s: string, max = 200) => {
-  const clean = s.trim();
-  return clean.length > max ? clean.slice(0, max) + '...' : clean;
-};
-
 async function requireLinkedEditor(f: Found, hintWindow = false) {
   const dir = path.dirname(f.path);
   const proc = await editor.editorProc(f.path);
@@ -1147,7 +1142,7 @@ const CMD_ROUTES: Routes = {
     const hasFile = body?.file != null && String(body.file).trim() !== '';
     if (hasCode === hasFile) throw new HttpError(400, 'pass either Python code or --file <path>, not both');
     let script = '';
-    let label = '';
+    let from = '';
     if (hasFile) {
       const rel = guard(String(body.file).trim());
       if (!rel) throw new HttpError(400, 'file path required');
@@ -1157,10 +1152,9 @@ const CMD_ROUTES: Routes = {
       } catch {
         throw new HttpError(404, `Python file not found: ${rel}`);
       }
-      label = `${rel}\n${script}`;
+      from = ` from ${rel}`;
     } else {
       script = String(body.code);
-      label = script;
     }
     const evalMode = !!body?.eval;
     const mode: link.ExecMode = evalMode ? 'EvaluateStatement' : 'ExecuteFile';
@@ -1169,7 +1163,8 @@ const CMD_ROUTES: Routes = {
       body,
       (who) => ({
         title: `Allow running Python in Unreal Editor on ${f.name}?`,
-        text: `${who} asks to run Python in Unreal Editor on ${f.name}:\n${previewSnippet(label)}`,
+        text: `${who} asks to run Python in Unreal Editor on ${f.name}${from}:`,
+        code: script,
         warn: 'This runs arbitrary Python inside the open Unreal Editor process with full access to your project and PC.',
       }),
       300,
@@ -1188,7 +1183,8 @@ const CMD_ROUTES: Routes = {
       body,
       (who) => ({
         title: `Allow running a console command in Unreal Editor on ${f.name}?`,
-        text: `${who} asks to run a console command in Unreal Editor on ${f.name}:\n${previewSnippet(command)}`,
+        text: `${who} asks to run a console command in Unreal Editor on ${f.name}:`,
+        code: command,
         warn: 'Console commands run inside the open Unreal Editor process and can change editor or project state.',
       }),
       300,
