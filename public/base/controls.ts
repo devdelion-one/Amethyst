@@ -1084,6 +1084,13 @@ document.addEventListener('contextmenu', (e) => {
 const frames = () => document.documentElement.classList.toggle('no-btn-frame', !pref('btnFrame'));
 frames();
 onPref('btnFrame', frames);
+const accents = () => {
+  document.documentElement.classList.toggle('accent-newbtn', !!pref('accentNewBtn'));
+  document.documentElement.classList.toggle('accent-lines', !!pref('accentTurnLines'));
+};
+accents();
+onPref('accentNewBtn', accents);
+onPref('accentTurnLines', accents);
 export const placeClass = (key: string, place: string) => `off-${key.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${place}`;
 const PLACED = Object.keys(PREFS).filter((k) => PREFS[k].places);
 const paintPlaces = () => PLACED.forEach((k) => PREFS[k].places!.forEach((p) => document.documentElement.classList.toggle(placeClass(k, p), !pref(k, p))));

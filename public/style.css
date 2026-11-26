@@ -720,7 +720,8 @@ body.out-mod .lk:is(a, code, span):not(.miss), body.out-mod .cm-content.pm-mod .
 .ch-flow > .ch-you + :not(.ch-you) { margin-top: 8px; }
 .ch-flow > .ch-end { margin-bottom: 8px; }
 .ch-rules { position: absolute; left: 0; right: 0; overflow: hidden; pointer-events: none; }
-.ch-rules i { position: absolute; left: 0; right: 0; height: 1px; background: var(--accent); }
+.ch-rules i { position: absolute; left: 0; right: 0; height: 1px; background: color-mix(in srgb, var(--text) 30%, transparent); }
+:root.accent-lines .ch-rules i { background: var(--accent); }
 .ch-marks { position: absolute; z-index: 3; right: 0; width: 8px; pointer-events: none; }
 .ch-marks i { position: absolute; left: 1px; right: 1px; height: 2px; margin-top: -1px; border-radius: calc(var(--r-mark) / 2); background: var(--text-dim); opacity: .7; }
 .ch-marks i.you { background: var(--accent); opacity: 1; }
@@ -4558,8 +4559,8 @@ body:has(> .img-view) :is(#colormenu, #tip) { z-index: 110; }
 #btn-scratch:hover, #btn-sketch:hover, #btn-inbox:hover, #btn-qterm:hover, #btn-qpwsh:hover, #btn-qagent:hover, .pn-qa:hover { border-color: transparent; background: color-mix(in srgb, var(--text) 16%, transparent); color: var(--text-strong); }
 #btn-newchat, .pn-nc { border-color: color-mix(in srgb, var(--accent) 60%, transparent); background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--text); }
 #btn-newchat:hover, .pn-nc:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--text-strong); }
-:root[data-light] :is(#btn-newchat, .pn-nc, #status > #btn-settings.on) { border-color: var(--accent); background: var(--raised); }
-:root[data-light] :is(#btn-newchat, .pn-nc, #status > #btn-settings.on):hover { background: color-mix(in srgb, var(--accent) 6%, var(--raised)); }
+:root[data-light] #status > #btn-settings.on, :root[data-light].accent-newbtn :is(#btn-newchat, .pn-nc) { border-color: var(--accent); background: var(--raised); }
+:root[data-light] #status > #btn-settings.on:hover, :root[data-light].accent-newbtn :is(#btn-newchat, .pn-nc):hover { background: color-mix(in srgb, var(--accent) 6%, var(--raised)); }
 #projects { border-left: 0; }
 
 
@@ -5399,3 +5400,6 @@ body.dbg-pop #dbg .dgrip { display: none; }
 #colormenu .mi > .dk-code { flex: none; }
 #colormenu .mi > .m-tt { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .sub-row.sel, .ch-hist-list li.on, .cpo[aria-selected="true"], #tree .ti.on, #tree .ti.tt.on, #tree .ti.tt.sel, #tree .ti.tf.sel, .sc-hc.sel, .th.on, :is(#colormenu, .hr-cm) .mi.on, #colormenu .am-card .mi[data-me], #colormenu .am-card .mi[data-me]:hover, #ue-new .nw-pr.on, #ue-new .nw-tpl.on, #palette li.on, .hr-pal li.on, #fpick li.on, #set-secs .ss.on, .hr-row.active, .pjr.on, .wx-i.on, #dbg .fr.on { background: var(--sel); box-shadow: inset 2px 0 0 var(--accent); border-radius: 0; }
+:root:not(.accent-newbtn) :is(#btn-newchat, .pn-nc, .oc-gh > .oc-new) { border-color: color-mix(in srgb, var(--text) 30%, transparent); background: color-mix(in srgb, var(--text) 14%, transparent); color: var(--text-strong); }
+:root:not(.accent-newbtn) :is(#btn-newchat, .pn-nc, .oc-gh > .oc-new):hover { border-color: color-mix(in srgb, var(--text) 50%, transparent); background: color-mix(in srgb, var(--text) 22%, transparent); color: var(--text-strong); }
+:root:not(.accent-newbtn) :is(#btn-newchat, .pn-nc, .oc-gh > .oc-new) .gem { color: var(--text-strong); }
