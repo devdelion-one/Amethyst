@@ -2308,7 +2308,8 @@ button:is(.sw-ic, .sw-pj):hover { background: none; }
 #colormenu .tb-grip { flex: none; display: grid; place-items: center; width: 22px; align-self: stretch; color: var(--text-faint); font-size: var(--fs-sm); cursor: grab; }
 #colormenu .tb-grip:hover { color: var(--text-strong); }
 :is(#colormenu, .hr-cm) .tb-use { position: relative; }
-:is(#colormenu, .hr-cm) .tb-open { position: absolute; right: 22px; top: 50%; translate: 0 -50%; visibility: hidden; height: 18px; min-height: 0; padding: 0 7px; border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); border-radius: var(--r-sm); background: var(--raised); color: var(--accent); font-size: var(--fs-xs); line-height: 16px; white-space: nowrap; cursor: pointer; }
+:is(#colormenu, .hr-cm) .tb-open { flex: none; min-width: 48px; margin-left: var(--s1); text-align: center; visibility: hidden; height: 18px; min-height: 0; padding: 0 7px; border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); border-radius: var(--r-sm); background: var(--raised); color: var(--accent); font-size: var(--fs-xs); line-height: 16px; white-space: nowrap; cursor: pointer; }
+:is(#colormenu, .hr-cm) .tb-use:not(:has(> .tb-grip)) > .tb-open { margin-right: 22px; }
 :is(#colormenu, .hr-cm) .tb-use:is(:hover, :focus-within) > .tb-open { visibility: visible; }
 :is(#colormenu, .hr-cm) .tb-open:is(:hover, :focus-visible) { background: color-mix(in srgb, var(--accent) 18%, var(--raised)); color: var(--text-strong); outline: none; }
 .peek { outline: 1px dashed var(--accent) !important; outline-offset: -1px; }
