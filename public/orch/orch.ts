@@ -48,7 +48,7 @@ type Opts = {
 
 const GROUPS: [string, string][] = [['asks', 'Needs you'], ['working', 'Working'], ['done', 'Done']];
 const slotOf = (a: Agent) => (groupOf(a) === 'idle' ? 'done' : groupOf(a));
-const NAMES = ['list', 'chat', 'files'];
+const NAMES = ['files', 'chat', 'list'];
 const LABEL: Record<string, string> = { list: 'the list', chat: 'the chat', files: 'your files' };
 const TERM_IC = '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5 6.5 8 3 11.5M8 12h5"/></svg>';
 export const termBtn = (on: boolean) => `<button class="oc-tb${on ? ' on' : ''}" data-oc-term aria-pressed="${on}" title="${on ? 'Terminal\nHides the terminal under the chat. It keeps running.' : 'Terminal\nOpens a terminal under the chat, in the project folder.'}" aria-label="terminal">${TERM_IC}</button>`;
