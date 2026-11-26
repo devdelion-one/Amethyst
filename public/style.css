@@ -3854,7 +3854,7 @@ body.nc-win { margin: 0; overflow: hidden; background: var(--raised); }
 .st-ic { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: var(--r-lg); background: var(--flip); color: var(--flip-ink); }
 .st-ic .ic { width: 22px; height: 22px; }
 .st-name { display: flex; flex-direction: column; min-width: 0; }
-.st-head h1 { margin: 0; font: 600 22px/1.2 var(--font-display); color: var(--text-strong); }
+.st-head h1 { display: flex; align-items: center; min-height: 40px; margin: 0; font: 600 22px/1.2 var(--font-display); color: var(--text-strong); }
 #st-desc { max-width: 72ch; max-height: 12em; margin: 4px 0 0 -6px; padding: 0 6px; overflow: hidden; border-radius: var(--r-sm); color: var(--text-dim); line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; cursor: text; outline: none; }
 #st-desc:hover { background: var(--hover); }
 #st-desc:focus { overflow: auto; background: var(--raised); color: var(--text); box-shadow: var(--focus); }
