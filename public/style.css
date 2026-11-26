@@ -719,7 +719,8 @@ body.out-mod .lk:is(a, code, span):not(.miss), body.out-mod .cm-content.pm-mod .
 
 .ch-input { position: relative; flex: none; display: flex; flex-direction: column; max-height: 62cqh; padding: var(--s1) max(var(--s3), calc((100% - 820px) / 2)) var(--s3); container-type: inline-size; }
 .ch-jump { position: absolute; z-index: 4; left: 50%; bottom: calc(100% + 4px); transform: translateX(-50%); gap: 4px; min-height: 28px; padding: 0 8px; border: 0; border-radius: var(--r-pill); background: var(--raised); box-shadow: var(--float); color: var(--text-dim); font-size: var(--fs-xs); }
-.ch-steps + .ch-ai { margin-top: 6px; padding-top: 12px; }
+.ch-flow > .ch-you + :not(.ch-you) { margin-top: 8px; }
+.ch-flow > .ch-end { margin-bottom: 8px; }
 .ch-rules { position: absolute; left: 0; right: 0; overflow: hidden; pointer-events: none; }
 .ch-rules i { position: absolute; left: 0; right: 0; height: 1px; background: var(--accent); }
 .ch-marks { position: absolute; z-index: 3; right: 0; width: 8px; pointer-events: none; }

@@ -344,7 +344,7 @@ function makeChat(tab: Tab, { saved, filesChanged, openFile, titled, openDiff = 
     name: 'chat.rules',
     read: () => {
       const er = el.getBoundingClientRect(), lr = log.getBoundingClientRect(), k = er.height / el.offsetHeight || 1;
-      const ys = [...flow.querySelectorAll<HTMLElement>(':scope > .ch-steps + .ch-ai')].map((m) => (m.getBoundingClientRect().top - lr.top) / k).filter((y) => y > -2 && y < lr.height / k + 2);
+      const ys = [...flow.querySelectorAll<HTMLElement>(':scope > .ch-you + :not(.ch-you), :scope > .ch-end')].map((m) => ((m.classList.contains('ch-end') ? m.getBoundingClientRect().bottom + 9 : m.getBoundingClientRect().top - 9) - lr.top) / k).filter((y) => y > -2 && y < lr.height / k + 2);
       return { top: (lr.top - er.top) / k, height: lr.height / k, html: ys.map((y) => `<i style="top:${y.toFixed(2)}px"></i>`).join('') };
     },
     write: (r: { top: number; height: number; html: string }) => {
@@ -860,6 +860,8 @@ The whole chat from before it was summarized. Click to open it.`)}" data-tip-mon
       else if (ev.stopReason === 'error') line('ch-note err', esc(ev.text || 'something went wrong'));
       else if (ev.stopReason !== 'end_turn') line('ch-note', esc(ev.stopReason.replace(/_/g, ' ')));
       else line('ch-done', turnAt ? `${icon('model')}Worked for ${runTime(Math.round(((ev.at ?? 0) - turnAt) / 1000))}` : 'Finished');
+      [...flow.children].reverse().find((m) => !m.classList.contains('ch-working'))?.classList.add('ch-end');
+      marks();
     } else if (ev.type === 'end') {
       closeSteps();
       ended = true;
