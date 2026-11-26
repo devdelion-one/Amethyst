@@ -50,10 +50,10 @@ THEMES.ash = {
   tokens: {
     ground: '#3a3c41', veil: '#18191b', tray: '#131417', bg: '#232427', chrome: '#1d1e21', bar: '#1d1e21', raised: '#2a2b2f', hover: '#2e3034', line: '#44464b',
     text: '#d4d4d8', 'text-strong': '#f2f2f4', 'text-dim': '#8c8e94', 'text-faint': '#5f6166',
-    accent: '#9fb0c2', 'on-accent': '#1a1b1d', work: '#78b4c8', danger: '#d97c84', warn: '#d2b469', ask: '#ff5a64', ok: '#86b890', 'on-ask': '#000000', 'done-tint': '#40d868',
+    accent: '#9fb0c2', 'on-accent': '#1a1b1d', work: '#66bdda', danger: '#ee6773', warn: '#eabe51', ask: '#ff5a64', ok: '#7bc389', 'on-ask': '#000000', 'done-tint': '#40d868',
     float: '0 0 0 1px #3d3f44, 0 18px 44px rgb(0 0 0 / .55)',
   },
-  palette: ['#86b890', '#d2b469', '#78b4c8', '#a99cc8', '#d97c84', '#82c0ae', '#d39a6a', '#d4d4d8'],
+  palette: ['#7bc389', '#eabe51', '#66bdda', '#a592d2', '#ee6773', '#74ceb4', '#eb9852', '#d4d4d8'],
 };
 THEMES['ash-light'] = {
   label: 'ash light',
@@ -62,10 +62,10 @@ THEMES['ash-light'] = {
   tokens: {
     ground: '#b5b7bc', bg: '#e4e5e8', chrome: '#dadbdf', bar: '#dadbdf', raised: '#eeeff1', hover: '#d4d5d9', line: '#c9cbcf',
     text: '#2e3034', 'text-strong': '#141518', 'text-dim': '#606369', 'text-faint': '#94979c',
-    accent: '#4f6378', 'on-accent': '#ffffff', work: '#2f6d84', danger: '#9c4652', warn: '#7d6216', ask: '#d92b38', ok: '#3f6f48', 'on-ask': '#ffffff',
+    accent: '#4f6378', 'on-accent': '#ffffff', work: '#1c7697', danger: '#af3344', warn: '#936c00', ask: '#d92b38', ok: '#347a41', 'on-ask': '#ffffff',
     float: '0 0 0 1px #a9abb0, 0 18px 44px rgb(20 22 26 / .25)',
   },
-  palette: ['#4f7d58', '#86691c', '#38718a', '#675f8f', '#a24d58', '#3c7769', '#975e33', '#2e3034'],
+  palette: ['#458752', '#9e7404', '#26789c', '#60549a', '#b53a4a', '#2f8470', '#ae5b1d', '#2e3034'],
 };
 THEMES.slate = {
   label: 'slate dark',
@@ -73,10 +73,10 @@ THEMES.slate = {
   tokens: {
     ground: '#26282c', bg: '#383a3f', chrome: '#2f3136', bar: '#2f3136', raised: '#404247', hover: '#424449', line: '#4a4d53',
     text: '#dcdde1', 'text-strong': '#f6f6f8', 'text-dim': '#979aa1', 'text-faint': '#6b6e75',
-    accent: '#8e9eb1', 'on-accent': '#26282c', work: '#78afc2', danger: '#d9868f', warn: '#cbae68', ask: '#ff5a64', ok: '#82b38c', 'on-ask': '#000000', 'done-tint': '#40d868',
+    accent: '#8e9eb1', 'on-accent': '#26282c', work: '#67b7d3', danger: '#ec7380', warn: '#e1b752', ask: '#ff5a64', ok: '#77be85', 'on-ask': '#000000', 'done-tint': '#40d868',
     float: '0 0 0 1px #52555b, 0 18px 44px rgb(0 0 0 / .45)',
   },
-  palette: ['#82b38c', '#cbae68', '#78afc2', '#a99ec8', '#d9868f', '#7fb8a8', '#cf996c', '#dcdde1'],
+  palette: ['#77be85', '#e1b752', '#67b7d3', '#a495d1', '#ec7380', '#72c5ae', '#e59756', '#dcdde1'],
 };
 THEMES['slate-light'] = {
   label: 'slate light',
@@ -85,10 +85,10 @@ THEMES['slate-light'] = {
   tokens: {
     ground: '#bdc1c7', bg: '#d3d6db', chrome: '#cacdd2', bar: '#cacdd2', raised: '#dcdfe3', hover: '#c5c9ce', line: '#bbbfc5',
     text: '#1d2025', 'text-strong': '#0d0f12', 'text-dim': '#4f545b', 'text-faint': '#7f848b',
-    accent: '#3d5b7c', 'on-accent': '#ffffff', work: '#2b6077', danger: '#8a3a45', warn: '#6c5412', ask: '#c8303a', ok: '#355f3e', 'on-ask': '#ffffff',
+    accent: '#3d5b7c', 'on-accent': '#ffffff', work: '#1a6788', danger: '#9c2838', warn: '#7e5c00', ask: '#c8303a', ok: '#2c6839', 'on-ask': '#ffffff',
     float: '0 0 0 1px #a6abb3, 0 18px 44px rgb(15 20 30 / .28)',
   },
-  palette: ['#3f6d48', '#735a14', '#2b6077', '#5a5281', '#8f3d49', '#2f6759', '#844f27', '#1d2025'],
+  palette: ['#357742', '#876300', '#1a6788', '#53478c', '#a12b3c', '#22745f', '#994c12', '#1d2025'],
 };
 THEMES.paper = {
   label: 'paper',
@@ -179,7 +179,9 @@ export function setTheme(name: string): string {
     tokens['on-accent'] = contrast(acc, '#ffffff') >= contrast(acc, dark) ? '#ffffff' : dark;
   }
   tokens.veil ??= tokens.ground;
-  tokens.winbar ??= mix(tokens.ground, tokens.accent, light ? 0.15 : 0.22);
+  const wb = look.winbar;
+  tokens.winbar = wb === 'accent' ? mix(tokens.ground, tokens.accent, light ? 0.15 : 0.22) : HEX.test(wb) ? wb : t.tokens.winbar || tokens.bar;
+  tokens['on-winbar'] = contrast(tokens.winbar, tokens.text) >= 4.5 ? tokens.text : contrast(tokens.winbar, '#ffffff') >= contrast(tokens.winbar, '#16171a') ? '#ffffff' : '#16171a';
   tokens.tray ??= tokens.ground;
   tokens.work ??= tokens.accent;
   tokens['done-tint'] ??= tokens.ok;
@@ -243,16 +245,17 @@ export interface Look {
   bright: number;
   accent: string;
   strength: number;
+  winbar: string;
 }
-export const LOOK: Look = { font: 'app', mono: 'cascadia', size: 13, chat: 100, bright: 100, accent: '', strength: 100 };
+export const LOOK: Look = { font: 'app', mono: 'cascadia', size: 13, chat: 100, bright: 100, accent: '', strength: 100, winbar: '' };
 let look = { ...LOOK };
 export const lookOf = (): Look => look;
 export function setLook(key: string, value: unknown, keep = true): Look {
-  const ok = ({ font: (v) => FONTS[v], mono: (v) => MONOS[v], size: (v) => CODE_SIZES.includes(v), chat: (v) => CHAT_SIZES.includes(v), bright: (v) => BRIGHTS.includes(v), accent: (v) => v === '' || HEX.test(v), strength: (v) => STRENGTHS.includes(v) } as Record<string, (v: any) => unknown>)[key];
+  const ok = ({ font: (v) => FONTS[v], mono: (v) => MONOS[v], size: (v) => CODE_SIZES.includes(v), chat: (v) => CHAT_SIZES.includes(v), bright: (v) => BRIGHTS.includes(v), accent: (v) => v === '' || HEX.test(v), strength: (v) => STRENGTHS.includes(v), winbar: (v) => v === '' || v === 'accent' || HEX.test(v) } as Record<string, (v: any) => unknown>)[key];
   if (!ok?.(value)) return look;
   const was = (look as unknown as Record<string, unknown>)[key];
   look = { ...look, [key]: value };
-  if ((key === 'accent' || key === 'strength') && was !== value) setTheme(current);
+  if ((key === 'accent' || key === 'strength' || key === 'winbar') && was !== value) setTheme(current);
   const root = document.documentElement.style, font = FONTS[look.font].css, mono = MONOS[look.mono].css;
   for (const [k, v] of [['--font', font], ['--font-display', font], ['--mono', mono], ['--code-size', look.size === LOOK.size ? null : look.size + 'px']] as [string, string | null][]) v ? root.setProperty(k, v) : root.removeProperty(k);
   document.documentElement.dataset.look = `${look.font} ${look.mono} ${look.size} ${look.accent || 'own'} ${look.strength}`;
@@ -433,6 +436,6 @@ addEventListener('storage', (e) => {
   if (e.key !== 'mind.look') return;
   try {
     const v = JSON.parse(e.newValue || 'null');
-    for (const k of ['bright', 'accent', 'strength']) setLook(k, v?.[k] ?? (LOOK as unknown as Record<string, unknown>)[k], false);
+    for (const k of ['bright', 'accent', 'strength', 'winbar']) setLook(k, v?.[k] ?? (LOOK as unknown as Record<string, unknown>)[k], false);
   } catch {}
 });

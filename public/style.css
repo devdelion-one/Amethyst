@@ -1202,7 +1202,7 @@ button[data-qk].on { background: color-mix(in srgb, var(--accent) 18%, transpare
 #forget [data-rs="sw"] { bottom: 0; left: 0; cursor: nesw-resize; }
 #forget [data-rs="nw"] { top: 0; left: 0; cursor: nwse-resize; }
 #forget [data-rs="se"] { bottom: 0; right: 0; cursor: nwse-resize; }
-.float-head { flex: none; display: flex; align-items: center; gap: 2px; height: var(--wh); padding: 0 4px 0 10px; background: var(--winbar); color: var(--text); font: 500 var(--fs-xs)/1 var(--font); user-select: none; }
+.float-head { flex: none; display: flex; align-items: center; gap: 2px; height: var(--wh); padding: 0 4px 0 10px; background: var(--winbar); color: var(--on-winbar, var(--text)); font: 500 var(--fs-xs)/1 var(--font); user-select: none; }
 .float-head > img { flex: none; width: 10px; height: 10px; margin-right: 7px; }
 .float-head > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .float-head button { flex: none; display: grid; place-items: center; width: 22px; height: 20px; min-height: 0; padding: 0; border: 0; background: none; color: var(--text-dim); font-size: var(--fs-xl); line-height: 1; }
@@ -4487,7 +4487,7 @@ body.qt-pop { overflow: hidden; background: var(--raised); }
 .cl-empty kbd { display: inline-block; margin-top: 8px; }
 :root { --wh: 28px; }
 .wbar { --wh: 20px; }
-:is(#winbar, .xw-bar) { flex: none; display: flex; align-items: center; height: var(--wh); padding-left: 10px; background: var(--winbar); color: var(--text); font: 500 var(--fs-xs)/1 var(--font); user-select: none; }
+:is(#winbar, .xw-bar) { flex: none; display: flex; align-items: center; height: var(--wh); padding-left: 10px; background: var(--winbar); color: var(--on-winbar, var(--text)); font: 500 var(--fs-xs)/1 var(--font); user-select: none; }
 :is(#winbar, .xw-bar)[hidden] { display: none; }
 .wbar #app { height: calc(100vh - var(--wh)); height: calc(100dvh - var(--wh)); padding-top: 0; }
 .wb-gem { flex: none; width: 10px; height: 10px; margin-right: 7px; }
@@ -4496,11 +4496,11 @@ body.qt-pop { overflow: hidden; background: var(--raised); }
 :is(#pop-acts, .xw-acts) { flex: none; display: flex; align-items: center; height: 100%; }
 :is(#pop-acts, .xw-acts) .szs { margin-right: 4px; }
 .wbar .szs .sz { height: 18px; }
-:is(#pop-acts, .xw-acts) .x, .wbar .fw-head > .x { display: grid; place-items: center; width: 32px; height: var(--wh); min-height: 0; padding: 0; border: 0; border-radius: 0; background: none; color: var(--text-dim); }
+:is(#pop-acts, .xw-acts) .x, .wbar .fw-head > .x { display: grid; place-items: center; width: 32px; height: var(--wh); min-height: 0; padding: 0; border: 0; border-radius: 0; background: none; color: color-mix(in srgb, var(--on-winbar, var(--text)) 65%, var(--winbar)); }
 :is(#pop-acts, .xw-acts) .x[hidden], .fw-head > .x[hidden] { display: none; }
 :is(#pop-acts, .xw-acts) :is(#win-every, .xw-every).on { color: var(--accent); }
 :is(#pop-acts, .xw-acts) .x svg, .fw-head > .x svg { width: 10px; height: 10px; fill: none; stroke: currentColor; stroke-width: 1; }
-:is(#pop-acts, .xw-acts) .x:hover, .wbar .fw-head > .x:hover { background: color-mix(in srgb, var(--text) 14%, var(--winbar)); color: var(--text-strong); }
+:is(#pop-acts, .xw-acts) .x:hover, .wbar .fw-head > .x:hover { background: color-mix(in srgb, var(--on-winbar, var(--text)) 14%, var(--winbar)); color: var(--on-winbar, var(--text-strong)); }
 :is(#pop-x, .xw-x):hover, .wbar .fw-head > .x:last-child:hover { background: #c42b1c; color: #fff; }
 .wbar .fw-head { padding-right: 0; border-bottom: 0; background: var(--winbar); }
 .wbar .qt-name { font-size: var(--fs-xs); color: var(--text); }

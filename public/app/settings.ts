@@ -559,6 +559,7 @@ const LOOKS: Record<string, [string, () => boolean, () => void]> = {
   theme: ['theme', () => themeName() !== 'ink', () => useTheme('ink')],
   accent: ['accent', () => lookOf().accent !== LOOK.accent, () => pickAccent('accent', LOOK.accent)],
   strength: ['accent strength', () => lookOf().strength !== LOOK.strength, () => pickAccent('strength', LOOK.strength)],
+  winbar: ['title bar', () => lookOf().winbar !== LOOK.winbar, () => pickAccent('winbar', LOOK.winbar)],
   bright: ['brightness', () => lookOf().bright !== LOOK.bright, () => setLook('bright', LOOK.bright)],
   solid: ['corners', () => solidLook() !== 'v1', () => setSolid('v1')],
   far: ['zoomed-out mind web', () => farLook() !== 'soft', () => setFarLook('soft')],
@@ -584,6 +585,9 @@ function lookBox() {
         Object.entries(ACCENTS).map(([n, h]) => chip(look.accent === h, `data-set-accent="${h}" title="${cap(n)}&#10;${cap(n)} in every theme, fitted to its page."`, dot(h) + n)).join('') +
         `<label class="chip ct-add ${any ? 'on' : ''}" title="Any color&#10;Pick one accent for every theme.">${dot(any || '#888888')}any color<input type="color" data-set-accent-pick value="${any || '#888888'}"></label>`, { ...lk('accent'), desc: "the color of what's picked and what's working", cls: 'wide' }) +
       row('accent strength', lookSel('strength', STRENGTHS, (n) => `the accent at ${n} % of its color`), { ...lk('strength'), desc: 'softens the accent toward grey' }) +
+      row('title bar', chip(!look.winbar, `data-set-winbar="" title="Grey&#10;The title bar in the same grey as the other bars."`, 'grey') +
+        chip(look.winbar === 'accent', `data-set-winbar="accent" title="Accent tint&#10;The title bar tinted with the accent color."`, dot(tokens().accent) + 'accent tint') +
+        `<label class="chip ct-add ${look.winbar.startsWith('#') ? 'on' : ''}" title="Any color&#10;Pick the title bar's color. Its text turns light or dark to stay readable.">${dot(look.winbar.startsWith('#') ? look.winbar : '#888888')}any color<input type="color" data-set-winbar-pick value="${look.winbar.startsWith('#') ? look.winbar : '#888888'}"></label>`, { ...lk('winbar'), desc: "the color of the window's top bar", cls: 'wide' }) +
       row('brightness', lookSel('bright', BRIGHTS, (n) => `every window at ${n} % brightness`), { ...lk('bright'), desc: 'dims the whole app, every window' }) +
       (Object.keys(SOLIDS).length > 1 ? row('corners', seg(Object.entries(SOLIDS).map(([k, label]) => chip(solidLook() === k, `data-set-solid="${k}" title="Look: ${esc(label.replace(/ · /g, ' '))}&#10;The look every part of the app follows."`, esc(label))).join('')), { ...lk('solid'), desc: 'the look every part follows' }) : '') +
       row('zoomed-out mind web', seg(Object.entries(FAR_LOOKS).map(([k, label]) => chip(farLook() === k, `data-set-far="${k}" title="${esc(cap(label))}&#10;How the mind web's hubs look zoomed far out."`, esc(label))).join('')), { ...lk('far'), desc: "how the mind web's hubs look zoomed far out" }) +
@@ -1158,6 +1162,7 @@ el.addEventListener('click', async (e: MouseEvent) => {
     useTheme(d.setTheme);
     return setSave(`theme: ${THEMES[themeName()].label}`);
   }
+  if (d.setWinbar != null) return pickAccent('winbar', d.setWinbar);
   if (d.setAccent != null || d.setStrength) return pickAccent(d.setStrength ? 'strength' : 'accent', d.setStrength ? Number(d.setStrength) : d.setAccent);
   if (d.pref) {
     const k = d.pref, e = PREFS[k], lbl = b.getAttribute('aria-label') || b.closest('.set-row')!.querySelector('.lbl')!.textContent;
@@ -1228,11 +1233,13 @@ function pickAccent(key: string, v: unknown) {
   setLook(key, v);
   useTheme(themeName());
   const l = lookOf();
+  if (key === 'winbar') return setSave(`title bar: ${l.winbar === 'accent' ? 'accent tint' : l.winbar || 'grey'}`);
   setSave(key === 'strength' ? `accent strength: ${l.strength} %` : `accent: ${Object.keys(ACCENTS).find((n) => ACCENTS[n as keyof typeof ACCENTS] === l.accent) || l.accent || "the theme's own"}`);
 }
 el.addEventListener('change', (e: Field) => {
   const ct = e.target.dataset;
   if (ct.setAccentPick != null) return pickAccent('accent', e.target.value.toLowerCase());
+  if (ct.setWinbarPick != null) return pickAccent('winbar', e.target.value.toLowerCase());
   if (ct.ecColor != null) return saveExt({ ...extColors(), [ct.ecColor]: e.target.value.toLowerCase() }, `extension colors: ${ct.ecColor} is ${e.target.value.toLowerCase()}`);
   if (ct.ecName != null) {
     const from = ct.ecName, to = cleanExt(e.target.value), m = extColors();
