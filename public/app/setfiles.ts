@@ -147,7 +147,7 @@ export function filesPartHtml(dirs: string) {
     dirs +
     box('tabs', 'Editor tabs and file bars', rows(tabRows()), 'The tab bar on top of each group of tabs in the editor, and the bar under it on a file.') +
     box('scm', 'Source control', rows(scmRows()), 'The commit box and your changes, in the side panel. The git button in the activity bar opens it.') +
-    box('inbox', 'Inbox window', rows(ibRows()), keyed('Every file in the inbox, in a window. The inbox button in the top bar opens it{inboxKey:, and so does %}.')) +
+    box('inbox', 'Inbox window', rows(ibRows()), keyed('Every file in the inbox, in a window. The inbox button in the rail opens it{inboxKey:, and so does %}.')) +
     box('archive', 'Archive', rows(arRows()), 'Everything you archived, to bring back. 4 opens it.') +
     box('setup', 'Agent setup', rows(suRows()), 'The skills, memory and instructions each agent uses in this project. The agent setup button in the activity bar opens it.') +
     box('wsx', 'Workspace explorer', rows(wxRows()), "The explorer of a workspace's folder, on the workspace's page. Its lines follow Lines that show how folders nest, in The explorer box.");

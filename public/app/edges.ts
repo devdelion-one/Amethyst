@@ -1,4 +1,4 @@
-const PANELS = '#app > header.bar, #status, #activity, #side, #wsx, #pins, #start, #launch, .grp, .deck, .dk-rail, .oc-rail, .oc-main, .rs-rail, .rs-grp';
+const PANELS = '#status, #activity, #side, #wsx, #pins, #start, #launch, .grp, .deck, .dk-rail, .oc-rail, .oc-main, .rs-rail, .rs-grp';
 
 let queued = false;
 let seen = new Set<Element>();

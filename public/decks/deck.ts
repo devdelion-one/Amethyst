@@ -161,7 +161,7 @@ export const setColors = (kind: string) => ({ order: setOrder(), same: false, on
 export const setSetColors = (kind: string, patch: Record<string, unknown>) => store.set('setColors', { ...store.get('setColors', {}), [kind]: { ...store.get('setColors', {})[kind], ...patch } });
 export const resetSetColors = (kind: string) => store.set('setColors', { ...store.get('setColors', {}), [kind]: undefined });
 export const setColorsChanged = (kind: string) => setColors(kind).same || setColors(kind).order.join() !== setOrder().join();
-const slotted = () => pref('switch:place') === 'slots' && !atWs();
+const slotted = () => !atWs();
 export function orderHex(i: number, kind: string): string {
   const { order, same, one } = setColors(kind), n = order.length - 1;
   return same ? one : i && n > 0 ? order[((i - 1) % n) + 1] : order[0];
@@ -410,7 +410,7 @@ export function toOrch(ids: string[]) {
   for (const x of ids) place(x, { in: 'orch' });
   if (!ids.length || !isOff('modesHidden', 'orch')) return;
   setOff('modesHidden', 'orch', false);
-  notify(`Orchestration is back in the top bar: your ${ids.length === 1 ? 'chat is' : 'chats are'} there.`, { ms: 6000 });
+  notify(`Orchestration is back in the rail: your ${ids.length === 1 ? 'chat is' : 'chats are'} there.`, { ms: 6000 });
 }
 export function setChatsToOrch(kind: string, from: string, ids: string[]) {
   const moved = takeOut(kind, from, ids);

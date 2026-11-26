@@ -27,7 +27,7 @@ export function paintEvery() {
 export function toggleEvery() {
   if (!canEvery()) {
     const line = WIN === 1 ? 'Only Window 2, 3… can be kept when you switch projects' : SOLO ? 'This window belongs to its project: each project has its own' : 'Drag the tab out to a window first, then mark that window';
-    return void tell($('#winbar').hidden ? $('.bar') : $('#winbar'), { title: 'Not this window', line, ms: 2500 });
+    return void tell($('#winbar').hidden ? $('#activity') : $('#winbar'), { title: 'Not this window', line, ms: 2500 });
   }
   const u = new URL(location.href);
   if (everyOn()) u.searchParams.delete('every');

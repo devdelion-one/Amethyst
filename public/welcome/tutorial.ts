@@ -6,7 +6,7 @@ import { atLaunch, atWs, mode, S } from '../base/model.ts';
 import { nextFrame } from '../base/measure.ts';
 import { notify } from '../base/notify.ts';
 import { page } from '../base/page.ts';
-import { toggleBottomBar, toggleTopBar, topBarHidden } from '../base/topbar.ts';
+import { toggleBottomBar } from '../base/bottombar.ts';
 import { pref, chatOn } from '../base/prefs.ts';
 import { $, CHATS, esc, store } from '../base/util.ts';
 import { WIN } from '../base/windows.ts';
@@ -46,7 +46,6 @@ const firstChat = () => CHATS.findIndex(([k]) => chatOn(k)) + 1;
 const chatName = () => (CHATS[firstChat() - 1]?.[1] || '').replace(/ Agent$/, '');
 
 const STEPS: Step[] = [
-  { title: 'Hide the top bar', line: 'Press it once to hide the bar at the top, and again to bring it back.', key: 'topBarKey', flip: topBarHidden },
   { title: 'Hide the bottom bar', line: 'The same for the bar at the bottom: once to hide it, again to bring it back.', key: 'bottomBarKey', flip: bottomHidden },
   { title: 'The explorer', line: "Opens your project's files on the side. Press it again to close them.", key: 'explorerKey', at: () => shown('#btn-index'), flip: explorerOpen },
   { title: 'A new chat', line: 'Opens the list of agents. Pick one to start a chat with it.', key: 'newAgentKey', at: () => shown('#btn-newchat'), grow: true },
@@ -58,7 +57,7 @@ const STEPS: Step[] = [
 ];
 
 let el: HTMLElement | null = null, ring: HTMLElement | null = null, at = 0, first = false, list: Step[] = [], start = 0;
-let was: { top: boolean; bottom: boolean; explorer: boolean; mode: string } | null = null;
+let was: { bottom: boolean; explorer: boolean; mode: string } | null = null;
 let flipped = false, ticked = 0, modeAt = '', seen = new Set<HTMLElement>(), poll = 0;
 let model: { el: HTMLElement | null; text: string } = { el: null, text: '' };
 const TICK = { name: 'tutorial', write: () => (el ? place() : maybeStart()) };
@@ -71,7 +70,6 @@ const keysOf = (s: Step) => {
 const caps = (k: string[]) => k.map((x) => `<kbd>${esc(x)}</kbd>`).join('');
 const lineOf = (s: Step) => (s.digit ? `Opens a ${chatName()} chat straight away, without the list. The other numbers open the other agents.` : s.line);
 const usable = (s: Step) => {
-  if (s.key === 'topBarKey' && WIN > 1) return false;
   if (s.mode) return !!s.at?.();
   if (s.pill) return !(pref('chrow:chips') as string[]).includes('model');
   if (s.digit && !s.digit()) return false;
@@ -101,7 +99,7 @@ function maybeStart() {
   store.del('tour:due');
   first = due === 'first';
   list = STEPS.filter(usable).map((s) => ({ ...s, acted: false }));
-  was = { top: topBarHidden(), bottom: bottomHidden(), explorer: explorerOpen(), mode: mode() };
+  was = { bottom: bottomHidden(), explorer: explorerOpen(), mode: mode() };
   at = 0;
   el = Object.assign(document.createElement('div'), { id: 'tutorial' });
   el.setAttribute('role', 'dialog');
@@ -217,7 +215,6 @@ function end(quit: boolean) {
   was = null;
   store.set('tour:done', true);
   if (!w) return;
-  if (topBarHidden() !== w.top && WIN === 1) toggleTopBar(w.top);
   if (bottomHidden() !== w.bottom) toggleBottomBar(w.bottom);
   if (explorerOpen() !== w.explorer) toggleIndex(w.explorer);
   if (mode() !== w.mode) setMode(w.mode);

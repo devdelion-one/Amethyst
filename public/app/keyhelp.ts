@@ -7,7 +7,7 @@ import { $, esc } from '../base/util.ts';
 const GROUPS: [string, [string, string][]][] = [
   ['Go to', [['modeChat', 'Agents'], ['modeEditor', 'Editor'], ['modeTerm', 'Terminals'], ['modeOrch', 'Orchestration']]],
   ['Chats', [['newAgentKey', 'New chat'], ['modelNextKey', 'Next model'], ['modelPrevKey', 'Model before'], ['modeKey', 'Next mode'], ['clearKey', 'Clear the chat'], ['find', 'Find']]],
-  ['Show and hide', [['explorerKey', 'Explorer'], ['quickTerm', 'Quick terminal'], ['topBarKey', 'Top bar'], ['bottomBarKey', 'Bottom bar']]],
+  ['Show and hide', [['explorerKey', 'Explorer'], ['quickTerm', 'Quick terminal'], ['bottomBarKey', 'Bottom bar']]],
   ['', [['commands', 'Every command']]],
 ];
 const MODE: Record<string, string> = { modeChat: 'chat', modeEditor: 'editor', modeTerm: 'term', modeOrch: 'orch' };

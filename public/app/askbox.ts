@@ -79,7 +79,7 @@ function place() {
   const count = countOf();
   if (!count) return;
   count.classList.add('open');
-  const top = document.querySelector('.bar')?.getBoundingClientRect().bottom ?? 0;
+  const top = document.getElementById('shell')!.getBoundingClientRect().top;
   const dock = document.getElementById('status')!.getBoundingClientRect().top;
   box.style.bottom = `${innerHeight - dock + 4}px`;
   box.style.maxHeight = `${Math.max(160, dock - top - 12)}px`;

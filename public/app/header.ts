@@ -1,8 +1,8 @@
 import { newFolder, setSideOver, showSide, sideOver } from './actions.ts';
 import { togglePanel } from './pins.ts';
 import { bound, show } from '../base/binds.ts';
-import { toggleBottomBar } from '../base/topbar.ts';
-import { actRow, ask, barMenu, buttonMenu, chip, extColors, gripRow, hideMenu, ICONS, keepMenu, keyChip, moveMenu, popMenu, sortable, TOPBAR, topBarMenu, topBarRows, topRow } from '../base/controls.ts';
+import { toggleBottomBar } from '../base/bottombar.ts';
+import { actRow, ask, barMenu, buttonMenu, chip, menuButton, extColors, gripRow, hideMenu, ICONS, keepMenu, keyChip, moveMenu, popMenu, sortable, TOPBAR, topBarMenu, topBarRows, topRow } from '../base/controls.ts';
 import { renderEditorMeta } from '../editor/editor.ts';
 import { floatMake, padOut, toggleInbox } from './float.ts';
 import { refreshGit, cloneProject } from '../git/git.ts';
@@ -11,11 +11,11 @@ import { refreshSetup } from '../setup/setup.ts';
 import { openWindow } from './groups.ts';
 import { newProject } from './levels.ts';
 import { web } from '../minds/minds.ts';
-import { addAgent, MODES, ncSlotted, openSettings, setMode } from './modes.ts';
-import { slotsOn } from './slots.ts';
+import { addAgent, MODES, openSettings, PLUS, setMode } from './modes.ts';
+import { setPinDrag } from './slots.ts';
 import { api, atLaunch, atWs, mode, S } from '../base/model.ts';
 import { newQuickAgent, toggleQuickAgent } from '../chat/qagent.ts';
-import { agentRight, agentShort, pinOf } from '../base/agentmenu.ts';
+import { agentRight, pinOf } from '../base/agentmenu.ts';
 import { PROG, toggleQuick } from '../terminal/qterm.ts';
 import { I_WIN, showWindow, ueClick, ueMenu, ueTip, ueWinTip } from '../ue/ue.ts';
 import { dirIcon, extMenu, fileIcon, fileTint, pickExt } from '../base/filelook.ts';
@@ -96,7 +96,7 @@ onPref('act:off', () => {
   if (isOff('act:off', 'github') && S.sideView === 'github' && sideShown()) toggleGithub(false);
   paintStrip();
 });
-barMenu('#activity', 'strip');
+barMenu('#switch > .sv[data-g=strip]', '', { open: (_el, e) => topBarMenu(e.clientX, e.clientY, { tray: 'strip' }) });
 barMenu('#pins > .bt', '');
 
 export const newWindowKey = () => show(bound('newWindowKey'));
@@ -133,7 +133,7 @@ async function winMenu() {
   const html = `<div class="am-lbl"><span>Amethysts</span><span>account</span></div>${all.map(card).join('')}<div class="sep"></div>`
     + plus('data-win', 'a new window of this Amethyst', 'for a second screen: shares its tabs, sets and chats', key)
     + plus('data-new', 'a new Amethyst', 'separate: its own tabs, sets, chats and account');
-  popMenu(b.left, b.bottom + 6, html, async (btn) => {
+  popMenu(b.right + 6, b.top, html, async (btn) => {
     const d = btn.dataset;
     if ('win' in d) return openWindow();
     if (d.am) return window.amethyst!.openAmethyst(+d.am);
@@ -151,7 +151,7 @@ async function winMenu() {
   amAccts = r.claude;
   if (!m.hidden) fillAccts(m);
 }
-$('#btn-win').addEventListener('click', () => (window.amethyst?.newAmethyst ? winMenu() : openWindow()));
+menuButton($('#btn-win'), () => (window.amethyst?.newAmethyst ? winMenu() : openWindow()));
 
 export function toggleIndex(show = !(sideShown() && S.sideView === 'tree')) {
   side('tree', show);
@@ -208,7 +208,7 @@ undoer('side', {
 
 const sideW = (w: number) => {
   const px = Math.round(Math.min(Math.max(160, w), innerWidth * 0.6)) + 'px';
-  for (const el of document.querySelectorAll<HTMLElement>('#side, #here, #wsx')) el.style.setProperty('--side-w', px);
+  for (const el of document.querySelectorAll<HTMLElement>('#side, #wsx')) el.style.setProperty('--side-w', px);
 };
 sideW(store.get('sideW', 240));
 $<HTMLElement>('#side-grip').addEventListener('pointerdown', (e) => {
@@ -301,6 +301,7 @@ qbox.addEventListener('dragstart', (e) => {
   const b = (e.target as HTMLElement).closest<HTMLElement>('[data-qk]');
   if (!b) return;
   qDrag = b;
+  setPinDrag(true);
   if (!b.dataset.drag) e.dataTransfer!.setData('text/plain', '');
   requestAnimationFrame(() => qDrag?.classList.add('ph'));
 });
@@ -310,8 +311,8 @@ qbox.addEventListener('dragover', (e) => {
   e.dataTransfer!.dropEffect = 'move';
   const b = (e.target as HTMLElement).closest<HTMLElement>('[data-qk]');
   if (!b || b === qDrag || b.parentNode !== qDrag.parentNode) return;
-  const r = b.getBoundingClientRect();
-  if (e.clientX > r.left + r.width / 2) b.after(qDrag);
+  const r = b.getBoundingClientRect(), col = getComputedStyle(b.parentNode as Element).flexDirection === 'column';
+  if (col ? e.clientY > r.top + r.height / 2 : e.clientX > r.left + r.width / 2) b.after(qDrag);
   else b.before(qDrag);
 });
 qbox.addEventListener('drop', (e) => {
@@ -322,9 +323,11 @@ qbox.addEventListener('drop', (e) => {
   const rest = quickOrder().filter((k) => !now.includes(k));
   qDrag.classList.remove('ph');
   qDrag = null;
+  setPinDrag(false);
   setQuickOrder([...now, ...rest]);
 });
 document.addEventListener('dragend', () => {
+  setPinDrag(false);
   if (!qDrag) return;
   qDrag.classList.remove('ph');
   qDrag = null;
@@ -388,17 +391,14 @@ qa.addEventListener('mouseover', () => {
   qa.dataset.tipKeys = 'quickAgent:show or hide';
 });
 qa.addEventListener('click', () => toggleQuickAgent());
-qa.addEventListener('contextmenu', (e: MouseEvent) => agentRight('quick', e, (k) => newQuickAgent(k), ['all top bar buttons', () => topBarMenu(e.clientX, e.clientY, { tray: 'quick' })]));
+qa.addEventListener('contextmenu', (e: MouseEvent) => agentRight('quick', e, (k) => newQuickAgent(k), ['all rail buttons', () => topBarMenu(e.clientX, e.clientY, { tray: 'quick' })]));
 
 const nc = $('#btn-newchat');
-export const ncInner = () => {
-  const on = chatsOn(), k = pinOf('top'), labels = [['', '+ agent'], ...on.map(([c]) => [c, `+ ${agentShort(c)}`])];
-  return gem('ai') + `<span class="nc-l">${labels.map(([c, t]) => `<span${c === (on.length === 1 ? '' : k) ? ' class="on"' : ''}>${esc(t)}</span>`).join('')}</span>`;
-};
+export const ncInner = () => gem('ai') + `<i class="nc-plus">${PLUS}</i>`;
 const ncTip = () => {
   const on = chatsOn(), k = pinOf('top');
   const one = on.length === 1 ? on[0][1] : k ? agentName(k) : '';
-  const move = !slotsOn() ? '' : ncSlotted() ? 'Hold and drag it to another slot, or back to the right side.' : 'Hold and drag it into a slot of the top bar.';
+  const move = 'Hold and drag it to another cell of the rail.';
   nc.title = `New agent\nStarts a new chat with ${one || 'the agent you pick'}: a tab in the editor, a window in agents, a chat in orchestration.${on.length > 1 || move ? '\n' : ''}${on.length > 1 ? '\nRight-click to pick another agent, or to pin one.' : ''}${move ? `\n${move}` : ''}`;
   nc.setAttribute('aria-label', one ? `a new ${one} chat` : 'a new agent chat');
 };
@@ -410,8 +410,8 @@ ncPaint();
 nc.addEventListener('mouseover', ncTip);
 onPref('agents:off', ncPaint);
 onPref('agent:pin', ncPaint);
-nc.addEventListener('click', () => addAgent());
-nc.addEventListener('contextmenu', (e: MouseEvent) => agentRight('top', e, (k) => addAgent('chat', nc, k), ['all top bar buttons', () => topBarMenu(e.clientX, e.clientY, { tray: 'agent' })]));
+menuButton(nc, () => addAgent());
+nc.addEventListener('contextmenu', (e: MouseEvent) => agentRight('top', e, (k) => addAgent('chat', nc, k), ['all rail buttons', () => topBarMenu(e.clientX, e.clientY, { tray: 'agent' })]));
 
 const ib = $('#btn-inbox');
 ib.innerHTML = gem('inbox');
@@ -436,20 +436,23 @@ function newMenu(e?: Event) {
   const b = (page || $<HTMLElement>('#btn-more'))!.getBoundingClientRect();
   const row = (k: string) =>
     `<div class="qk-row"><button class="mi" data-mk="${k}" ${drag(k)}${rowTip(k)}><i class="qk-g">${icon(k)}</i>${esc(MAKE[k][1])}<span class="d">${esc(MAKE[k][2])}</span></button></div>`;
-  popMenu(page ? b.left : b.right - 340, b.bottom + 6, MENU[at()].map(row).join(''), (btn) => btn.dataset.mk && MAKE[btn.dataset.mk][4]());
+  popMenu(page ? b.left : b.right + 6, page ? b.bottom + 6 : b.top, MENU[at()].map(row).join(''), (btn) => btn.dataset.mk && MAKE[btn.dataset.mk][4]());
 }
-$('#btn-more').addEventListener('click', newMenu);
+const mb = $('#btn-more');
+mb.innerHTML = ICONS.newFile;
+mb.setAttribute('aria-label', 'new');
+menuButton(mb, newMenu);
 $('#start [data-newpjmenu]').addEventListener('click', newMenu);
 const moreTip = () => ($('#btn-more').title = `New\n${at() === 'ws' ? 'Adds a project to this workspace: a folder you work in, or a copy from git.' : 'Makes a new file or folder, in the inbox or the project folder.'}\n\nRight-click to choose its buttons.`);
 $('#btn-more').addEventListener('mouseover', moreTip);
 moreTip();
-const quickRows = () => {
+const quickRows = (grip = true) => {
   const on = pinned();
   const make = (k: string) => `<button class="tb-open" data-qmake="${k}" title="${esc(`Create ${MAKE[k][1]}
 Makes a new one now, pinned or not.`)}">create</button>`;
   return quickOrder().map((k) => {
     const row = topRow(on.includes(k), `data-qpin="${k}"${rowTip(k)}`, icon(k), esc(MAKE[k][1]));
-    return pref('barmenu:open') ? actRow(k, row, make(k)) : gripRow(k, row);
+    return pref('barmenu:open') ? actRow(k, row, make(k), grip) : grip ? gripRow(k, row) : row;
   }).join('');
 };
 const pinQuick = (b: HTMLElement) => {
@@ -460,7 +463,7 @@ const pinQuick = (b: HTMLElement) => {
   setPinned(pinned().includes(k) ? pinned().filter((p) => p !== k) : [...pinned(), k]);
   return true;
 };
-topBarRows('make', { rows: () => `<div class="tb-ords" data-mv="qk">${quickRows()}</div>`, pick: pinQuick, move: ['qk', (keys) => setQuickOrder(keys)] });
+topBarRows('make', { rows: (grip = true) => (grip ? `<div class="tb-ords" data-mv="qk">${quickRows()}</div>` : quickRows(false)), pick: pinQuick, move: ['qk', (keys) => setQuickOrder(keys)] });
 function makeMenu(x: number, y: number) {
   const rows = quickRows();
   topBarMenu(x, y, {
@@ -479,37 +482,8 @@ function makeMenu(x: number, y: number) {
   keepMenu(() => makeMenu(x, y));
   moveMenu('qk', (keys) => setQuickOrder(keys));
 }
-barMenu('header.bar', '', { open: (_el, e) => topBarMenu(e.clientX, e.clientY) });
-barMenu('.tray[data-g=make]', '', { open: (_el, e) => makeMenu(e.clientX, e.clientY) });
-for (const g of ['quick', 'agent', 'win']) barMenu(`.tray[data-g=${g}]`, '', { open: (_el, e) => topBarMenu(e.clientX, e.clientY, { tray: g }) });
-barMenu('.tray[data-g=fold]', '', { open: (_el, e) => topBarMenu(e.clientX, e.clientY) });
-
-const BAR_ORDER = ['quick', 'win'];
-const trayEl = (g: string) => document.querySelector<HTMLElement>(`.tray[data-g=${g}]`)!;
-function orderTrays() {
-  const saved = store.get('bar:order', {});
-  for (const g of BAR_ORDER) for (const id of saved[g] || []) {
-    const el = document.getElementById(id);
-    if (el?.parentNode === trayEl(g)) trayEl(g).append(el);
-  }
-}
-orderTrays();
-for (const g of BAR_ORDER) {
-  const t = TOPBAR.find((x) => x.g === g)!;
-  t.move = (keys) => {
-    const ids = keys.map((k) => t.rows.find((r) => `${r.k}:${r.id}` === k)?.sel.slice(1)).filter(Boolean) as string[];
-    const all = [...trayEl(g).children].map((x) => x.id).filter(Boolean), slots = all.map((id, i) => (ids.includes(id) ? i : -1)).filter((i) => i >= 0);
-    slots.forEach((at, i) => (all[at] = ids[i]));
-    store.set('bar:order', { ...store.get('bar:order', {}), [g]: all });
-    orderTrays();
-  };
-}
-for (const g of BAR_ORDER)
-  sortable(trayEl(g), {
-    item: 'button:not(.off, [hidden])',
-    drop: () => store.set('bar:order', { ...store.get('bar:order', {}), [g]: [...trayEl(g).children].map((x) => x.id).filter(Boolean) }),
-    away: (ev) => tell(ev ? trayEl(g) : null, { title: 'It moves only along its own tray' }),
-  });
+barMenu('#switch > .sv[data-g=make]', '', { open: (_el, e) => makeMenu(e.clientX, e.clientY) });
+for (const g of ['quick', 'agent', 'win', 'ue']) barMenu(`#switch > .sv[data-g=${g}]`, '', { open: (_el, e) => topBarMenu(e.clientX, e.clientY, { tray: g }) });
 
 const STEPS = [5, 15, 30, 45, 60];
 const timerSteps = () => [0, ...store.get('timer:steps', STEPS)];

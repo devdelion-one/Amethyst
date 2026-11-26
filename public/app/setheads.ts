@@ -213,7 +213,7 @@ export function chatHeadHtml() {
   return box('head', 'Header', headPic() + btnRows().map(rowHtml).join('') + subh('Also in the header') + partRows().map(rowHtml).join('') + subh('In the header or the ⋯ menu') + pillRows().map(rowHtml).join('') + subh('On the chat, above its message box') + rowHtml(doneRow()), 'The bar at the top of every chat: its code, title and model, then its buttons.') +
     orderBox();
 }
-const QUICK_CAP = `Small windows that each open on their own, with a bar: the name, size buttons, minimize and ×. The Quick Window opens a file you pick "open in the Quick Window" for, in its right-click menu. The Quick Agent, the scratch pad, the sketch board, the inbox, the quick terminal and quick PowerShell open from their buttons in the top bar. The freeze log opens from its button in the dock. Agent activity and Review open from their buttons in a chat's header. The Unreal build window opens from its button in the top bar, while Unreal Engine 5 support is on.`;
+const QUICK_CAP = `Small windows that each open on their own, with a bar: the name, size buttons, minimize and ×. The Quick Window opens a file you pick "open in the Quick Window" for, in its right-click menu. The Quick Agent, the scratch pad, the sketch board, the inbox, the quick terminal and quick PowerShell open from their buttons in the rail. The freeze log opens from its button in the dock. Agent activity and Review open from their buttons in a chat's header. The Unreal build window opens from its button in the rail, while Unreal Engine 5 support is on.`;
 export function quickHtml() {
   looks = {};
   return box('small', 'Quick windows', smallRows().map(rowHtml).join(''), QUICK_CAP);

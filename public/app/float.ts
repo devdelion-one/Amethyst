@@ -199,7 +199,7 @@ if (WIN === 1) {
 }
 
 const inQuick = () => POP && !SOLO && !isSpare();
-const noProject = () => tell($('header.bar'), { title: 'No project open', line: 'the small windows belong to a project: open one first', ms: 2500 });
+const noProject = () => tell($('#activity'), { title: 'No project open', line: 'the small windows belong to a project: open one first', ms: 2500 });
 
 export function toggleInbox() {
   if (!S.pid) return noProject();
@@ -245,10 +245,10 @@ onPlace(placeFloat);
 let areaNow: { left: number; right: number; top: number; bottom: number; width: number; height: number } | null = null;
 function area() {
   if (areaNow) return areaNow;
-  const top = $('.bar').getBoundingClientRect().bottom, bottom = $('#status').getBoundingClientRect().top;
+  const top = $('#shell').getBoundingClientRect().top, bottom = $('#status').getBoundingClientRect().top;
   return (areaNow = { left: 0, right: innerWidth, top, bottom, width: innerWidth, height: bottom - top });
 }
-onSize([$('.bar'), $('#status')], { name: 'float.area', live: true, write: () => (areaNow = null) });
+onSize([$('#shell'), $('#status')], { name: 'float.area', live: true, write: () => (areaNow = null) });
 addEventListener('resize', () => (areaNow = null));
 function within(at: Box) {
   const d = area();

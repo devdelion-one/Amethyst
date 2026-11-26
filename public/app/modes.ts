@@ -1,10 +1,9 @@
 import { filesChanged, setMark, togglePin } from './actions.ts';
 import { markMenu } from '../base/agentrow.ts';
 import { agentMenu, launchAgent, pinOf } from '../base/agentmenu.ts';
-import { ask, barMenu, flyFocus, ICONS, keepMenu, keyChip, menuHead, modeOrder, popMenu, setSwatches, sortable, sorting, TOPBAR, topBarMenu, topRow } from '../base/controls.ts';
+import { ask, barMenu, flyFocus, ICONS, keepMenu, keyChip, menuHead, modeOrder, popMenu, railActions, setSwatches, sortable, sorting, topBarMenu, topRow } from '../base/controls.ts';
 import { addSet, freeCell, setsHolding, agentLine, createDeck, dropSet, inCells, markSet, moveAway, moveSet, moveSetChats, cellsOf, chatsFromOrch, setChatsToOrch, nextColor, nextSet, orderHex, putInSet, restoreSet, swapInSet, setAgents, setAway, setColor, setInfo, setInfos, setOf, setOn, sets, setsMenu, setTurn, shareDeck, showSet, takeHere, toOrch } from '../decks/deck.ts';
-import { placeBtn } from './modeplace.ts';
-import { aim, freeAt, freeNear, moveRef, PITCH, placeAll, setSpan, slotDrag, slotDragIn, slotHtml, slotsOn, watchSlots } from './slots.ts';
+import { aim, bottomBtns, freeAt, freeNear, homeBtns, moveRef, pinDropIn, placeAll, pullBtns, railSpots, slotDrag, slotHtml, topBtns, watchFold, watchSlots } from './slots.ts';
 import type { SlotView } from './slots.ts';
 import type { MoveHow } from '../decks/deck.ts';
 import { agentHead, headClick, reportMenu } from './chathead.ts';
@@ -75,8 +74,8 @@ const infosOf = (k: string, tab?: ((a: Agent) => boolean) | null) => {
 };
 export const PLUS = '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg>';
 const onScreen = (): [any, any] => (mode() === 'editor' ? [null, null] : [mode(), setOn(mode())]);
-let drawn = '';
-const ncEl = $('#btn-newchat') as HTMLElement, nc = () => ncEl;
+let drawn = '', lastAll: SlotView[] = [];
+export const railViews = () => lastAll;
 let warmed = '';
 
 export function attachToChat(path: string, over: Element = document.body) {
@@ -232,111 +231,58 @@ export function paintSwitch() {
   };
   const said = (info: Info) => [info.asks && `${info.asks} need${info.asks === 1 ? 's' : ''} you`, info.done && `${info.done} finished`, info.working && `${info.working} working`].filter(Boolean).join(', ');
   const main = (k: string, on: boolean, icon: string, name: string, say: string, badge: string, key: [string, string], color = '', last = false, empty = false, drag = false, mk = '') => {
-    const advice = [key[1], drag && 'Hold and drag to move it.'].filter(Boolean).join('\n'), rest = `${say}${last ? ' Last used.' : ''}${advice ? '\n\n' + advice : ''}`;
+    const advice = [key[1], drag && 'Hold and drag it to another cell of the rail.'].filter(Boolean).join('\n'), rest = `${say}${last ? ' Last used.' : ''}${advice ? '\n\n' + advice : ''}`;
     return `<button data-mode="${k}" class="${on ? 'on' : ''}${last ? ' last' : ''}${empty ? ' empty' : ''}${mk ? ' mk' : ''}${paleOnFlip(color) ? ' pale' : ''}"${color || mk ? ` style="${color ? `--ly-c:${esc(color)};` : ''}${mk ? `--mk:${esc(col(mk))}` : ''}"` : ''} title="${esc(name)}&#10;${esc(rest)}" data-tip-keys="${esc(key[0])}" aria-label="${esc(name)}">${icon}${badge}</button>`;
   };
   const keys = (k: string, what: string, again = '', more = ''): [string, string] => [[modeFns()[k] && `fn:${k}:${what}`, `${modeBind(k)}:${what}${again ? `, again: ${again}` : ''}`, more].filter(Boolean).join(';'), again ? `Press the key again for the ${again}.` : ''];
   const said2 = (info: Info) => (said(info) ? ` ${said(info)}.` : '');
-  const add = (attr: string, title: string, label: string, key: string) => `<button class="ly-add" ${attr} title="${esc(title)}" data-tip-keys="${key}:${label}" aria-label="${label}">${PLUS}</button>`;
-  const group = (k: string, inner: string) => `<nav class="sets" data-kind="${k}" aria-label="${k} sets">${inner}</nav>`;
-  const tabbed = ws ? null : heldAnywhere, slot = slotsOn(), views: SlotView[] = [], parts: string[] = [];
+  const tabbed = ws ? null : heldAnywhere, views: SlotView[] = [];
   const view = (kind: string, id: string, html: string, shown = true) => views.push({ kind, ref: `${kind}:${id}`, html, shown });
   const style = (color: string, mk?: string) => `${color ? `--ly-c:${esc(color)}` : ''}${color && mk ? ';' : ''}${mk ? `--mk:${esc(col(mk))}` : ''}`;
-  const tip2 = slot ? 'Hold and drag it to another slot. Right-click for its color, mark, close or a new view.' : 'Hold and drag to move it. Right-click for its color, mark or close.';
-  {
-    if (ws) parts.push(group('editor', main('editor', m === 'editor' && !S.wsEditor, ICONS.projects, 'Projects', 'The projects of this workspace.', '', keys('editor', 'projects'))));
-    else {
-      const { asks, doneIds } = editorInfo(), done = doneIds.length;
-      const badge = asks ? `<b class="md-n" data-st="asks">${asks}</b>` : done ? `<b class="md-n" data-st="done">${done}</b>` : '';
-      const left = m !== 'editor' && lys.length > 1, live = pref('edWork');
-      const working = eds.map((e) => allTabs(e.root).filter((t) => /^(working|starting)$/.test(agents.all.get((t.chat || t.term)!)?.status || '')).length);
-      const wk = (i: number) => (working[i] ? ` ${working[i]} chat${working[i] === 1 ? ' is' : 's are'} working.` : '');
-      const wkB = (i: number) => (live && working[i] ? workMark() : '');
-      const wkSay = working[0] ? ` ${working[0]} chat${working[0] === 1 ? ' is' : 's are'} working.` : '';
-      view('editor', lys[0].id, main('editor', m === 'editor' && lys[0].on, modeGem('editor'), 'Editor', `The explorer and your tabs.${wkSay}`, badge + wkB(0), keys('editor', 'editor', 'next layout'), setColor(0, 'editor', lys[0].color), left && lys[0].on, false, slot || lys.length > 1, lys[0].mark));
-      lys.slice(1).forEach((e, j) => {
-        const i = j + 1, tip = `Layout ${i + 1}\n${e.empty ? 'An empty layout.' : e.names.length ? `Tabs: ${e.names.join(', ')}.` : 'A new tab.'}${wk(i)}${e.on ? (left ? ' Last used.' : ' On screen.') : ''}\n\n${tip2}`;
-        view('editor', e.id, `<button class="ly${m === 'editor' && e.on ? ' cur' : ''}${left && e.on ? ' last' : ''}${e.empty ? ' empty' : ''}${e.mark ? ' mk' : ''}${paleOnFlip(setColor(i, 'editor', e.color)) ? ' pale' : ''}" style="${style(setColor(i, 'editor', e.color), e.mark)}" data-ed="${e.id}" data-n="${i + 1}" title="${esc(tip)}" aria-label="layout ${i + 1}">${modeGem('editor')}${wkB(i)}</button>`);
-      });
-    }
+  const tip2 = 'Hold and drag it to another cell. Right-click for its color, mark, close or a new view.';
+  if (ws) view('editor', 'ws', main('editor', m === 'editor' && !S.wsEditor, ICONS.projects, 'Projects', 'The projects of this workspace.', '', keys('editor', 'projects'), '', false, false, true));
+  else {
+    const { asks, doneIds } = editorInfo(), done = doneIds.length;
+    const badge = asks ? `<b class="md-n" data-st="asks">${asks}</b>` : done ? `<b class="md-n" data-st="done">${done}</b>` : '';
+    const left = m !== 'editor' && lys.length > 1, live = pref('edWork');
+    const working = eds.map((e) => allTabs(e.root).filter((t) => /^(working|starting)$/.test(agents.all.get((t.chat || t.term)!)?.status || '')).length);
+    const wk = (i: number) => (working[i] ? ` ${working[i]} chat${working[i] === 1 ? ' is' : 's are'} working.` : '');
+    const wkB = (i: number) => (live && working[i] ? workMark() : '');
+    const wkSay = working[0] ? ` ${working[0]} chat${working[0] === 1 ? ' is' : 's are'} working.` : '';
+    view('editor', lys[0].id, main('editor', m === 'editor' && lys[0].on, modeGem('editor'), 'Editor', `The explorer and your tabs.${wkSay}`, badge + wkB(0), keys('editor', 'editor', 'next layout'), setColor(0, 'editor', lys[0].color), left && lys[0].on, false, true, lys[0].mark));
+    lys.slice(1).forEach((e, j) => {
+      const i = j + 1, tip = `Layout ${i + 1}\n${e.empty ? 'An empty layout.' : e.names.length ? `Tabs: ${e.names.join(', ')}.` : 'A new tab.'}${wk(i)}${e.on ? (left ? ' Last used.' : ' On screen.') : ''}\n\n${tip2}`;
+      view('editor', e.id, `<button class="ly${m === 'editor' && e.on ? ' cur' : ''}${left && e.on ? ' last' : ''}${e.empty ? ' empty' : ''}${e.mark ? ' mk' : ''}${paleOnFlip(setColor(i, 'editor', e.color)) ? ' pale' : ''}" style="${style(setColor(i, 'editor', e.color), e.mark)}" data-ed="${e.id}" data-n="${i + 1}" title="${esc(tip)}" aria-label="layout ${i + 1}">${modeGem('editor')}${wkB(i)}</button>`);
+    });
   }
   for (const k of ['orch', 'chat', 'term', 'research']) {
     if ((k === 'research' || k === 'orch') && ws) continue;
     const shown = !isOff('modesHidden', k) || m === k;
-    if (!shown && !slot) continue;
     const { list, on } = sets(k), infoAt = infosOf(k, tabbed), left = m !== k && list.length > 1, first = infoAt(list[0].id), label = MODES[k].label!;
     const again = k === 'chat' && !ws ? 'next set' : '', more = k === 'orch' ? '=tab:the next chat, top to bottom' : '';
-    view(k, list[0].id, main(k, m === k && on === list[0].id, MODES[k].icon!(), label[0].toUpperCase() + label.slice(1), `${MODES[k].what}${said2(first)}`, marks(first, k), keys(k, label, again, more), setColor(0, k, list[0].color), left && on === list[0].id, !first.chats, slot || list.length > 1, list[0].mark as string), shown);
+    view(k, list[0].id, main(k, m === k && on === list[0].id, MODES[k].icon!(), label[0].toUpperCase() + label.slice(1), `${MODES[k].what}${said2(first)}`, marks(first, k), keys(k, label, again, more), setColor(0, k, list[0].color), left && on === list[0].id, !first.chats, true, list[0].mark as string), shown);
     list.slice(1).forEach((x, j) => {
       const i = j + 1, info = infoAt(x.id), empty = !info.chats, st = said(info);
       const tip = `Set ${i + 1}\n${empty ? `No ${MODES[k].label} yet.` : `${info.chats} ${NOUN[k]}${info.chats === 1 ? '' : 's'}${st ? `: ${st}` : ''}.`}${x.id === on ? (m === k ? ' On screen.' : ' Last used.') : ''}\n\n${tip2}`;
       view(k, x.id, `<button class="ly${m === k && x.id === on ? ' cur' : ''}${left && x.id === on ? ' last' : ''}${empty ? ' empty' : ''}${x.mark ? ' mk' : ''}${paleOnFlip(setColor(i, k, x.color)) ? ' pale' : ''}" style="${style(setColor(i, k, x.color), x.mark as string)}" data-set="${esc(x.id)}" data-n="${i + 1}" title="${esc(tip)}" aria-label="set ${i + 1}">${MODES[k].icon!()}${marks(info, k)}</button>`, shown);
     });
   }
-  sw.classList.toggle('slots', slot);
-  let html: string;
-  if (slot) {
-    const order = modeOrder(), refs = views.sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind)).map((v) => v.ref);
-    if (ncSlotted()) {
-      setSpan(NC, ncSpan());
-      views.push({ kind: 'btn', ref: NC, html: '', shown: true });
-      refs.push(NC);
-    }
-    const { at, first, fresh } = placeAll(refs, { [NC]: store.get('switch:ncAt', 0) });
-    if (NC in at && refs.includes(NC)) store.set('switch:ncAt', at[NC]);
-    if (first) freezeColors();
-    if (fresh.length) syncOrders(at);
-    const out = slotHtml(views, at);
-    html = out.html;
-    sw.setAttribute('style', out.vars);
-  } else {
-    sw.removeAttribute('style');
-    for (const k of ['editor', 'orch', 'chat', 'term', 'research']) {
-      const mine = views.filter((v) => v.kind === k);
-      if (!mine.length) continue;
-      let inner = mine.map((v) => v.html).join('');
-      if (k === 'editor') inner += add('data-ed-add', 'New layout\nAnother set of tabs. The tabs you have now stay as they are.', 'new layout', NEW_BINDS.editor);
-      else if (!ws && k !== 'research' && k !== 'orch') inner += add('data-set-add', `New set\nAnother deck of ${MODES[k].label}, beside the ones you have.`, 'new set', NEW_BINDS[k]);
-      parts.push(group(k, inner));
-    }
-    const order = modeOrder();
-    html = parts.sort((a, b) => order.indexOf(kindOf(a)) - order.indexOf(kindOf(b))).join('');
-  }
-  if ($('#switch .sorting') || sw.classList.contains('dragging')) return;
+  const order = modeOrder();
+  views.sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind));
+  const all = [...topBtns(), ...views, ...bottomBtns()];
+  lastAll = all;
+  const { at, first, fresh } = placeAll(all);
+  if (!ws && first) freezeColors();
+  if (!ws && fresh.some((r) => !r.startsWith('btn:'))) syncOrders(at);
+  if (sw.classList.contains('dragging')) return;
+  const html = slotHtml(all, at);
   if (drawn !== html) {
     drawn = html;
-    if (sw.contains(ncEl)) $('.tray[data-g=agent]').append(ncEl);
+    pullBtns(sw);
     sw.innerHTML = html;
   }
-  ncHome();
+  homeBtns(sw);
 }
-const NC = 'btn:newchat';
-export const ncSlotted = () => slotsOn() && !!store.get('switch:nc', false) && !isOff('qterm:off', 'newchat');
-function ncSpan() {
-  const l = nc().querySelector('.nc-l') as HTMLElement | null, w = l?.offsetWidth ? l.offsetWidth + 38 : 0;
-  if (w) store.set('switch:ncSpan', Math.min(5, Math.max(2, Math.ceil((w + 4) / PITCH))));
-  return store.get('switch:ncSpan', 3);
-}
-function ncHome() {
-  const b = nc(), home = (document.querySelector<HTMLElement>(`#switch .sv[data-ref="${NC}"]`) || $('.tray[data-g=agent]')) as HTMLElement;
-  if (b.parentNode !== home) home.append(b);
-}
-export function ncToSlot(slot: number | null) {
-  store.set('switch:nc', true);
-  setSpan(NC, ncSpan());
-  if (slot != null) moveRef(NC, slot, allRefs());
-  const { at } = placeAll(allRefs(), { [NC]: store.get('switch:ncAt', 0) });
-  syncOrders(at);
-  drawn = '';
-  paintSwitch();
-  landSlot(NC);
-}
-export function ncToTray() {
-  store.set('switch:nc', false);
-  drawn = '';
-  paintSwitch();
-}
-const kindOf = (html: string) => /data-kind="(\w+)"/.exec(html)?.[1] || '';
 const SLOT_KINDS = ['orch', 'chat', 'term', 'research'];
 function freezeColors() {
   editors().forEach((e, i) => e.color || !orderHex(i, 'editor') || markEditor(e.id, { color: orderHex(i, 'editor') }));
@@ -347,42 +293,41 @@ function freezeColors() {
     setTurn(k, Math.max(0, list.length - 1));
   }
 }
+const seq = (s: number | undefined) => (s == null ? 1e9 : s < 0 ? 1e6 + s : s);
 function syncOrders(at: Record<string, number>) {
-  const by = (k: string, ids: string[]) => [...ids].sort((a, b) => (at[`${k}:${a}`] ?? 1e9) - (at[`${k}:${b}`] ?? 1e9));
+  const by = (k: string, ids: string[]) => [...ids].sort((a, b) => seq(at[`${k}:${a}`]) - seq(at[`${k}:${b}`]));
   by('editor', eds.map((e) => e.id)).forEach((id, i) => eds[i]?.id !== id && moveEditor(id, i));
   for (const k of SLOT_KINDS) by(k, sets(k).list.map((x) => x.id)).forEach((id, i) => sets(k).list[i]?.id !== id && moveSet(k, id, i));
 }
-const allRefs = () => [...eds.map((e) => `editor:${e.id}`), ...SLOT_KINDS.filter((k) => !atWs() || (k !== 'orch' && k !== 'research')).flatMap((k) => sets(k).list.map((x) => `${k}:${x.id}`)), ...(ncSlotted() ? [NC] : [])];
+const allRefs = () => [
+  ...topBtns().map((v) => v.ref),
+  ...(atWs() ? ['editor:ws'] : eds.map((e) => `editor:${e.id}`)),
+  ...SLOT_KINDS.filter((k) => !atWs() || (k !== 'orch' && k !== 'research')).flatMap((k) => sets(k).list.map((x) => `${k}:${x.id}`)),
+  ...bottomBtns().map((v) => v.ref),
+];
 export const NEW_KINDS: [string, string][] = [['chat', 'agents set'], ['editor', 'editor layout'], ['term', 'terminals']];
 export const NEW_BINDS: Record<string, string> = { chat: 'newSetChat', editor: 'newLayout', term: 'newSetTerm' };
 export function newView(kind: string, slot: number | null = null) {
   if (atLaunch() || atWs()) return;
-  const on = slotsOn();
-  if (on) aim(kind, slot);
-  if (kind === 'editor') return addEditor(on ? nextColor('editor') : undefined);
+  aim(kind, slot);
+  if (kind === 'editor') return addEditor(nextColor('editor'));
   toSet(kind, (addSet(kind), setOn(kind)));
 }
 function landSlot(ref: string) {
-  const b = $<HTMLElement | null>(`#switch .sv[data-ref="${CSS.escape(ref)}"] > button`);
+  const b = $<HTMLElement | null>(`#switch .sv[data-ref="${CSS.escape(ref)}"] > :is(button, a)`);
   b?.classList.add('landed');
   b?.addEventListener('animationend', () => b.classList.remove('landed'), { once: true });
 }
-slotDrag($('#switch'), (ref, slot) => {
+function dropRef(ref: string, slot: number) {
   if (!moveRef(ref, slot, allRefs())) return;
-  const { at } = placeAll(allRefs());
-  syncOrders(at);
   drawn = '';
   paintSwitch();
+  if (!atWs()) syncOrders(railSpots());
   landSlot(ref);
-}, ncToTray);
-slotDragIn(nc(), $('#switch'), ncSpan, ncToSlot);
-const ncActs = TOPBAR.find((g) => g.g === 'agent')!;
-ncActs.acts = () => (slotsOn() && !isOff('qterm:off', 'newchat') ? `<button class="mi" data-tbact="agent" title="${esc(ncSlotted() ? 'Back to the right side\nThe button goes back to its place on the right of the top bar.' : 'Put in a slot\nThe button moves into the first free slots of the top bar. You can also drag it there.')}"><i class="tb-ic">${gem('ai')}</i><span class="mi-n">${ncSlotted() ? 'back to the right side' : 'put in a slot'}</span></button>` : '');
-ncActs.onAct = () => (ncSlotted() ? ncToTray() : ncToSlot(null));
-onPref('qterm:off', () => {
-  drawn = '';
-  paintSwitch();
-});
+}
+slotDrag($('#switch'), dropRef);
+pinDropIn($('#switch'), dropRef);
+watchFold($('#switch'));
 watchSlots($('#switch'), () => {
   drawn = '';
   paintSwitch();
@@ -413,7 +358,7 @@ export async function chatTo(id: string, to: any, how: MoveHow) {
 }
 export const agentTab = (program: string) => newOfType(chatTabOf(program), activeGroup());
 export function addAgent(kind = 'chat', b = $('#btn-newchat'), program = '', at?: [number, number], place = 'top') {
-  const r = b?.offsetWidth ? b.getBoundingClientRect() : null, x = at ? at[0] : r?.left ?? 40, y = at ? at[1] : (r?.bottom ?? 24) + 6;
+  const r = b?.offsetWidth ? b.getBoundingClientRect() : null, x = at ? at[0] : r ? r.right + 6 : 40, y = at ? at[1] : r?.top ?? 24;
   if (kind === 'chat' && mode() === 'editor' && !atWs()) {
     if (program) return agentTab(program);
     return launchAgent(place, x, y, agentTab);
@@ -721,6 +666,11 @@ menu.addEventListener('menuclose', () => (unpeek(), (peek = null)));
 const CLOSES: Record<string, string> = { editor: 'Its tabs close.', chat: 'You choose where its chats go: orchestration, another set, or they end.', term: 'Its terminals stop.' };
 const READ_ICON = '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>';
 const X_ICON ='<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg>';
+function newRowsAt(at: number | null) {
+  const slotTip = at == null ? 'It opens in the first free cell of the rail.' : 'It opens in the free cell next to where you right-clicked.';
+  return !atWs() ? NEW_KINDS.filter(([k]) => !isOff('modesHidden', k)).map(([k, label]) => `<button class="mi" data-newv="${k}" title="${esc(`New ${label}
+${slotTip}`)}"><i class="tb-ic">${k === 'editor' ? modeGem('editor') : MODES[k].icon!()}</i><span class="mi-n">new ${label}</span>${keyChip(NEW_BINDS[k])}</button>`).join('') : '';
+}
 function modesMenu(x: number, y: number, kind = '', b: HTMLElement | null = null, again = false, at: number | null = null) {
   if (!again) fly = '';
   const ed = kind === 'editor', w = ed ? 'layout' : 'set';
@@ -728,9 +678,7 @@ function modesMenu(x: number, y: number, kind = '', b: HTMLElement | null = null
   const id = !kind ? undefined : sub ? (ed ? b!.dataset.ed : b!.dataset.set) : ed ? eds[0]?.id : sets(kind).list[0].id;
   const n = sub ? +b!.dataset.n! : 1;
   let head: string | undefined, own = '', mine: string[] = [];
-  const slot = slotsOn(), slotTip = at == null ? 'It opens in the first free slot.' : `It opens in slot ${at + 1}.`;
-  const newRows = slot ? NEW_KINDS.filter(([k]) => !isOff('modesHidden', k)).map(([k, label]) => `<button class="mi" data-newv="${k}" title="${esc(`New ${label}
-${slotTip}`)}"><i class="tb-ic">${k === 'editor' ? modeGem('editor') : MODES[k].icon!()}</i><span class="mi-n">new ${label}</span>${keyChip(NEW_BINDS[k])}</button>`).join('') : '';
+  const newRows = newRowsAt(at);
   if (b && kind && id != null && !atWs()) {
     head = menuHead((b.querySelector('svg')?.outerHTML || '').replace(/ class="tw"/g, ''), `${ed ? 'editor' : MODES[kind].label} ${w} ${n}`);
     mine = ed ? (sub ? [] : editorInfo().doneIds) : infosOf(kind, heldAnywhere)(id).doneIds || [];
@@ -744,8 +692,7 @@ ${CLOSES[kind]}`)}"><i class="tb-ic">${X_ICON}</i><span class="mi-n">close</span
   const wk = (k: string) => `title="${esc(`${PREFS[k].item!.charAt(0).toUpperCase() + PREFS[k].item!.slice(1)}
 ${PREFS[k].desc}`)}"`;
   const work = atWs() ? '' : topRow(!!pref('edWork'), `data-edwork ${wk('edWork')}`, modeGem('editor'), PREFS.edWork.item!) + topRow(!!pref('switch:wkOn'), `data-wkon ${wk('switch:wkOn')}`, workGem(), PREFS['switch:wkOn'].item!);
-  const place = `<div class="pl-row">${PREFS['switch:place'].choices!.map(([v, label, tip]) => placeBtn(String(v), String(label), String(tip), pref('switch:place') === v)).join('')}</div>`;
-  topBarMenu(x, y, { tray: 'modes', head, acts, opts: work, pick: ['position', place], onPick: (p) => {
+  topBarMenu(x, y, { tray: 'modes', head, acts, opts: work, onPick: (p) => {
     const d = p.dataset;
     if (d.newv) return newView(d.newv, at);
     if (d.read) return quietly(api('POST', '/api/agents/seen', d.read === 'all' ? { all: true } : { ids: mine }));
@@ -760,7 +707,6 @@ ${PREFS[k].desc}`)}"`;
       modesMenu(x, y, kind, fresh, true, at);
       return flyFocus()?.focus();
     }
-    if ('place' in d) return setPref('switch:place', d.place);
     if ('edwork' in d) return setPref('edWork', !pref('edWork'));
     if ('wkon' in d) return setPref('switch:wkOn', !pref('switch:wkOn'));
     if ('close' in d && id != null) ed ? closeLayout(id, n) : closeSet(kind, id, n);
@@ -772,20 +718,15 @@ $('#switch').addEventListener('contextmenu', (e: MouseEvent) => {
   if (!b) return;
   e.preventDefault();
   const nav = b.closest<HTMLElement>('.sets')!;
-  modesMenu(e.clientX, e.clientY, nav.dataset.kind!, b, false, slotsOn() && nav.dataset.ref ? freeNear(nav.dataset.ref, allRefs()) : null);
+  modesMenu(e.clientX, e.clientY, nav.dataset.kind!, b, false, nav.dataset.ref ? freeNear(nav.dataset.ref, allRefs()) : null);
 });
-barMenu('#switch', '', { open: (_el, e) => modesMenu(e.clientX, e.clientY, '', null, false, slotsOn() ? freeAt(e.clientX, allRefs()) : null) });
-TOPBAR.find((g) => g.g === 'modes')!.move = (keys) => {
-  store.set('modes:order', keys.map((k) => k.split(':')[1]));
-  drawn = '';
-  paintSwitch();
-};
-const placeSwitch = () => ($('#switch').parentElement.dataset.place = pref('switch:place'));
-placeSwitch();
-onPref('switch:place', () => {
-  placeSwitch();
-  drawn = '';
-  paintSwitch();
+const newPick = (b: HTMLElement, at: number | null) => b.dataset.newv && newView(b.dataset.newv, at);
+railActions(() => newRowsAt(null), newPick);
+barMenu('#switch', '', {
+  open: (_el, e) => {
+    const at = freeAt(e.clientY);
+    topBarMenu(e.clientX, e.clientY, { acts: newRowsAt(at), onPick: (b) => newPick(b, at) });
+  },
 });
 onPref('modesHidden', () => {
   drawn = '';
@@ -801,25 +742,6 @@ $('#switch').addEventListener('click', (e: MouseEvent) => {
   if ('edAdd' in b.dataset) return addEditor();
   if (k === 'editor') return atWs() ? (S.wsEditor ? page.showWsEditor(false) : setMode('editor')) : showEditor(eds[0].id);
   toSet(k, sets(k).list[0].id);
-});
-sortable($('#switch'), {
-  item: ':is(.ly, [data-mode])',
-  end: '.ly-add',
-  skip: '#switch.slots *',
-  drop(all, to) {
-    const el: HTMLElement = all[to], kind = (el.parentNode as HTMLElement).dataset.kind!, ed = kind === 'editor';
-    const id: string = 'mode' in el.dataset ? (ed ? eds[0].id : sets(kind).list[0].id) : ed ? el.dataset.ed! : el.dataset.set!;
-    ed ? moveEditor(id, to) : moveSet(kind, id, to);
-    drawn = '';
-    paintSwitch();
-    const b = $(`#switch .sets[data-kind="${kind}"] ${to ? `[data-${ed ? 'ed' : 'set'}="${CSS.escape(id)}"]` : '[data-mode]'}`);
-    b?.classList.add('landed');
-    b?.addEventListener('animationend', () => b.classList.remove('landed'), { once: true });
-  },
-  away(ev) {
-    const over = ev && document.elementFromPoint(ev.clientX, ev.clientY)?.closest('#switch .sets:not(.sorting)');
-    tell(ev ? over || document.body : null, { title: 'It moves only along its own row', line: 'Drag it between the buttons of its own mode. A chat goes to another set from its » menu.' });
-  },
 });
 $('#switch').addEventListener('keydown', (e: KeyboardEvent) => {
   if (e.key !== 'Delete') return;

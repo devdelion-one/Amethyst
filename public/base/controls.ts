@@ -11,7 +11,6 @@ import { atWs, dirGem, inboxLoc, inboxTint, levelKey, matches, S, styleMark, tin
 import { page } from './page.ts';
 import { BAR_LAST, BAR_ORDER, BAR_SHARE, BTN_OF, chatOn, isOff, MENUS, onPref, peek, pref, PREFS, saved, savedOff, setAt, setOff, setPref } from './prefs.ts';
 import { onPrefUndo, prefStep } from './prefundo.ts';
-import { toggleTopBar } from './topbar.ts';
 import { col, COLORS } from './theme.ts';
 import { $, agentsOf, esc, parentOf, setSave, store, track } from './util.ts';
 import type { Pref } from './prefs.ts';
@@ -398,14 +397,14 @@ export function redrawMenu() {
 }
 onPrefUndo(redrawMenu);
 let endEsc = () => {};
-const flip = (b: HTMLElement) => (b.matches('.pl') ? b.parentElement!.querySelectorAll('.pl').forEach((x) => x.classList.toggle('on', x === b)) : b.classList.toggle('on'));
+const flip = (b: HTMLElement) => b.classList.toggle('on');
 function tick(b: HTMLButtonElement, onPick: (b: HTMLButtonElement) => unknown) {
   const find = rowFinder(b), n = pops;
   onPick(b);
   if (pops === n && !againInPlace() && b.isConnected) flip(b);
   holdFocus(find);
 }
-const KEEP = '.mi.chk, .pl';
+const KEEP = '.mi.chk';
 sortable(document, {
   item: '#colormenu .tb-ords[data-mv] > .tb-ord[data-ord]',
   grip: '.tb-grip',
@@ -430,11 +429,25 @@ function placeFly() {
   const x = rr.right + 10 + fw <= innerWidth - EDGE ? rr.right + 10 : Math.max(EDGE, rr.left - 10 - fw);
   Object.assign(fly.style, { position: 'fixed', left: x + 'px', right: 'auto', top: Math.max(EDGE, Math.min(rr.top - 6, innerHeight - EDGE - fh)) + 'px' });
 }
+let menuBy: Element | null = null, menuWas: Element | null = null, opener: Element | null = null, openAt = 0, shut = () => {};
+document.addEventListener('pointerdown', (e) => (menuWas = menuBy && !$('#colormenu').hidden && menuBy.contains(e.target as Node) ? menuBy : null), true);
+export function menuButton(btn: HTMLElement, open: (e: MouseEvent) => unknown) {
+  btn.addEventListener('click', (e) => {
+    const again = menuWas === btn;
+    menuWas = null;
+    if (again) return void (!$('#colormenu').hidden && shut());
+    opener = btn;
+    openAt = Date.now();
+    open(e);
+  });
+}
 export function popMenu(x: number, y: number, html: string, onPick: (b: HTMLButtonElement) => unknown, up = false, onRight?: (b: HTMLButtonElement, e: MouseEvent) => unknown) {
   const m = $('#colormenu');
   const back = m.contains(document.activeElement) && lastBack ? lastBack : (document.activeElement as HTMLElement);
   const was = inPlace && !m.hidden ? [parseFloat(m.style.left), parseFloat(m.style.top)] : null, me = ++pops;
   lastBack = back;
+  if (!inPlace || m.hidden) menuBy = opener && Date.now() - openAt < 1500 ? opener : null;
+  opener = null;
   menuAgain = null;
   menuMoves = {};
   subPick = null;
@@ -494,6 +507,7 @@ ${cap(t)}${/[.!?]$/.test(t) ? '' : '.'}`;
     if (m.contains(document.activeElement)) back?.focus?.();
     m.dispatchEvent(new Event('menuclose'));
   };
+  shut = close;
   setTimeout(() => me === pops && !m.hidden && (offOut = onOutside([m], close)), 0);
   m.onclick = (e: MouseEvent) => {
     const b = (e.target as Element).closest('button');
@@ -629,7 +643,7 @@ export const ROW_IC: Record<string, () => string> = {
   'act:off:explorer': () => ICONS.explorer, 'act:off:git': () => ICONS.git, 'act:off:github': () => ICONS.pr, 'act:off:agent setup': () => ICONS.setup, 'act:off:site': () => ICONS.site,
   'drafts:off:scratch': () => gem('scratch'), 'drafts:off:sketch': () => gem('sketch'), 'drafts:off:inbox': () => gem('inbox'),
   'qterm:off:term': () => gem('term'), 'qterm:off:pwsh': () => gem('term') + '<b class="qk-tag">ps</b>', 'qterm:off:agent': () => gem('ai'), 'qterm:off:newchat': () => gem('ai') + '<b class="qk-tag">+</b>',
-  'barend:off:more': () => ICONS.create, 'barend:off:pins': () => ICONS.pin, 'barend:off:win': () => ICONS.window,
+  'barend:off:more': () => ICONS.newFile, 'barend:off:pins': () => ICONS.pin, 'barend:off:win': () => ICONS.window,
   'modesHidden:editor': () => modeGem('editor'), 'modesHidden:orch': () => modeGem('orch'), 'modesHidden:chat': () => modeGem('ai'), 'modesHidden:term': () => gem('term'), 'modesHidden:research': () => gem('research'),
   'switch:wkOn': () => workGem(), edWork: () => modeGem('editor'),
   'deck:markShow': () => ICONS.mark1, 'deck:noteShow': () => ICONS.note,
@@ -641,7 +655,7 @@ export const ROW_IC: Record<string, () => string> = {
 };
 export const rowIcons = (m: Record<string, () => string>) => Object.assign(ROW_IC, m);
 export const MENU_IC: Record<string, () => string> = {
-  bar: () => ICONS.dock, chrow: () => ICONS.toChat, tbar: () => ICONS.tab, drafts: () => ICONS.topBar, modes: () => ICONS.modes, strip: () => ICONS.strip, tiles: () => gem('link'), txbar: () => gem('file'), fmt: () => ICONS.fmtBar, pad: () => gem('sketch'),
+  bar: () => ICONS.dock, chrow: () => ICONS.toChat, tbar: () => ICONS.tab, drafts: () => ICONS.strip, modes: () => ICONS.modes, strip: () => ICONS.strip, tiles: () => gem('link'), txbar: () => gem('file'), fmt: () => ICONS.fmtBar, pad: () => gem('sketch'),
   explorer: () => ICONS.explorer, scm: () => ICONS.git, setup: () => ICONS.setup, usage: () => ICONS.usage, clips: () => ICONS.clip, settings: () => ICONS.settings, hgbar: () => ICONS.bug, forget: () => ICONS.bang, wsx: () => ICONS.explorer,
   orch: () => modeGem('orch'), decklist: () => ICONS.rail, ochead: () => modeGem('orch'), head: () => ICONS.header, qagent: () => gem('ai'), size: () => ICONS.window, quote: () => ICONS.toChat, edfoot: () => gem('scratch'), wspage: () => ICONS.workspaces, launch: () => ICONS.workspaces, browser: () => gem('link'), inbox: () => gem('inbox'), archive: () => gem('archive'), edits: () => ICONS.editsList, artifacts: () => gem('file'), web: () => gem('core'),
 };
@@ -735,11 +749,18 @@ export function offClasses(key: string, prefix: string) {
 }
 
 type TopRow = { k: string; id: string; label: string; sel: string; icon: () => string; fixed?: boolean; when?: () => boolean; d?: string; tip?: string; why?: () => string };
-type TopPre = { rows: () => string; pick: (b: HTMLElement) => boolean; move: [string, (keys: string[]) => unknown] };
+type TopPre = { rows: (grip?: boolean) => string; pick: (b: HTMLElement) => boolean; move: [string, (keys: string[]) => unknown] };
 type TopOpts = { tray?: string; head?: string; acts?: string; opts?: string; buttons?: string; pick?: [string, string]; onPick?: (b: HTMLElement) => unknown };
-const shownBtn = (sel: string) => () => !document.querySelector(sel)?.hasAttribute('hidden');
+const shownBtn = (sel: string) => () => !atWs() && !document.querySelector(sel)?.hasAttribute('hidden');
 const rowIc = (k: string) => () => ROW_IC[k]?.() || '';
 export const TOPBAR: { g: string; name: string; sel: string; icon?: () => string; rows: TopRow[]; acts?: () => string; onAct?: (b: HTMLElement) => unknown; move?: (keys: string[]) => unknown; pre?: TopPre }[] = [
+  { g: 'strip', name: 'panels', sel: '#switch > .sv[data-g=strip]', icon: () => ICONS.strip, rows: [
+    { k: 'act:off', id: 'explorer', label: 'explorer', sel: '#btn-index', icon: rowIc('act:off:explorer') },
+    { k: 'act:off', id: 'git', label: 'source control', sel: '#btn-git', icon: rowIc('act:off:git'), when: () => !atWs() },
+    { k: 'act:off', id: 'github', label: 'GitHub', sel: '#btn-github', icon: rowIc('act:off:github'), when: () => !atWs() },
+    { k: 'act:off', id: 'agent setup', label: 'agent setup', sel: '#btn-setup', icon: rowIc('act:off:agent setup'), when: () => !atWs() },
+    { k: 'act:off', id: 'site', label: 'site', sel: '#btn-site', icon: rowIc('act:off:site') },
+  ] },
   { g: 'modes', name: 'modes', sel: '#switch', icon: () => ICONS.modes, rows: [
     { k: 'modesHidden', id: 'editor', label: 'editor', sel: '#switch .sets[data-kind=editor]', icon: rowIc('modesHidden:editor'), fixed: true },
     { k: 'modesHidden', id: 'orch', label: 'orchestration', sel: '#switch .sets[data-kind=orch]', icon: rowIc('modesHidden:orch'), when: () => !atWs() },
@@ -747,22 +768,22 @@ export const TOPBAR: { g: string; name: string; sel: string; icon?: () => string
     { k: 'modesHidden', id: 'term', label: 'terminals', sel: '#switch .sets[data-kind=term]', icon: rowIc('modesHidden:term') },
     { k: 'modesHidden', id: 'research', label: 'research', sel: '#switch .sets[data-kind=research]', icon: rowIc('modesHidden:research'), when: () => !atWs() },
   ] },
-  { g: 'ue', name: 'Unreal', sel: '.tray[data-g=ue]', rows: [
+  { g: 'agent', name: 'agents', sel: '#switch > .sv[data-g=agent]', icon: () => gem('ai'), rows: [{ k: 'qterm:off', id: 'newchat', label: 'new agent chat', sel: '#btn-newchat', icon: rowIc('qterm:off:newchat'), when: () => !atWs() }] },
+  { g: 'make', name: 'create', sel: '#switch > .sv[data-g=make]', icon: () => ICONS.create, rows: [{ k: 'barend:off', id: 'more', label: 'new', sel: '#btn-more', icon: rowIc('barend:off:more'), d: 'Right-click it for its buttons.', when: () => !atWs() }] },
+  { g: 'quick', name: 'quick tools', sel: '#switch > .sv[data-g=quick]', icon: () => ICONS.quick, rows: [
+    { k: 'drafts:off', id: 'scratch', label: 'scratch pad', sel: '#btn-scratch', icon: rowIc('drafts:off:scratch'), when: () => !atWs() },
+    { k: 'drafts:off', id: 'sketch', label: 'sketch board', sel: '#btn-sketch', icon: rowIc('drafts:off:sketch'), when: () => !atWs() },
+    { k: 'qterm:off', id: 'term', label: 'quick terminal', sel: '#btn-qterm', icon: rowIc('qterm:off:term'), when: shownBtn('#btn-qterm') },
+    { k: 'qterm:off', id: 'pwsh', label: 'quick PowerShell', sel: '#btn-qpwsh', icon: rowIc('qterm:off:pwsh'), when: shownBtn('#btn-qpwsh') },
+    { k: 'qterm:off', id: 'agent', label: 'Quick Agent', sel: '#btn-qagent', icon: rowIc('qterm:off:agent'), when: () => !atWs() },
+    { k: 'drafts:off', id: 'inbox', label: 'inbox', sel: '#btn-inbox', icon: rowIc('drafts:off:inbox'), when: () => !atWs() },
+  ] },
+  { g: 'ue', name: 'Unreal', sel: '#switch > .sv[data-g=ue]', rows: [
     { k: 'ue:winbtn', id: '', label: 'build window', sel: '#btn-uewin', icon: rowIc('ue:winbtn'), when: () => !!pref('ue:on') },
     { k: 'ue:btn', id: '', label: 'Unreal build', sel: '#btn-ue', icon: rowIc('ue:btn'), when: () => !!pref('ue:on') },
   ] },
-  { g: 'make', name: 'create', sel: '.tray[data-g=make]', icon: () => ICONS.create, rows: [{ k: 'barend:off', id: 'more', label: 'new ▾', sel: '#btn-more', icon: rowIc('barend:off:more'), d: 'Right-click it for its buttons.' }] },
-  { g: 'quick', name: 'quick tools', sel: '.tray[data-g=quick]', icon: () => ICONS.quick, rows: [
-    { k: 'drafts:off', id: 'scratch', label: 'scratch pad', sel: '#btn-scratch', icon: rowIc('drafts:off:scratch') },
-    { k: 'drafts:off', id: 'sketch', label: 'sketch board', sel: '#btn-sketch', icon: rowIc('drafts:off:sketch') },
-    { k: 'qterm:off', id: 'term', label: 'quick terminal', sel: '#btn-qterm', icon: rowIc('qterm:off:term'), when: shownBtn('#btn-qterm') },
-    { k: 'qterm:off', id: 'pwsh', label: 'quick PowerShell', sel: '#btn-qpwsh', icon: rowIc('qterm:off:pwsh'), when: shownBtn('#btn-qpwsh') },
-    { k: 'qterm:off', id: 'agent', label: 'Quick Agent', sel: '#btn-qagent', icon: rowIc('qterm:off:agent') },
-    { k: 'drafts:off', id: 'inbox', label: 'inbox', sel: '#btn-inbox', icon: rowIc('drafts:off:inbox') },
-  ] },
-  { g: 'agent', name: 'agents', sel: '.tray[data-g=agent]', icon: () => gem('ai'), rows: [{ k: 'qterm:off', id: 'newchat', label: 'new agent chat', sel: '#btn-newchat', icon: rowIc('qterm:off:newchat') }] },
-  { g: 'win', name: 'windows', sel: '.tray[data-g=win]', icon: () => ICONS.window, rows: [
-    { k: 'barend:off', id: 'pins', label: 'pinned', sel: '#btn-pins', icon: rowIc('barend:off:pins') },
+  { g: 'win', name: 'windows', sel: '#switch > .sv[data-g=win]', icon: () => ICONS.window, rows: [
+    { k: 'barend:off', id: 'pins', label: 'pinned', sel: '#btn-pins', icon: rowIc('barend:off:pins'), when: () => !atWs() },
     { k: 'barend:off', id: 'win', label: 'new window', sel: '#btn-win', icon: rowIc('barend:off:win') },
   ] },
 ];
@@ -783,13 +804,18 @@ export function topBarMenu(x: number, y: number, o: TopOpts = {}) {
     return { html: useRow(r.k, r.id, r.sel, esc(r.label), html, !!g.move), grip: !!g.move };
   };
   const rowsOf = (g: (typeof TOPBAR)[number]) => gripRuns(g.g, live(g.rows).map((r) => row(r, g)));
-  const hide = `<button class="mi" data-tbhide><i class="tb-ic">${ICONS.topBar}</i><span class="mi-n">hide the top bar</span>${keyChip('topBarKey')}</button>`;
+  const flat = (g: (typeof TOPBAR)[number]) => live(g.rows).map((r) => row(r, { ...g, move: undefined }).html).join('');
   let html: string;
   if (!o.tray) {
-    html = menuHead(ICONS.topBar, 'top bar') + bands({ actions: hide, buttons: TOPBAR.map((g) => (live(g.rows).length ? subLabel(g.name) + (g.pre?.rows() || '') + rowsOf(g) + (g.acts?.() || '') : '')).join('') });
+    const band = (name: string, gs: string[]) => {
+      const inner = TOPBAR.filter((g) => gs.includes(g.g)).map((g) => flat(g) + (g.pre?.rows(false) || '')).join('');
+      return inner ? subLabel(name) + inner : '';
+    };
+    const tools = TOPBAR.map((g) => g.g).filter((g) => g !== 'strip' && g !== 'modes');
+    html = menuHead(ICONS.strip, 'rail') + bands({ actions: (o.acts ?? railActs.rows()) || undefined, buttons: band('panels', ['strip']) + band('modes', ['modes']) + band('tools', tools) });
   } else {
     const g = TOPBAR.find((t) => t.g === o.tray)!;
-    html = (o.head || menuHead(g.icon?.() || '', g.name)) + bands({ actions: (o.acts || '') + (g.acts?.() || '') + hide, options: o.opts, buttons: (o.buttons || '') + rowsOf(g), pick: o.pick, other: `<button class="mi tb-all" data-tball><i class="tb-ic">${ICONS.topBar}</i><span class="mi-n">all top bar buttons</span><span class="kc">›</span></button>` });
+    html = (o.head || menuHead(g.icon?.() || '', g.name)) + bands({ actions: (o.acts || '') + (g.acts?.() || ''), options: o.opts, buttons: (o.buttons || '') + rowsOf(g), pick: o.pick, other: `<button class="mi tb-all" data-tball><i class="tb-ic">${ICONS.strip}</i><span class="mi-n">all rail buttons</span><span class="kc">›</span></button>` });
   }
   popMenu(x, y, html, (b) => {
     const d = b.dataset;
@@ -801,13 +827,14 @@ export function topBarMenu(x: number, y: number, o: TopOpts = {}) {
     if (!o.tray && TOPBAR.some((g) => g.pre?.pick(b))) return;
     if (d.tbact) return TOPBAR.find((g) => g.g === d.tbact)?.onAct?.(b);
     if ('tball' in d) return topBarMenu(x, y);
-    if ('tbhide' in d) return toggleTopBar(true);
+    if (!o.tray && !o.onPick) return railActs.pick(b, null);
     return o.onPick?.(b);
   });
   keepMenu(() => topBarMenu(x, y, o));
-  for (const g of TOPBAR) if (g.move) moveMenu(g.g, g.move);
-  if (!o.tray) for (const g of TOPBAR) if (g.pre) moveMenu(...g.pre.move);
+  if (o.tray) for (const g of TOPBAR) if (g.move) moveMenu(g.g, g.move);
 }
+const railActs: { rows: () => string; pick: (b: HTMLElement, at: number | null) => unknown } = { rows: () => '', pick: () => {} };
+export const railActions = (rows: () => string, pick: (b: HTMLElement, at: number | null) => unknown) => Object.assign(railActs, { rows, pick });
 export const topBarRows = (g: string, pre: TopPre) => void (TOPBAR.find((t) => t.g === g)!.pre = pre);
 const ORDERS: { sel: string; menu: string; flat?: boolean }[] = [];
 let ALL_BARS = '';
@@ -1200,8 +1227,8 @@ function showTip(el: HTMLElement) {
   t.classList.toggle('wide', !gem && !out && el.hasAttribute('data-tip-wide'));
   t.hidden = false;
   raise(t);
-  const menu = !gem && el.closest<HTMLElement>('#colormenu, [role="menu"]');
-  const [x, y] = tipSpot(el.getBoundingClientRect(), t.offsetWidth, t.offsetHeight, gem, menu ? menuBox(menu) : null);
+  const menu = !gem && el.closest<HTMLElement>('#colormenu, [role="menu"]'), rail = !gem && !menu && !el.closest('.rf-box') && el.closest<HTMLElement>('#activity');
+  const [x, y] = tipSpot(el.getBoundingClientRect(), t.offsetWidth, t.offsetHeight, gem, menu ? menuBox(menu) : rail ? rail.getBoundingClientRect() : null);
   t.style.left = x + 'px';
   t.style.top = y + 'px';
   tipOf = el;

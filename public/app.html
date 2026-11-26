@@ -14,39 +14,28 @@
   <span id="pop-acts" class="xw-acts"><button class="x xw-every" id="win-every" aria-label="keep this window when you switch projects" hidden><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M0 7.5h10M1.5 7.5V5M8.5 7.5V5M1.5 5Q5 1.5 8.5 5M5 3.2v4.3"/></svg></button><span class="szs"></span><button class="x" id="pop-min" aria-label="minimize"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M0 5.5h10"/></svg></button><button class="x" id="pop-max" aria-label="maximize" hidden><svg viewBox="0 0 10 10" aria-hidden="true"><rect x=".5" y=".5" width="9" height="9"/></svg></button><button class="x xw-x" id="pop-x" title="Close&#10;Closes this window. What you typed is saved." aria-label="close"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M0 0l10 10M10 0L0 10"/></svg></button></span>
 </div>
 <div id="app">
-  <header class="bar">
-    <span id="here"></span>
-    <div id="switch" hidden></div>
-    <div class="actions">
-      <div class="tray" data-g="ue"><button id="btn-uewin" class="off"></button><button id="btn-ue" class="off"></button></div>
-      <div class="tray" data-g="make">
+  <div id="shell">
+    <nav id="activity" aria-label="side bar">
+      <div id="switch" class="slots"></div>
+      <div id="rail-home" hidden>
+        <button id="btn-index"></button>
+        <button id="btn-git"></button>
+        <button id="btn-github" title="GitHub&#10;The project's pull requests and issues."></button>
+        <button id="btn-setup" title="Agent setup&#10;The skills, memory and instructions each agent uses in this project."></button>
+        <button id="btn-uewin" class="off"></button><button id="btn-ue" class="off"></button>
         <span id="quick" aria-label="quick create"></span>
-        <button id="btn-more" title="New&#10;Makes a new file or folder, in the inbox or the project folder.&#10;&#10;Right-click to choose its buttons." data-tip-icon="plus">new ▾</button>
-      </div>
-      <div class="tray" data-g="quick">
+        <button id="btn-more" title="New&#10;Makes a new file or folder, in the inbox or the project folder.&#10;&#10;Right-click to choose its buttons." data-tip-icon="plus"></button>
         <button id="btn-scratch"></button>
         <button id="btn-sketch"></button>
         <button id="btn-qterm"></button>
         <button id="btn-qpwsh"></button>
         <button id="btn-qagent"></button>
         <button id="btn-inbox"></button>
-      </div>
-      <div class="tray" data-g="agent"><button id="btn-newchat"></button></div>
-      <div class="tray" data-g="win">
+        <button id="btn-newchat"></button>
         <button id="btn-pins"></button>
         <button id="btn-win"></button>
+        <a id="btn-site" href="/" draggable="false" title="Site: Amethyst&#10;The project's site, its pages and how it builds."></a>
       </div>
-    </div>
-  </header>
-
-  <div id="shell">
-    <nav id="activity" aria-label="side bar">
-      <button id="btn-index"></button>
-      <button id="btn-git"></button>
-      <button id="btn-github" title="GitHub&#10;The project's pull requests and issues."></button>
-      <button id="btn-setup" title="Agent setup&#10;The skills, memory and instructions each agent uses in this project."></button>
-      <span class="grow"></span>
-      <a id="btn-site" href="/" title="Site: Amethyst&#10;The project's site, its pages and how it builds."></a>
     </nav>
 
     <aside class="box" id="side">

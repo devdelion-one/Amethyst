@@ -14,7 +14,7 @@ import { palette } from './palette.ts';
 import { chatOn, pref } from '../base/prefs.ts';
 import { QAKEY, toggleQuickAgent } from '../chat/qagent.ts';
 import { PROG, QKEYS, toggleQuick } from '../terminal/qterm.ts';
-import { toggleBottomBar, toggleTopBar } from '../base/topbar.ts';
+import { toggleBottomBar } from '../base/bottombar.ts';
 import { toggleUe, UEKEY, UEWINKEY, ueKey } from '../ue/ue.ts';
 import { breakpointKey, debugKey } from '../debug/debug.ts';
 import { toggleEvery } from './every.ts';
@@ -44,11 +44,11 @@ function scratchOnTop() {
 const toEditor = () => (mode() === 'editor' ? nextEditor() : setMode('editor'));
 const toMode = (m: string) =>
   WIN > 1 && m !== 'editor'
-    ? tell($('header.bar'), { title: 'The agents and terminals are in Window 1', line: 'Press the key there', ms: 2500 })
+    ? tell($('#activity'), { title: 'The agents and terminals are in Window 1', line: 'Press the key there', ms: 2500 })
     : m === 'editor' && mode() === 'editor' ? nextEditor() : m === 'chat' && mode() === 'chat' && !atWs() ? stepSet() : setMode(m);
 const pinsKey = () =>
-  WIN > 1 ? tell($('header.bar'), { title: 'The Pinned list is in Window 1', line: 'Press the key there', ms: 2500 })
-  : atWs() ? tell($('header.bar'), { title: 'The Pinned list is inside a project', line: 'Open a project, then press the key', ms: 2500 })
+  WIN > 1 ? tell($('#activity'), { title: 'The Pinned list is in Window 1', line: 'Press the key there', ms: 2500 })
+  : atWs() ? tell($('#activity'), { title: 'The Pinned list is inside a project', line: 'Open a project, then press the key', ms: 2500 })
   : togglePanel();
 const search = () => {
   toggleIndex(true);
@@ -67,13 +67,12 @@ const palKeys = () => [bk('files', 'go to a file or chat: by its name or a word 
 function sheet(): any[][] {
   const win = bk('newWindowKey', 'a new window of the app', () => openWindow());
   const sett = bk('settings', 'settings: theme, fonts, code colors', () => openSettings());
-  const bar = bk('topBarKey', 'the top bar: hide / show', () => toggleTopBar());
   const foot = bk('bottomBarKey', 'the bottom bar: hide / show', () => toggleBottomBar());
   const open = bk('openFile', 'open a file from anywhere', pickFiles);
-  if (atLaunch()) return [['workspaces', [['enter', 'go into the last one opened', openLast], bk('newWorkspace', 'make a workspace', newWorkspace), open, sett, bar, foot, win, palKeys()[1]]]];
+  if (atLaunch()) return [['workspaces', [['enter', 'go into the last one opened', openLast], bk('newWorkspace', 'make a workspace', newWorkspace), open, sett, foot, win, palKeys()[1]]]];
   const [modes, deck] = topGroups();
   if (S.wsEditor) return [modes, ['files', [open, bk('closeTab', 'close the tab', closeActive), bk('reopen', 'bring the closed tab back', reopen), bk('split', 'split: a new group on the right', () => split()), bk('up', 'the projects of this workspace', () => showWsEditor(false)), sett, win, ['esc', 'one step back'], palKeys()[1]]]];
-  if (atWs()) return [modes, deck, ['projects', [bk('up', 'all your workspaces', goUp), open, sett, bar, foot, win, ['esc', 'one step back'], palKeys()[1]]]];
+  if (atWs()) return [modes, deck, ['projects', [bk('up', 'all your workspaces', goUp), open, sett, foot, win, ['esc', 'one step back'], palKeys()[1]]]];
   return editorGroups();
 }
 function topGroups(all = false): any[][] {
@@ -83,7 +82,7 @@ function topGroups(all = false): any[][] {
     bk(['fn:term', 'modeTerm'], 'terminals: every terminal at once', () => setMode('term')),
     bk(['fn:research', 'modeResearch'], 'research: a chat and its subagents, side by side', () => setMode('research')),
     ...(atWs() ? [] : [bk(['fn:orch', 'modeOrch'], 'orchestration: one chat at a time; Tab: the next chat, top to bottom', () => setMode('orch'))]),
-    ...(atWs() ? [] : [bk('newSetChat', 'a new agents set (slots: in the first free slot)', () => newView('chat')), bk('newLayout', 'a new editor layout (slots: in the first free slot)', () => newView('editor')), bk('newSetTerm', 'a new terminals set', () => newView('term'))]),
+    ...(atWs() ? [] : [bk('newSetChat', 'a new agents set (in the first free cell of the rail)', () => newView('chat')), bk('newLayout', 'a new editor layout (in the first free cell of the rail)', () => newView('editor')), bk('newSetTerm', 'a new terminals set', () => newView('term'))]),
     ...(atWs() ? [] : [bk('closeSet', 'close the set or layout on screen (the first: clear it), asked first', closeHere)]),
     bk('projPrev', 'the project before'),
     bk('projNext', 'the project after (the buttons at the bottom)'),
@@ -107,14 +106,13 @@ function topGroups(all = false): any[][] {
     bk('noteKey', 'a chat: its note, show / hide'),
     bk('clearKey', 'a chat: clear it (asks first)'),
     bk('find', 'a chat: find in its box or in the whole chat (again: the other); settings: find a setting'),
-    bk('newAgentKey', "a new chat like the top bar's + agent"), bk('newChatN', `agents, orchestration and the editor: a new chat (${CHATS.map(([k, name], i) => [k, `${i + 1} ${name}`]).filter(([k]) => chatOn(k)).map(([, t]) => t).join(', ')})`),
+    bk('newAgentKey', "a new chat like the rail's + agent"), bk('newChatN', `agents, orchestration and the editor: a new chat (${CHATS.map(([k, name], i) => [k, `${i + 1} ${name}`]).filter(([k]) => chatOn(k)).map(([, t]) => t).join(', ')})`),
     bk('fireGo', "research's box: send it and go with it"),
   ]];
   return [modes, deck];
 }
 function editorGroups(all = false): any[][] {
   const win = bk('newWindowKey', 'a new window of the app', () => openWindow());
-  const bar = bk('topBarKey', 'the top bar: hide / show', () => toggleTopBar());
   const foot = bk('bottomBarKey', 'the bottom bar: hide / show', () => toggleBottomBar());
   const sett = bk('settings', 'settings: theme, fonts, code colors', () => openSettings());
   const open = bk('openFile', 'open a file from anywhere', pickFiles);
@@ -125,7 +123,7 @@ function editorGroups(all = false): any[][] {
     ['organize', [bk('up', 'up: the projects of this workspace', goUp)]],
     ['tabs', [bk('split', 'split: a new group on the right', () => split()), bk('closeTab', 'close the tab', closeActive), bk('headerSwitch', 'C and C++: open the other half (Foo.h ↔ Foo.cpp)', openCounterpart), bk('reopen', 'bring the closed tab back', reopen), bk('refreshBrowser', 'refresh the browser tab', () => browserInView()?.reload()), bk('tabN', 'tab 1 to 9 of the group'), bk('tabPrev', 'the tab before'), bk('tabNext', 'the tab after'), bk('grpPrev', 'the group before'), bk('grpNext', 'the group after')]],
     ['explorer, list and tabs', [['tab', 'onto the explorer, the list or a tab strip'], ['↑ ↓', 'the row before / after'], ['→ ←', 'unfold / fold a folder, or into it / up to its parent'], ['← →', 'on a tab strip: show the tab before / after'], ['home end', 'the first / last'], ['enter', 'open the row'], ['f2', 'a file or folder: rename it'], ['del', 'a row: archive it, once asked (tick it: delete for good); a tab: close it'], ['shift f10', 'its right-click menu']]],
-    ['more', [...palKeys(), open, bk('search', 'search', search), bk('explorerKey', 'the explorer: show / hide', () => toggleIndex()), bk('gitKey', 'source control: show / hide', () => toggleGit()), bk('pinsKey', 'the Pinned list: show / hide', pinsKey), bar, foot, sett, win, bk('winEvery', 'keep this window when you switch projects, on / off', toggleEvery), bk('undo', 'undo the last thing you did (first it takes you there)', undo), bk('redo', 'redo (also ctrl y)', redo), bk('archive', 'archive what is open', del), bk('save', 'save now', flushNow), bk('sheet', 'this sheet'), ['esc', 'one step back']]],
+    ['more', [...palKeys(), open, bk('search', 'search', search), bk('explorerKey', 'the explorer: show / hide', () => toggleIndex()), bk('gitKey', 'source control: show / hide', () => toggleGit()), bk('pinsKey', 'the Pinned list: show / hide', pinsKey), foot, sett, win, bk('winEvery', 'keep this window when you switch projects, on / off', toggleEvery), bk('undo', 'undo the last thing you did (first it takes you there)', undo), bk('redo', 'redo (also ctrl y)', redo), bk('archive', 'archive what is open', del), bk('save', 'save now', flushNow), bk('sheet', 'this sheet'), ['esc', 'one step back']]],
   ];
 }
 const SUBS: [string, string, string[]][] = [['modes', 'Modes', ['modes']], ['agents', 'Agents and terminals', ['in agents and terminals']], ['write', 'Write and quick', ['write', 'quick terminals']], ['tabs', 'Tabs', ['tabs', 'explorer, list and tabs']], ['more', 'More', ['organize', 'more']]];
@@ -239,10 +237,6 @@ document.addEventListener('keydown', (e) => {
   if (is(e, 'openFile') && !document.activeElement?.closest?.('.xterm')) {
     e.preventDefault();
     return pickFiles();
-  }
-  if (is(e, 'topBarKey') && !document.activeElement?.closest?.('.xterm')) {
-    e.preventDefault();
-    return e.repeat || toggleTopBar();
   }
   if (is(e, 'bottomBarKey') && !e.defaultPrevented && !document.activeElement?.closest?.('.xterm')) {
     e.preventDefault();
@@ -373,7 +367,7 @@ document.addEventListener('keydown', (e) => {
     const c = CHATS[+e.key - 1];
     if (!c) return;
     e.preventDefault();
-    if (!chatOn(c[0])) return e.repeat || offTell($('header.bar'), c[1]);
+    if (!chatOn(c[0])) return e.repeat || offTell($('#activity'), c[1]);
     if (!e.repeat) agentTab(c[0]);
     return;
   }

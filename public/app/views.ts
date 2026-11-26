@@ -292,8 +292,6 @@ function followFiles() {
 
 function renderHere() {
   const p = projectOf(S.pid), w = S.ws?.name || '…';
-  $('#here').innerHTML = atLaunch() ? '<span class="nm">workspaces</span>' : '';
-  $('#here').title = '';
   const pj = atWs() ? 'no project open' : p?.name || 'project';
   const label = WIN === 1 ? 'Amethyst' : SOLO === 'qagent' ? 'Quick Agent' : SOLO.startsWith('review-') ? 'Review' : SOLO ? TYPES[SOLO]?.label || 'Agent Activity' : POP ? 'Quick Window' : `Window ${WIN}`;
   if (WIN === 1) document.title = amTag + (atLaunch() ? 'Amethyst' : `${atWs() ? w : p?.name || 'Project'} · Amethyst`);
@@ -698,7 +696,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Tab' && !menu.hidden) menu.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
   else if (!menu.hidden) return;
   const a = document.activeElement as HTMLElement | null;
-  if (a && a !== document.body && !a.closest('#launch, header.bar, #status')) return;
+  if (a && a !== document.body && !a.closest('#launch, #status')) return;
   if (e.key === 'Tab') {
     const stops = laStops(), i = a ? stops.indexOf(a) : -1;
     e.preventDefault();

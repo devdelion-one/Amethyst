@@ -270,7 +270,7 @@ onFileSaved((e) => e.pid === st.where?.pid && headersChanged([e.path]));
 async function lookAgain() {
   await load(true);
   const i = st.info, name = i?.name || st.where?.name || 'this project';
-  if (i && unreal(i)) return tell(null, { title: `${name}: Unreal`, line: 'its buttons are in the top bar', ms: 2500 });
+  if (i && unreal(i)) return tell(null, { title: `${name}: Unreal`, line: 'its buttons are in the rail', ms: 2500 });
   tell(null, { title: 'No Unreal project here', line: st.choice.uproject ? `no ${st.choice.uproject}` : "no .uproject in this project's top folder", ms: 3000 });
 }
 

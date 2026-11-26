@@ -1078,7 +1078,7 @@ document.addEventListener('dragover', (e) => {
   if (!own && (fromOther(e) !== 'tab' || main.contains(e.target))) return;
   e.preventDefault();
   e.dataTransfer!.dropEffect = 'move';
-  if (own) showOut((e.target as HTMLElement).closest?.('#side, .bar, #status, #activity') || true);
+  if (own) showOut((e.target as HTMLElement).closest?.('#side, #status, #activity') || true);
 });
 document.addEventListener('dragover', (e) => {
   if (!dragging || e.defaultPrevented) return;

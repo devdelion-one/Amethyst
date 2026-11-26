@@ -31,7 +31,7 @@ Add your project folder to a workspace, then click projects in the dock (or pres
 
 ## 4. Start your first chats
 
-- Press `Ctrl+R` (or click **+ agent** in the top bar) to open a new chat, or use `Ctrl+1` through `Ctrl+5` to start a specific agent directly (`1` Claude, `2` Codex, `3` Antigravity, `4` Cursor, `5` Copilot).
+- Press `Ctrl+R` (or click **+ agent** in the left rail) to open a new chat, or use `Ctrl+1` through `Ctrl+5` to start a specific agent directly (`1` Claude, `2` Codex, `3` Antigravity, `4` Cursor, `5` Copilot).
 - In the chat box, choose your model, reasoning effort, and permission mode (or cycle them with `Alt+C`, `Alt+Z`, and `Alt+M`).
 - Use `@` to reference files, folders, or other chats by their short code (like `Q20`), and paste or drop up to 6 images per message.
 - If a chat is busy, you can still send follow-up messages — they wait in its queue, and you can take them back or send one immediately.

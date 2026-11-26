@@ -5,7 +5,6 @@ import { toggleGit } from './header.ts';
 import { gitRepoNow, prChanged } from '../git/git.ts';
 import { newPr, openPr } from '../github/ghpr.ts';
 import { openIssue } from '../github/ghissue.ts';
-import './barfit.ts';
 import './edges.ts';
 import './keys.ts';
 import './dnd.ts';

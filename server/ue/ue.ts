@@ -823,7 +823,7 @@ const FIND_WHY: Record<string, string> = {
   os: 'the Unreal commands work on Windows only for now',
   'bad-json': "the .uproject isn't valid JSON",
   'not-engine': "that folder isn't an Unreal Engine: it has no Engine\\Build\\BatchFiles\\Build.bat",
-  unconfirmed: "this engine waits for the user's OK in Amethyst: they click Allow in the prompt Amethyst shows, or 'use this engine' in the project's build window (the Unreal build button in the top bar opens it). amethyst ue wait waits for it",
+  unconfirmed: "this engine waits for the user's OK in Amethyst: they click Allow in the prompt Amethyst shows, or 'use this engine' in the project's build window (the Unreal build button in the rail opens it). amethyst ue wait waits for it",
   refused: 'the user said not now to this engine for this project: ask them before trying again',
   ...Object.fromEntries(Object.entries(gate.SAID).map(([k, v]) => [`run-${k}`, v])),
 };

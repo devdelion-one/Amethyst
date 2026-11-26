@@ -546,7 +546,7 @@ const SHOW_PARTS: { id: string; name: string; lead: string; html: () => string }
   { id: 'list', name: 'Agents list', lead: LIST_LEAD, html: () => listHtml() + showCards('list') },
   { id: 'win2', name: 'Window 2, 3…', lead: WIN2_LEAD, html: () => win2Html() + showCards('win2') },
   { id: 'quick', name: 'Quick windows', lead: QUICK_LEAD, html: () => quickHtml() + ueBarHtml() + showCards('quick') },
-  { id: 'top', name: 'Top bar', lead: TOP_LEAD, html: () => topHtml() + showCards('top') },
+  { id: 'top', name: 'Left rail', lead: TOP_LEAD, html: () => topHtml() + showCards('top') },
   { id: 'dock', name: 'Dock', lead: DOCK_LEAD, html: () => dockPartHtml() + showCards('dock') },
   { id: 'files', name: 'Files and explorer', lead: FILES_LEAD, html: () => filesPartHtml(dirsBox()) + showCards('files') },
   { id: 'links', name: 'Links and chips', lead: LINKS_LEAD, html: () => linksPartHtml() + showCards('links') },
@@ -708,7 +708,7 @@ const showSub = (id: string, group: string, label?: string): Sub => {
   const p = SHOW_PARTS.find((x) => x.id === id)!;
   return { id: `show/${p.id}`, label: label || p.name, name: `${group} › ${label || p.name}`, lead: p.lead, html: p.html };
 };
-const lookFullHtml = () => lookBox() + colorTrayBox() + card('set colors', `<div class="cc-help">click a number to change its color, drag it to change the order${pref('switch:place') === 'slots' ? '; with place: slots, new views take these in turn, or the one color with all the same' : ''}</div>` + SET_GROUPS.map(colorLine).join(''));
+const lookFullHtml = () => lookBox() + colorTrayBox() + card('set colors', `<div class="cc-help">click a number to change its color, drag it to change the order; new views take these in turn, or the one color with all the same</div>` + SET_GROUPS.map(colorLine).join(''));
 const SVG = (d: string) => `<svg viewBox="0 0 16 16" aria-hidden="true">${d}</svg>`;
 const SECTIONS: Sec[] = [
   { id: 'general', name: 'General', icon: '<path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4"/><circle cx="8" cy="8" r="2.6"/>', lead: GEN_LEAD, html: genHtml },
@@ -1090,7 +1090,7 @@ el.addEventListener('click', async (e: MouseEvent) => {
   if (genClick(e.target as Element)) return e.stopPropagation();
   if (writerRowClick(e.target as Element)) return e.stopPropagation();
   const fixed = (e.target as Element).closest<HTMLElement>('.kb.fixed, [data-fixed]');
-  if (fixed) return tell(fixed, fixed.matches('.kb') ? { title: 'This key is fixed', line: 'it does the same everywhere and cannot be changed', ms: 2500 } : { title: 'This one always shows', line: 'the editor button stays in the top bar', ms: 2500 });
+  if (fixed) return tell(fixed, fixed.matches('.kb') ? { title: 'This key is fixed', line: 'it does the same everywhere and cannot be changed', ms: 2500 } : { title: 'This one always shows', line: 'the editor button stays in the rail', ms: 2500 });
   const b = (e.target as Element).closest('button');
   if (!b) return;
   const d = b.dataset, name = ccName();

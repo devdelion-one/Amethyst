@@ -1,7 +1,7 @@
 import { api, atLaunch, S } from '../base/model.ts';
 import { askWorkspace, switchWorkspace } from '../app/levels.ts';
 import { ago, CHATS, esc, showErr } from '../base/util.ts';
-import { chatOn, chatsOn, pref, PREFS, setOff, setPref, wasSet } from '../base/prefs.ts';
+import { chatOn, chatsOn, pref, setOff, setPref, wasSet } from '../base/prefs.ts';
 import { notify, tell } from '../base/notify.ts';
 import { ask, bands, ICONS, menuHead, popMenu, untipIn } from '../base/controls.ts';
 import { POP, WIN } from '../base/windows.ts';
@@ -10,7 +10,6 @@ import { themeCards } from '../app/themecards.ts';
 import { countMore, countNow, countReady, countTog, hasCount, onCount, setCount, toggleCountMore } from '../app/count.ts';
 import { COUNT, countDetails } from '../app/count-words.ts';
 import { reloadAll } from '../app/views.ts';
-import { PLACE_AT, placeBar } from '../app/modeplace.ts';
 import type { WorkspaceEntry } from '../base/types.ts';
 import { tourDue } from './tutorial.ts';
 
@@ -50,12 +49,6 @@ const START: ['basics' | 'all', string, string][] = [
 ];
 const startRows = () =>
   `<div class="wl-sts"><span class="wl-dim">start with</span>${START.map(([k, name, line]) => `<button class="chip wl-st${startAs === k ? ' on' : ''}" data-wl-as="${k}" aria-pressed="${startAs === k}" title="${esc(line)}" data-tip-icon="option">${esc(name)}</button>`).join('')}</div>`;
-const placeRows = () =>
-  `<div class="wl-pls">${PREFS['switch:place'].choices!.map(([v, label, tip]) => {
-    const on = pref('switch:place') === v, rec = v === 'slots';
-    return `<button class="wl-pl${on ? ' on' : ''}" data-wl-place="${esc(String(v))}" aria-pressed="${on}" title="${esc(String(tip) + (rec ? '\n\nRecommended.' : ''))}" data-tip-icon="move"><span class="wl-bar">${placeBar(String(v))}</span><span class="tx">${esc(PLACE_AT[String(v)]?.[1] || String(label))}</span>${rec ? '<small class="wl-rec">recommended</small>' : ''}</button>`;
-  }).join('')}</div>`;
-
 function needs(hint: string) {
   return hint.replace(/^.*?\bneeds\s+/, 'needs ').replace(/:\s+(\S+)\.?$/, ' · $1').replace(/\.$/, '');
 }
@@ -261,7 +254,6 @@ function draw() {
     <div class="wl-top"><div class="wl-hd"><h2>Welcome to Amethyst</h2>${startRows()}</div><div class="wl-sub">A few things, then you're in. All of them stay in settings.</div></div>
     <div class="wl-scroll">
       ${row('Theme', themeCards('data-wl-theme'))}
-      ${row('Mode buttons', placeRows())}
       ${row('Agents', agentRows(), `<div class="wl-agq">tick the ones you'll use, installed or not</div><button class="wl-again" data-wl-again title="Look again&#10;Looks for the agents again, for one you installed after the app started." data-tip-icon="history">↻ look again</button>`)}
       ${row('Projects', projectRows())}
       ${row('Unreal', unrealRows())}
@@ -324,7 +316,6 @@ export function openWelcome(fresh = false) {
   if (el) close();
   one = false;
   first = fresh;
-  if (fresh && !wasSet('switch:place')) setPref('switch:place', 'slots');
   ctPop = false;
   startAs = fresh ? 'basics' : null;
   hand = new Set();
@@ -481,10 +472,6 @@ document.addEventListener('click', (e) => {
     startAs = b.dataset.wlAs as 'basics' | 'all';
     draw();
     el.querySelector<HTMLElement>(`[data-wl-as="${startAs}"]`)?.focus();
-  } else if ((b = at('[data-wl-place]'))) {
-    setPref('switch:place', b.dataset.wlPlace!);
-    draw();
-    el.querySelector<HTMLElement>(`[data-wl-place="${b.dataset.wlPlace}"]`)?.focus();
   } else if ((b = at('[data-wl-theme]'))) {
     useTheme(b.dataset.wlTheme!);
     draw();

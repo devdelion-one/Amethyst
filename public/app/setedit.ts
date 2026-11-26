@@ -151,8 +151,8 @@ addPart({ rows: menuRows, sel, look: lookOf, example, home: 'show/all', each: tr
 
 const rows = (list: Row[]) => list.map(rowHtml).join('');
 export function editPartHtml() {
-  return box('sketch', 'Sketch board', rows(sketchRows()), 'A board to paint on and drop pictures into. The sketch board button in the top bar opens it. Its toolbar floats at the bottom of the board.') +
-    box('scratch', 'Scratch pad', rows(scratchRows()), keyed('A page for quick notes. The scratch pad button in the top bar opens it{scratch:, and so does %}. These buttons show beside the formatting bar when you select text in it.')) +
+  return box('sketch', 'Sketch board', rows(sketchRows()), 'A board to paint on and drop pictures into. The sketch board button in the rail opens it. Its toolbar floats at the bottom of the board.') +
+    box('scratch', 'Scratch pad', rows(scratchRows()), keyed('A page for quick notes. The scratch pad button in the rail opens it{scratch:, and so does %}. These buttons show beside the formatting bar when you select text in it.')) +
     box('edfoot', 'The bar under the scratch pad, sketch board and boards', rows(footRows()), "The bar along the bottom of the editor's panel while it shows the scratch pad, the sketch board, or a board open outside a tab. Right-clicking it hides and shows the same buttons.") +
     box('fmt', 'Formatting bar', rows([fmtRows()[0]]) + `<div class="hr-sublook">${subh('Its buttons')}${rows(fmtBtnRows())}</div>`, 'The small bar that shows over text you select in a file or in the scratch pad.') +
     box('sel', 'Text selected in a file or terminal', rows(selRows()), 'Select text in a file or a terminal, and a small bar shows beside it.') +
