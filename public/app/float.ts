@@ -8,9 +8,9 @@ import { inboxLoc, levelKey, mode, pageUrl, S } from '../base/model.ts';
 import { page } from '../base/page.ts';
 import { placeBrowsers } from '../browser/browser.ts';
 import { activate, activeGroup, browsers, fileNamed, makeFile, openBrowser, openInTab, scratch, sketch, storeTab, tab as newTab, takeTabs, urlTab } from './tabs.ts';
-import { browserOf, openWindow } from './groups.ts';
+import { browserOf, openWindow, setWindowClaimer } from './groups.ts';
 import { $, esc, fileUrl, setSave, store } from '../base/util.ts';
-import { isOpen, isSpare, leadId, POP, popWith, reach, send, SOLO, spareWin, WIN } from '../base/windows.ts';
+import { address, isOpen, isSpare, leadId, POP, popWith, reach, send, SOLO, spareWin, WIN } from '../base/windows.ts';
 import { tag } from '../base/hitch.ts';
 import type { FloatTabs } from '../base/types.ts';
 import { onSize } from '../base/measure.ts';
@@ -139,7 +139,7 @@ async function soloGo(kind: string, { more = '', msgs = [], warm = null }: SoloO
   const m = solos.get(levelKey() + '|' + kind);
   const n = popWith(levelKey(), kind) || (m && (isOpen(m.n) || Date.now() - m.at < 3000) ? m.n : 0);
   if (n && (await reach(n, [...msgs, ['raise', {}]]))) return;
-  const s = warm && (await fromSpare(warm));
+  const s = warm && (await fromSpare(warm, { pop: true, kind }));
   if (s) return void solos.set(levelKey() + '|' + kind, { n: s, at: Date.now() });
   const w = await openWindow(undefined, undefined, { w: kind === 'inbox' ? 1000 : 720, h: 520, pop: true, more: `&solo=${kind}${more}` });
   if (!w) return;
@@ -149,31 +149,43 @@ async function soloGo(kind: string, { more = '', msgs = [], warm = null }: SoloO
 }
 const home = () => ({ w: S.wid, p: S.pid });
 let spareDue = true, spareAt = 0;
-async function fromSpare(msg: Msg) {
+async function fromSpare(msg: Msg, opts?: { pop?: boolean; kind?: string; addr?: string; bounds?: { x: number; y: number; width: number; height: number } | null }) {
   const s = desk() && spareWin();
   if (!s) return 0;
   spareDue = true;
-  if ((await reach(s, [[msg[0], { ...msg[1], ...home() }]])) && (await window.amethyst!.claimSpare(leadId()))) return s;
+  spareAt = 0;
+  const addr = opts?.addr || address(s, S.wid, S.pid, opts?.pop !== false, opts?.kind ? `&solo=${encodeURIComponent(opts.kind)}` : '');
+  if ((await reach(s, [[msg[0], { ...msg[1], ...home() }]])) && (await window.amethyst!.claimSpare(leadId(), { ...opts, addr }))) {
+    nextSpare();
+    return s;
+  }
   send('close', { win: s });
+  nextSpare();
   return 0;
 }
 async function ensureSpare() {
-  if (!desk() || spareWin() || Date.now() - spareAt < 10000) return;
+  if (!desk() || spareWin() || Date.now() - spareAt < 2500) return;
   spareAt = Date.now();
   const n = await openWindow(undefined, undefined, { w: 720, h: 520, pop: true, more: '&spare=1' });
   if (!n) return;
   takeTabs(n);
   spareAt = Date.now();
 }
-const nextSpare = () => ((spareDue = false), setTimeout(() => requestIdleCallback(ensureSpare), 2000));
+const nextSpare = () => ((spareDue = false), setTimeout(() => requestIdleCallback(ensureSpare), 300));
+setWindowClaimer(async (n, bounds) => !!(await fromSpare(['claimwin', { to: n }], { pop: false, addr: address(n, S.wid, S.pid, false), bounds })));
 async function quickNew(t: Quick) {
   const s = desk() && spareWin();
   if (s) {
     quick = { n: s, at: Date.now(), lvl: levelKey() };
     spareDue = true;
-    if ((await reach(s, [['claim', { open: t, ...home() }]])) && (await window.amethyst!.claimSpare(leadId()))) return true;
+    spareAt = 0;
+    if ((await reach(s, [['claim', { open: t, ...home() }]])) && (await window.amethyst!.claimSpare(leadId(), { pop: true, kind: 'quick', addr: address(s, S.wid, S.pid, true) }))) {
+      nextSpare();
+      return true;
+    }
     quick = null;
     send('close', { win: s });
+    nextSpare();
   }
   const n = await openWindow(null, null, { pop: true, more: t.act ? '&act=board' : '' });
   if (!n) return false;
@@ -203,13 +215,13 @@ const noProject = () => tell($('#activity'), { title: 'No project open', line: '
 
 export function toggleInbox() {
   if (!S.pid) return noProject();
-  return soloOut('inbox');
+  return soloOut('inbox', { warm: ['claimsolo', { kind: 'inbox' }] });
 }
 
 export async function floatMake(kind: string, ext = '', dir: string | null = null) {
   if (kind === 'text' && !S.pid) return makeFile(dir, ext).then((path) => path && openInTab(path));
   if (!S.pid) return noProject();
-  if (kind === 'scratch' || kind === 'sketch') return soloOut(kind);
+  if (kind === 'scratch' || kind === 'sketch') return soloOut(kind, { warm: ['claimsolo', { kind }] });
   if (kind === 'text') return makeFile(dir, ext).then((path) => path && quickOut({ type: 'text', path }));
   return quickOut(kind === 'board' ? { act: 'board' } : { type: kind });
 }

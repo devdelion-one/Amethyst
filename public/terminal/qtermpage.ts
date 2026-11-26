@@ -1,4 +1,3 @@
 import { parts } from '../base/parts.ts';
 
-await parts('#modal', '#tip', '#colormenu');
-await import('./qterm.ts');
+await Promise.all([parts('#modal', '#tip', '#colormenu'), import('./qterm.ts')]);

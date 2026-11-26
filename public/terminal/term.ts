@@ -18,14 +18,19 @@ type Lib = { Terminal: typeof import('@xterm/xterm').Terminal; FitAddon: typeof 
 let lib: Promise<Lib> | null = null;
 function load() {
   if (!lib) {
-    const css = document.createElement('link');
-    css.rel = 'stylesheet';
-    css.href = '/vendor/xterm.css';
-    document.head.append(css);
+    if (!document.querySelector('link[href="/vendor/xterm.css"]')) {
+      const css = document.createElement('link');
+      css.rel = 'stylesheet';
+      css.href = '/vendor/xterm.css';
+      document.head.append(css);
+    }
     lib = Promise.all([import('/vendor/xterm.mjs'), import('/vendor/addon-fit.mjs')]).then(([x, f]) => ({ Terminal: x.Terminal, FitAddon: f.FitAddon }));
     lib.catch(() => (lib = null));
   }
   return lib;
+}
+export function warmTerm() {
+  void load();
 }
 
 const css = (k: string) => getComputedStyle(document.documentElement).getPropertyValue(k).trim();
@@ -123,19 +128,24 @@ export function createTerm(agent: { id?: string | null; program?: string | null;
     }, { again });
   }
 
-  async function begin() {
-    try {
-      const r = await api('POST', '/api/term', { program: agent.program || 'shell', cols: term!.cols, rows: term!.rows, quick: !!agent.quick }, agent.pid ?? S.pid, agent.wid ?? S.wid);
-      if (dead) return void quietly(api('DELETE', '/api/term?id=' + encodeURIComponent(r.id), {}));
-      id = r.id;
-      started(id, r.name);
-      follow();
-    } catch (e: any) {
-      gone = true;
-      say(esc(e.message), 'err');
-      ended();
-    }
-  }
+  const early = !id
+    ? api('POST', '/api/term', { program: agent.program || 'shell', cols: 80, rows: 24, quick: !!agent.quick }, agent.pid ?? S.pid, agent.wid ?? S.wid).then(
+        (r) => {
+          if (dead) return void quietly(api('DELETE', '/api/term?id=' + encodeURIComponent(r.id), {}));
+          id = r.id;
+          started(id, r.name);
+          if (term) {
+            follow();
+            fitNow(true);
+          }
+        },
+        (e: any) => {
+          gone = true;
+          say(esc(e.message), 'err');
+          ended();
+        },
+      )
+    : null;
 
   function keys(e: KeyboardEvent) {
     if (e.type !== 'keydown') return true;
@@ -180,7 +190,7 @@ export function createTerm(agent: { id?: string | null; program?: string | null;
       });
       fitNow();
       if (id) follow();
-      else begin();
+      else void early;
     },
     (e) => say(`The terminal could not load (${esc(e.message)}). Run <code>npm install</code> in the Amethyst folder, then start Amethyst again.`, 'err'),
   );

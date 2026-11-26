@@ -1115,9 +1115,17 @@ export async function openInWindow(t: any) {
   const n = it && (await openWindow());
   if (n) storeTab(n, it);
 }
+let winClaimer: ((n: number, bounds: { x: number; y: number; width: number; height: number } | null) => Promise<boolean>) | null = null;
+export function setWindowClaimer(fn: typeof winClaimer) {
+  winClaimer = fn;
+}
 export async function openWindow(x?: number | null, y?: number | null, { w: width = 960, h: height = 720, pop = false, more = '' } = {}) {
   const n = await freeNumber(pop);
   if (!pop) dropTabs(n);
+  if (!pop && !more && winClaimer) {
+    const bounds = x == null ? null : { x: Math.round(x), y: Math.round(y!), width: Math.round(width), height: Math.round(height) };
+    if (await winClaimer(n, bounds)) return n;
+  }
   const at = x == null ? '' : `left=${Math.round(x)},top=${Math.round(y!)},`;
   const w = window.open(address(n, S.wid, S.pid, pop, more), '_blank', `popup,${at}width=${Math.round(width)},height=${Math.round(height)}`);
   if (!w && !window.amethyst?.desktop) return setSave('the browser blocked the new window: allow pop-ups for this page', true), 0;

@@ -5,8 +5,8 @@ type Other = { n: number; pop: boolean; lvl: string; paths: Set<string>; agents:
 type Here = { w: string; p: string } | null;
 
 const q = new URLSearchParams(location.search);
-export const WIN = Math.max(1, Math.floor(Number(q.get('win'))) || 1);
-export const POP = WIN > 1 && q.has('pop');
+export let WIN = Math.max(1, Math.floor(Number(q.get('win'))) || 1);
+export let POP = WIN > 1 && q.has('pop');
 export let SOLO = POP ? q.get('solo') || '' : '';
 let spare = POP && !SOLO && q.has('spare');
 if (WIN === 1 && !window.name.startsWith('pm:')) window.name = 'pm:' + uid();
@@ -97,15 +97,31 @@ function forgetWin(n: number) {
   heldSubs.forEach((fn) => fn());
 }
 const answered = new Map<string, number>();
-on('raised', (m) => answered.set(slot(m.n, m.lv), Date.now()));
+const waiters = new Map<string, Set<() => void>>();
+on('raised', (m) => {
+  const k = slot(m.was || m.n, m.lv);
+  answered.set(k, Date.now());
+  const ws = waiters.get(k);
+  if (ws) (waiters.delete(k), ws.forEach((fn) => fn()));
+});
 export async function reach(n: number, msgs: [string, Record<string, unknown>][]): Promise<boolean> {
-  const at = Date.now();
+  const at = Date.now(), k = slot(n);
   for (const [t, d] of msgs) send(t, { win: n, ...d });
   if (!isOpen(n)) return true;
-  for (let i = 0; i < 12; i++) {
-    await new Promise((r) => setTimeout(r, 50));
-    if ((answered.get(slot(n)) as number) >= at) return true;
-  }
+  if ((answered.get(k) || 0) >= at) return true;
+  const ok = await new Promise<boolean>((resolve) => {
+    const done = (v: boolean) => {
+      clearTimeout(t);
+      waiters.get(k)?.delete(hit);
+      resolve(v);
+    };
+    const hit = () => done(true);
+    const t = setTimeout(() => done(false), 600);
+    const ws = waiters.get(k) || new Set<() => void>();
+    ws.add(hit);
+    waiters.set(k, ws);
+  });
+  if (ok || (answered.get(k) || 0) >= at) return true;
   if (window.amethyst?.windowAlive && (await window.amethyst.windowAlive(lead, n))) return true;
   forgetWin(n);
   return false;
@@ -143,6 +159,20 @@ export function claim(kind = '') {
   u.searchParams.delete('spare');
   if (kind) u.searchParams.set('solo', (SOLO = kind));
   history.replaceState(null, '', u);
+  share(...last);
+}
+export function claimWin(n: number) {
+  spare = false;
+  POP = false;
+  SOLO = '';
+  WIN = n;
+  const u = new URL(location.href);
+  u.searchParams.delete('spare');
+  u.searchParams.delete('pop');
+  u.searchParams.delete('solo');
+  u.searchParams.set('win', String(n));
+  history.replaceState(null, '', u);
+  send('win');
   share(...last);
 }
 export function hold(id: string | null, lvl: string) {

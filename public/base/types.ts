@@ -429,8 +429,9 @@ interface DesktopBridge {
   onForgetAct(fn: (what: string) => void): void;
   quickWindow(kind: string, at?: Box | 'show' | null): Promise<any>;
   onQuickPop(fn: (kinds: string[]) => void): void;
+  onQtermClaim?(fn: (d: { kind: string; wid: string; pid: string; am: number }) => void): void;
   minimizeWindow(): Promise<any>;
-  claimSpare(of: string): Promise<any>;
+  claimSpare(of: string, opts?: { pop?: boolean; kind?: string; addr?: string; bounds?: Box | null }): Promise<any>;
   atProject(wid: string, pid: string): Promise<any>;
   windowAlive(of: string, n: number): Promise<any>;
   quickOf?(): Promise<number>;

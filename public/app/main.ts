@@ -44,7 +44,7 @@ import { dragKeys, dragWindow, isOpen, mark, pick, setOpen, sizeBar } from '../b
 import { roving } from '../base/roving.ts';
 import { $, anyFailed, anyUnsaved, showErr } from '../base/util.ts';
 import { catchUp, layout, moved, nameInTree, reload, reloadAll, render, renderList, renderTree, treeNear, treeRow } from './views.ts';
-import { claim, forMe, hereIs, isSpare, on, onDead, POP, sameLevel, send, SOLO, WIN } from '../base/windows.ts';
+import { claim, claimWin, forMe, hereIs, isSpare, on, onDead, POP, sameLevel, send, SOLO, WIN } from '../base/windows.ts';
 import type { Msg } from '../base/windows.ts';
 
 const DESKTOP = window.amethyst?.desktop ? window.amethyst : null;
@@ -217,9 +217,12 @@ const popGone = (n: number) => takeTabs(n);
 if (WIN > 1) {
   document.documentElement.classList.add('xwin');
   on('here', (m) => m.n === 1 && (!DESKTOP || isSpare()) && follow(String(m.w ?? ''), String(m.p ?? '')));
-  let redone = false;
+  let redone = false, askCloseOn = false;
   on('close', (m) => forMe(m) && ((redone = true), window.close()));
-  if (!POP && DESKTOP?.onAskClose) {
+  on('tabstored', (m) => forMe(m) && (tabsLevel(), sync()));
+  const watchAskClose = () => {
+    if (askCloseOn || !DESKTOP?.onAskClose) return;
+    askCloseOn = true;
     DESKTOP.onAskClose(async () => {
       if (redone) return DESKTOP.closeWindow(true);
       try {
@@ -234,11 +237,30 @@ if (WIN > 1) {
         DESKTOP.closeWindow(false);
       }
     });
-  }
+  };
+  if (!POP) watchAskClose();
   if (POP) {
     const settle = (m: Msg) => (typeof m.p === 'string' && m.p ? follow(String(m.w ?? ''), m.p) : Promise.resolve());
-    on('claimact', (m) => forMe(m) && void settle(m));
-    on('claimrev', (m) => forMe(m) && void settle(m));
+    const wireSize = (k: string) => DESKTOP?.onSize && DESKTOP.onSize(sizeBar($('#pop-acts'), (x) => DESKTOP.sizeWindow(x), k));
+    on('claimact', (m) => forMe(m) && (wireSize('activity'), void settle(m)));
+    on('claimrev', (m) => forMe(m) && (wireSize('review'), void settle(m)));
+    on('claimsolo', (m) => {
+      if (!forMe(m) || !isSpare() || !m.kind) return;
+      const k = String(m.kind);
+      claim(k);
+      document.documentElement.classList.add('xsolo');
+      wireSize(k);
+      settle(m).then(() => (openView(k), render(), send('raised')));
+    });
+    on('claimwin', (m) => {
+      if (!forMe(m) || !isSpare() || !m.to) return;
+      const was = WIN, n = Number(m.to);
+      claimWin(n);
+      document.documentElement.classList.remove('xpop', 'xsolo');
+      watchAskClose();
+      winBar();
+      settle(m).then(() => (tabsLevel(), sync(), render(), send('raised', { was })));
+    });
     document.documentElement.classList.add('xpop');
     if (SOLO) document.documentElement.classList.add('xsolo');
     on('raise', (m) => forMe(m) && (DESKTOP ? DESKTOP.showWindow('', !m.quiet) : m.quiet || window.focus(), send('raised')));
@@ -256,12 +278,12 @@ if (WIN > 1) {
         if (t?.path && !t.abs) send('shownq', { path: t.path });
       };
       on('quickopen', (m) => forMe(m) && Promise.resolve(open(m.open)).then(report));
-      on('claim', (m) => forMe(m) && (claim(), settle(m).then(() => open(m.open)).then(report), send('raised')));
+      on('claim', (m) => forMe(m) && isSpare() && (claim(), wireSize('quick'), settle(m).then(() => open(m.open)).then(() => (report(), send('raised')))));
       addEventListener('pointerdown', () => setTimeout(report, 50), true);
     }
     if (DESKTOP) {
-      $('#pop-min').addEventListener('click', () => DESKTOP.minimizeWindow());
-      if (DESKTOP.onSize) DESKTOP.onSize(sizeBar($('#pop-acts'), (k) => DESKTOP.sizeWindow(k), SOLO.startsWith('activity-') ? 'activity' : SOLO.startsWith('review-') ? 'review' : SOLO || 'quick'));
+      $('#pop-min').onclick = () => (POP ? DESKTOP.minimizeWindow() : DESKTOP.osWindow('min'));
+      if (!isSpare()) wireSize(SOLO.startsWith('activity-') ? 'activity' : SOLO.startsWith('review-') ? 'review' : SOLO || 'quick');
       dragWindow($('#winbar'));
     } else $('#pop-min').remove();
   }
@@ -290,12 +312,12 @@ if (WIN > 1) {
 function winBar() {
   document.documentElement.classList.add('wbar');
   $('#winbar').hidden = false;
-  $('#pop-x').addEventListener('click', () => window.close());
+  $('#pop-x').onclick = () => window.close();
   if (POP) return;
   $('#pop-x').title = 'Close\nCloses this window.';
   $('#pop-max').hidden = false;
-  $('#pop-min').addEventListener('click', () => DESKTOP!.osWindow('min'));
-  $('#pop-max').addEventListener('click', () => DESKTOP!.osWindow('max'));
+  $('#pop-min').onclick = () => DESKTOP!.osWindow('min');
+  $('#pop-max').onclick = () => DESKTOP!.osWindow('max');
   DESKTOP!.onSize(sizeBar($('#pop-acts'), (k) => DESKTOP!.sizeWindow(k), 'win2', false));
 }
 if (POP) winBar();

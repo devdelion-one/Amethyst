@@ -9,6 +9,8 @@ const fsp = fs.promises;
 const ROOT = path.join(import.meta.dirname, '..', '..');
 const PUBLIC = path.join(ROOT, 'public');
 const ENTRY = '/app/main.ts';
+const PAGE_ENTRY: Record<string, string> = { '/app.html': '/app/main.ts', '/qterm.html': '/terminal/qtermpage.ts' };
+const isPackaged = () => process.env.AMETHYST_PACKAGED === '1';
 
 export const TYPES: Record<string, string> = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.bmp': 'image/bmp', '.ico': 'image/x-icon' };
 const IMAGE = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.ico', '.svg']);
@@ -44,17 +46,19 @@ function fileOf(url: string) {
 const strippedCache = new Map<string, Stat & { code: string }>();
 async function stripped(file: string, s: Stat) {
   const hit = strippedCache.get(file);
-  if (hit && hit.mtimeMs === s.mtimeMs && hit.size === s.size) return hit.code;
+  if (hit && (isPackaged() || (hit.mtimeMs === s.mtimeMs && hit.size === s.size))) return hit.code;
   const code = stripTypeScriptTypes(await fsp.readFile(file, 'utf8'));
   strippedCache.set(file, { mtimeMs: s.mtimeMs, size: s.size, code });
   return code;
 }
 
+const rawCache = new Map<string, Buffer>();
+const pageCache = new Map<string, { etag: string; body: string }>();
 const importsCache = new Map<string, Stat & { list: string[] }>();
 async function importsOf(url: string) {
   const file = fileOf(url), s = await fsp.stat(file);
   const hit = importsCache.get(file);
-  if (hit && hit.mtimeMs === s.mtimeMs && hit.size === s.size) return { s, list: hit.list };
+  if (hit && (isPackaged() || (hit.mtimeMs === s.mtimeMs && hit.size === s.size))) return { s, list: hit.list };
   const src = await fsp.readFile(file, 'utf8');
   const list = [...src.matchAll(STATIC_IMPORT)].map(([, spec]) => spec).filter((spec) => /^(\.{1,2})?\//.test(spec)).map((spec) => new URL(spec, 'http://x' + url).pathname);
   importsCache.set(file, { mtimeMs: s.mtimeMs, size: s.size, list });
@@ -75,18 +79,61 @@ export async function modules(entry = ENTRY) {
   return seen;
 }
 
-async function appPage(file: string, s: Stat) {
-  const mods = await modules();
+const PAGE_EXTRA: Record<string, string[]> = {
+  '/qterm.html': [
+    '<link rel="stylesheet" href="/vendor/xterm.css">',
+    '<link rel="modulepreload" href="/vendor/xterm.mjs">',
+    '<link rel="modulepreload" href="/vendor/addon-fit.mjs">',
+  ],
+};
+async function entryPage(file: string, s: Stat, entry: string, page: string) {
+  const mods = await modules(entry);
   const tag = [tagOf(s), ...[...mods].map(([u, m]) => `${u}:${tagOf(m)}`)].join('|');
-  const links = [...mods.keys()].map((u) => `<link rel="modulepreload" href="${u}">`).join('\n  ');
+  const links = [...(PAGE_EXTRA[page] || []), ...[...mods.keys()].map((u) => `<link rel="modulepreload" href="${u}">`)].join('\n  ');
   return { tag, body: async () => (await fsp.readFile(file, 'utf8')).replace('</head>', `  ${links}\n</head>`) };
 }
 
 export async function serveStatic(pathname: string, req: IncomingMessage, res: ServerResponse) {
   const page = PAGES[pathname] || pathname;
-  const file = fileOf(page), s = await fsp.stat(file);
-  const ext = path.extname(file), ts = ext === '.ts', app = page === '/app.html';
-  const built = app ? await appPage(file, s) : null;
+  const rawReq = new URL(req.url || pathname, 'http://x').searchParams.has('raw');
+  const file = fileOf(page);
+  const ext = path.extname(file), ts = ext === '.ts', entry = !rawReq ? PAGE_ENTRY[page] : undefined;
+  const packaged = isPackaged();
+  if (packaged && entry) {
+    let hit = pageCache.get(page);
+    if (!hit) {
+      const s = await fsp.stat(file);
+      const built = await entryPage(file, s, entry, page);
+      const etag = `W/"${crypto.createHash('sha1').update(built.tag).digest('base64url').slice(0, 20)}"`;
+      hit = { etag, body: await built.body() };
+      pageCache.set(page, hit);
+    }
+    if (req.headers['if-none-match'] === hit.etag) {
+      res.writeHead(304, { ...SAFE, 'cache-control': 'no-cache', etag: hit.etag });
+      return res.end();
+    }
+    res.writeHead(200, { ...SAFE, 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache', etag: hit.etag });
+    return res.end(hit.body);
+  }
+  if (packaged && ext !== '.html') {
+    const cc = 'public, max-age=31536000, immutable';
+    const ver = process.env.AMETHYST_VERSION || 'p';
+    const etag = `W/"${ver}-${crypto.createHash('sha1').update(page).digest('base64url').slice(0, 12)}"`;
+    if (req.headers['if-none-match'] === etag) {
+      res.writeHead(304, { ...SAFE, 'cache-control': cc, etag });
+      return res.end();
+    }
+    let body: string | Buffer | undefined = ts ? strippedCache.get(file)?.code : rawCache.get(file);
+    if (body === undefined) {
+      const s = await fsp.stat(file);
+      body = ts ? await stripped(file, s) : await fsp.readFile(file);
+      if (!ts) rawCache.set(file, body as Buffer);
+    }
+    res.writeHead(200, { ...SAFE, 'content-type': (ts ? 'text/javascript' : TYPES[ext] || 'application/octet-stream') + '; charset=utf-8', 'cache-control': cc, etag });
+    return res.end(body);
+  }
+  const s = await fsp.stat(file);
+  const built = entry ? await entryPage(file, s, entry, page) : null;
   const etag = `W/"${built ? crypto.createHash('sha1').update(built.tag).digest('base64url').slice(0, 20) : tagOf(s)}"`;
   const head = { ...SAFE, 'content-type': (ts ? 'text/javascript' : TYPES[ext] || 'application/octet-stream') + '; charset=utf-8', 'cache-control': 'no-cache', etag };
   if (req.headers['if-none-match'] === etag) {

@@ -95,7 +95,7 @@ Close that program (often a dev server started with npm run dev) or move it to a
   let log = '', up = false;
   const forked = Date.now();
   const { MIND_USER_SECRET: _, ...env } = process.env;
-  const proc = utilityProcess.fork(path.join(SRC, 'server.ts'), serverArgs, { cwd: SRC, env: { ...env, PORT: String(PORT) }, stdio: 'pipe', serviceName: 'Amethyst server' });
+  const proc = utilityProcess.fork(path.join(SRC, 'server.ts'), serverArgs, { cwd: SRC, env: { ...env, PORT: String(PORT), AMETHYST_PACKAGED: app.isPackaged ? '1' : '', AMETHYST_VERSION: app.getVersion() }, stdio: 'pipe', serviceName: 'Amethyst server' });
   server = proc;
   const key = user.start((m) => proc.postMessage(m));
   proc.once('spawn', key.again);
@@ -449,10 +449,11 @@ function openWindow(addr = '/app', url = BASE + addr, at: Rectangle | null = nul
       lastGoing = null;
       closingAll = true;
       for (const x of wins.keys()) if (!x.isDestroyed()) x.close();
+      closeQtermSpare();
       closeToasts();
     }
     if (wins.size && !closingAll) remember();
-    if (!anyMain()) owned.leave(null);
+    if (!anyMain()) (owned.leave(null), closeQtermSpare());
     else if (!isExtra(gone) && !mainOf(amOf(gone))) owned.leave(amOf(gone));
     if (!anyMain()) dropHint();
   });
@@ -494,13 +495,27 @@ ipcMain.handle('close-held', (e) => {
   w.close();
   return true;
 });
-ipcMain.handle('claim-spare', (e, of) => {
+ipcMain.handle('claim-spare', (e, of, opts?: { pop?: boolean; kind?: string; addr?: string; bounds?: Rectangle | null }) => {
   const from = BrowserWindow.fromWebContents(e.sender), a = from && wins.get(from);
   const w = a && [...spares].find((x) => !x.isDestroyed() && amOf(wins.get(x)!) === amOf(a));
   if (!ours(e.senderFrame?.url || '') || !from || !w) return false;
   spares.delete(w);
+  if (opts?.addr && opts.addr.startsWith('/app')) wins.set(w, addrOf(opts.addr));
   w.webContents.setBackgroundThrottling(true);
-  w.setBounds(fresh(from));
+  if (opts?.pop === false) {
+    w.setMaximizable(true);
+    w.setMinimumSize(640, 420);
+    const req = opts.bounds && onScreen(opts.bounds) ? opts.bounds : null;
+    const saved = state.places[placeOf(wins.get(w)!)] || state.places[placeOf(wins.get(w)!, true)];
+    const kept = saved?.width && onScreen(saved) ? { x: saved.x, y: saved.y, width: saved.width, height: saved.height } : null;
+    w.setBounds(req || kept || fresh(from));
+    if (!req && saved?.max) w.maximize();
+  } else {
+    const kind = opts?.kind || 'quick';
+    const saved = state.places[`pop:${kind}`];
+    const kept = saved?.width && onScreen(saved) ? { x: saved.x, y: saved.y, width: saved.width, height: saved.height } : null;
+    w.setBounds(kept || fresh(from));
+  }
   w.show();
   remember();
   return true;
@@ -908,6 +923,40 @@ const qtKept = (k: string): Rectangle | null => {
   const b = state.qt?.[k];
   return b?.width && onScreen(b) ? { x: b.x, y: b.y, width: b.width, height: b.height } : null;
 };
+let qtermSpare: BrowserWindow | null = null, qtermSpareReady = false;
+function closeQtermSpare() {
+  if (qtermSpare && !qtermSpare.isDestroyed()) qtermSpare.close();
+  qtermSpare = null;
+  qtermSpareReady = false;
+}
+function warmQterm() {
+  if (closingAll || quitting || (qtermSpare && !qtermSpare.isDestroyed())) return;
+  qtermSpareReady = false;
+  const w = new BrowserWindow({
+    width: 720,
+    height: 420,
+    minWidth: 320,
+    minHeight: 160,
+    maximizable: false,
+    frame: false,
+    backgroundColor: ground(),
+    show: false,
+    icon: ICON,
+    title: 'terminal · Amethyst',
+    webPreferences: { preload: path.join(import.meta.dirname, 'preload.js'), contextIsolation: true, sandbox: true, nodeIntegration: false, backgroundThrottling: false },
+  });
+  qtermSpare = w;
+  w.removeMenu();
+  w.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  w.webContents.on('will-navigate', (e) => e.preventDefault());
+  w.webContents.once('did-finish-load', () => {
+    if (qtermSpare === w && !w.isDestroyed()) qtermSpareReady = true;
+  });
+  w.on('closed', () => {
+    if (qtermSpare === w) (qtermSpare = null, qtermSpareReady = false);
+  });
+  w.loadURL(BASE + '/qterm.html?spare=1');
+}
 function openQuick(kind: string, at: Rectangle | null, from: BrowserWindow | null, proj: string, still = false) {
   if (at) {
     const a = screen.getDisplayMatching(at).workArea;
@@ -924,7 +973,23 @@ function openQuick(kind: string, at: Rectangle | null, from: BrowserWindow | nul
     return open.focus();
   }
   const b = at || qtKept(kind) || (from ? fresh(from) : { width: 720, height: 420 });
-  const w = newOwned(kind, proj, QT_PAGE[kind] || `/qterm.html?kind=${kind}`, { ...b, minWidth: 320, minHeight: 160, title: `${QT_TITLE[kind]} · Amethyst` }, still);
+  let w: BrowserWindow;
+  if ((kind === 'term' || kind === 'pwsh') && qtermSpare && !qtermSpare.isDestroyed() && qtermSpareReady) {
+    w = qtermSpare;
+    qtermSpare = null;
+    qtermSpareReady = false;
+    owned.add(w, ownKey(kind, proj));
+    w.webContents.setBackgroundThrottling(true);
+    w.setBounds(b);
+    w.setTitle(`${QT_TITLE[kind]} · Amethyst`);
+    const [am, wid, pid] = proj.split('|');
+    w.webContents.send('qterm-claim', { kind, wid, pid, am: Number(am) || 1 });
+    owned.ready(w, still);
+    if (!still) w.focus();
+    setTimeout(warmQterm, 400);
+  } else {
+    w = newOwned(kind, proj, QT_PAGE[kind] || `/qterm.html?kind=${kind}`, { ...b, minWidth: 320, minHeight: 160, title: `${QT_TITLE[kind]} · Amethyst` }, still);
+  }
   const keep = () => {
     state.qt = { ...state.qt, [kind]: w.getBounds() };
     save();
@@ -1336,6 +1401,7 @@ function installUpdate() {
   writeState();
   installing = closingAll = true;
   for (const w of wins.keys()) if (!w.isDestroyed()) w.close();
+  closeQtermSpare();
   closeToasts();
 }
 
@@ -1495,6 +1561,7 @@ function quitAll() {
   writeState();
   leaving = closingAll = true;
   for (const w of wins.keys()) if (!w.isDestroyed()) w.close();
+  closeQtermSpare();
   closeToasts();
 }
 const login = () => app.isPackaged && app.setLoginItemSettings({ openAtLogin: trayPrefs().login, name: 'Amethyst', args: ['--tray'] });
@@ -1526,6 +1593,11 @@ else {
     });
   });
   app.whenReady().then(async () => {
+    if (app.isPackaged && state.cacheVer !== app.getVersion()) {
+      await session.defaultSession.clearCache();
+      state.cacheVer = app.getVersion();
+      save();
+    }
     const ready = Date.now(), starting = ensureServer();
     serverUp = starting;
     const open = (state.open || []).filter((a) => typeof a === 'string' && a.startsWith('/app'));
@@ -1546,6 +1618,7 @@ else {
     }
     await Promise.all(loaded);
     for (const addr of open.filter(isExtra)) openWindow(addr);
+    setTimeout(warmQterm, 1500);
     if (trayPrefs().on || quiet) makeTray();
     login();
     if (!app.isPackaged) return;

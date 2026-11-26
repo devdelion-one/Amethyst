@@ -15,7 +15,7 @@ import { $, amElse, amKey, chatProgram, fileUrl, isChatTab, parentOf, setSave, s
 import { beside, without } from '../base/split.ts';
 import { busyNow, gem, workCorner, workGem } from '../base/kinds.ts';
 import { askEnd, crystalOf, stillAt, titleOf } from '../base/agentlook.ts';
-import { openAway, popWith, reach, share, WIN } from '../base/windows.ts';
+import { openAway, popWith, reach, send, share, WIN } from '../base/windows.ts';
 import type { Layout, Note, OpenFile, Tab, TabGroup, TabNode, TabSplit } from '../base/types.ts';
 
 interface TabKind {
@@ -662,6 +662,7 @@ export function storeTab(n: number, t: Tab) {
   g.on = it.id;
   const id = typeof e?.id === 'string' ? e.id : uid();
   store.set(key(n), { eds: [{ id, root, active: g.g }], on: id });
+  send('tabstored', { win: n });
 }
 export function giveAway(id: string) {
   const t = tabById(id);

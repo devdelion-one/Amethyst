@@ -3,7 +3,7 @@ import { ask, dragWindow, fwHead, ICONS, sizeBar, winX } from '../base/controls.
 import { gem } from '../base/kinds.ts';
 import { S } from '../base/model.ts';
 import { page } from '../base/page.ts';
-import { createTerm } from './term.ts';
+import { createTerm, warmTerm } from './term.ts';
 import { setTheme } from '../base/theme.ts';
 import { $, addrPlace, amTag, placeKey, store } from '../base/util.ts';
 import { WIN } from '../base/windows.ts';
@@ -116,22 +116,39 @@ export function placeQuick() {
 onPlace(placeQuick);
 
 if (POP) {
-  const kind = KINDS[0], w = kind && makeWin(kind);
   document.body.classList.add('qt-pop');
   setTheme(store.text('theme3')!);
-  if (w) {
+  addEventListener('storage', (e) => e.key === 'mind.theme3' && setTheme(e.newValue!));
+  let mounted = false;
+  const mountPop = (kind: string, place: { wid: string; pid: string }, am = 0) => {
+    if (mounted || !PROG[kind]) return;
+    mounted = true;
+    const w = makeWin(kind);
     w.el.hidden = false;
-    document.title = amTag + `${NAMES[kind]} · Amethyst`;
-    attach(w, here());
+    const tag = am ? (am > 1 ? `#${am} ` : '') : amTag;
+    document.title = tag + `${NAMES[kind]} · Amethyst`;
+    attach(w, place);
     w.cur?.view.focus();
-    addEventListener('storage', (e) => e.key === 'mind.theme3' && setTheme(e.newValue!));
     addEventListener('keydown', (e) => is(e, QKEYS[kind]) && (e.preventDefault(), hide(kind)));
     addEventListener('focus', () => {
       freshIfEnded(w);
       if (!w.cur) attach(w, here());
       w.cur?.view.focus();
     });
-  }
+  };
+  if (new URLSearchParams(location.search).has('spare')) {
+    warmTerm();
+    desk?.onQtermClaim?.((d) => {
+      if (!d.kind || !PROG[d.kind]) return;
+      const u = new URL('/qterm.html', location.origin);
+      u.searchParams.set('kind', d.kind);
+      u.searchParams.set('w', d.wid);
+      u.searchParams.set('p', d.pid);
+      if (d.am > 1) u.searchParams.set('am', String(d.am));
+      history.replaceState(null, '', u);
+      mountPop(d.kind, { wid: d.wid, pid: d.pid }, d.am);
+    });
+  } else if (KINDS[0]) mountPop(KINDS[0], here());
 } else if (WIN === 1) {
   KINDS.forEach(makeWin);
   import('../app/float.ts').then(({ frame, preset }) => {
