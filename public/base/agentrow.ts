@@ -106,7 +106,13 @@ export async function cacheFlip(a: Agent, over: HTMLElement | null) {
   a.cacheOff = !res.cacheWarn;
   tell(over, { title: res.cacheWarn ? 'Cache notices on for this chat' : 'No cache notices for this chat', ms: 2000, ok: true });
 }
-export const cacheRow = (a: Agent) => (a.kind === 'chat' && a.program === 'claude' && a.status !== 'ended' && pref('cache:notice') ? miRow('data-oc-cw', icon('history'), a.cacheOff ? 'cache notices for this chat' : 'no cache notices for this chat', '', a.cacheOff ? "No notice comes before this chat's cache runs out. Click to get one again, 15 minutes before." : "A notice comes 15 minutes before this chat's cache runs out. Click to stop it for this chat.") : '');
+export const cacheShows = (a: Agent | null | undefined): a is Agent => !!a && a.kind === 'chat' && a.program === 'claude' && a.status !== 'ended' && !!pref('cache:notice');
+export const cacheWords = (a: Agent) => (a.cacheOff ? { label: 'cache notices for this chat', tip: "No notice comes before this chat's cache runs out. Click to get one again, 15 minutes before." } : { label: 'no cache notices for this chat', tip: "A notice comes 15 minutes before this chat's cache runs out. Click to stop it for this chat." });
+export const cacheRow = (a: Agent) => {
+  if (!cacheShows(a)) return '';
+  const w = cacheWords(a);
+  return miRow('data-oc-cw', icon('history'), w.label, '', w.tip);
+};
 every(6000, () => {
   for (const e of document.getElementsByClassName('dk-when') as HTMLCollectionOf<HTMLElement>) put(e, e.hasAttribute('data-tiny') ? tiny(+e.dataset.at!) : sinceShort(+e.dataset.at!));
   coolAll();

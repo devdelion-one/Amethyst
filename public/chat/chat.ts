@@ -4,7 +4,8 @@ import { chatHere, shownEl } from '../base/chatat.ts';
 import { composerHtml, createComposer, keepModels } from '../app/composer.ts';
 import { copy } from '../base/chips.ts';
 import { icon } from '../base/icon.ts';
-import { chatHead, chatMenu, signinTip, swapRow } from '../base/agentrow.ts';
+import { cacheFlip, chatHead, chatMenu, signinTip, swapRow } from '../base/agentrow.ts';
+import { paintCacheRow } from './cachemenu.ts';
 import { artifactsInner } from './artbar.ts';
 import { land, lift } from '../base/lift.ts';
 import { report, span } from '../base/hitch.ts';
@@ -1238,6 +1239,7 @@ The whole chat from before it was summarized. Click to open it.`)}" data-tip-mon
     open: false,
     show(on: boolean) {
       menu.open = on;
+      if (on) paintCacheRow($('.ch-menu'), tab.chat ? agents.all.get(tab.chat) : null);
       $('.ch-menu').hidden = !on;
       if (on) lift($('.ch-menu'), () => { const m = bar.querySelector<HTMLElement>('.ch-more'); return m?.offsetWidth ? m : bar; }, { side: 'down', align: 'end', gap: 4, keep: () => el, away: () => menu.show(false) });
       else land($('.ch-menu'));
@@ -1628,6 +1630,7 @@ The whole chat from before it was summarized. Click to open it.`)}" data-tip-mon
     if (d.handView) return handView(b.closest<HTMLElement>('.hof')!, d.handView === 'raw');
     if (d.handCopy != null) return copy(hands.get(b.closest<HTMLElement>('.hof')!)?.text || '', b);
     if (d.handX != null) return foldHand(b.closest<HTMLElement>('.hof')!);
+    if (d.ch === 'cache') { const a = tab.chat ? agents.all.get(tab.chat) : null; return void (a && cacheFlip(a, at)); }
     if (d.ch === 'clear') return clearAsk(at);
     if (d.ch === 'history') return hist.toggle(at);
     if (d.ch === 'signin') return signIn.show();
