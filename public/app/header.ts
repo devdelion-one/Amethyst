@@ -241,14 +241,13 @@ const MAKE: Record<string, any[]> = {
   board: ['', 'board', 'a new board to draw on', 'board', () => (deck() ? floatMake('board') : newInTab('board')), 'board'],
   scratch: ['', 'scratch', 'one plain text that is always there', 'scratch', () => padOut('scratch')],
   sketch: ['', 'sketch', 'a board to paint on and drop images onto', 'sketch', () => padOut('sketch')],
-  ai: ['', 'Claude Agent', 'an AI agent that works in this project with you', 'ai', () => (deck() ? addAgent() : newOfType('ai', activeGroup()))],
   term: ['', 'terminal', 'a terminal in the project folder', 'term', () => (deck() ? inDeck('term') : newOfType('term', activeGroup()))],
   browser: ['', 'browser', 'a website in a tab: a local server or any address', 'link', () => newOfType('browser', activeGroup())],
   project: ['', 'project', 'a folder you work in, with its own tabs, chats and terminals; added to this workspace', 'project', newProject],
   clone: ['', 'project from git', 'a copy of a repository: an address, or one of yours on GitHub', 'project', cloneProject],
 };
-const KINDS: Record<string, string[]> = { pj: ['folder', 'file', 'md', 'txt', 'board', 'scratch', 'sketch', 'ai', 'term', 'browser'], ws: ['project', 'clone'] };
-const QUICK: Record<string, string[]> = { pj: ['folder', 'file'], ws: ['project'] };
+const KINDS: Record<string, string[]> = { pj: ['folder', 'file', 'md', 'txt', 'board', 'scratch', 'sketch', 'term', 'browser'], ws: ['project', 'clone'] };
+const QUICK: Record<string, string[]> = { pj: ['folder', 'file', 'md', 'txt'], ws: ['project'] };
 const MENU: Record<string, string[]> = { pj: ['folder', 'file', 'md', 'txt'], ws: ['project', 'clone'] };
 const at = () => (atWs() ? 'ws' : 'pj');
 const OWN = ['scratch', 'sketch'];
@@ -450,7 +449,7 @@ function makeMenu(x: number, y: number) {
   const rows = quickRows();
   topBarMenu(x, y, {
     tray: 'make',
-    acts: `<button class="mi" data-qreset><i class="tb-ic">${ICONS.reset}</i><span class="mi-n">reset to ${QUICK[at()].map((k) => MAKE[k][1]).join(' and ')}</span></button>`,
+    acts: `<button class="mi" data-qreset><i class="tb-ic">${ICONS.reset}</i><span class="mi-n">reset to ${QUICK[at()].map((k) => MAKE[k][1]).join(', ').replace(/, ([^,]*)$/, ' and $1')}</span></button>`,
     buttons: `<div class="tb-ords" data-mv="qk">${rows}</div>`,
     onPick: (b) => {
       const d = b.dataset;

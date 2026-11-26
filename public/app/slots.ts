@@ -11,7 +11,9 @@ const viewKey = () => `switch:rail:${levelKey()}${amKey}`;
 const BTN_KEY = `switch:rail${amKey}`;
 const isBtn = (ref: string) => ref.startsWith('btn:') || ref.startsWith('pin:');
 const isPin = (ref: string) => ref.startsWith('pin:');
-const spots = (): Spots => ({ ...store.get(BTN_KEY, {}), ...store.get(viewKey(), {}) });
+const BTN_AT: Spots = { 'btn:index': 0, 'btn:newchat': 5, 'btn:git': 9, 'btn:github': 10, 'btn:setup': -1, 'btn:qpwsh': -3, 'btn:qterm': -4, 'btn:scratch': -5, 'pin:folder': -6, 'pin:txt': -7, 'pin:md': -8, 'pin:file': -9, 'btn:more': -10 };
+const VIEW_AT: Spots = { editor: 2, orch: 3 };
+const spots = (): Spots => ({ ...store.get(BTN_KEY, BTN_AT), ...store.get(viewKey(), {}) });
 function save(at: Spots) {
   const part = (b: boolean) => Object.fromEntries(Object.entries(at).filter(([r]) => isBtn(r) === b));
   store.set(BTN_KEY, part(true));
@@ -120,6 +122,10 @@ let seen = new Set<string>(), seenAt = '';
 export function placeAll(views: SlotView[], dry = false): { at: Spots; first: boolean; fresh: string[] } {
   const first = store.get(viewKey(), null) == null, had = spots(), at: Spots = { ...had }, refs = views.map((v) => v.ref), known = new Set(refs), n = railN();
   const was = migrate(at);
+  if (first) for (const [k, s] of Object.entries(VIEW_AT)) {
+    const r = views.find((v) => v.kind === k)?.ref;
+    if (r && !(r in at)) at[r] = s;
+  }
   if (!dry && seenAt !== viewKey()) (seen = new Set()), (seenAt = viewKey());
   const boot = dry || !seen.size, shown = views.filter((v) => v.shown).map((v) => v.ref);
   const pri = (rs: string[]) => [...rs.filter(isBtn), ...rs.filter((r) => !isBtn(r))];

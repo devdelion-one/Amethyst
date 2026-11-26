@@ -30,8 +30,8 @@ let first = false, startAs: 'basics' | 'all' | null = null, hand = new Set<strin
 let known: WorkspaceEntry[] = [];
 let view: 'main' | 'ws' | 'pj' = 'main', drafts: Place[] = [], made: Place[] = [], places = new Map<string, string>(), dflt = '', draftN = 0;
 
-const BASICS: [string, string[]][] = [
-  ['modesHidden', ['term', 'research']],
+const BASICS: [string, string[], string[]?][] = [
+  ['modesHidden', ['term', 'research'], ['chat']],
   ['bar:off', ['timer', 'hitch', 'clips']],
   ['drafts:off', ['scratch', 'sketch', 'inbox']],
   ['qterm:off', ['term', 'pwsh', 'agent']],
@@ -39,7 +39,10 @@ const BASICS: [string, string[]][] = [
   ['act:off', ['github', 'agent setup', 'site']],
 ];
 export function startWith(basics: boolean) {
-  for (const [k, ids] of BASICS) setPref(k, basics ? [...new Set([...pref(k), ...ids])] : pref(k).filter((x: string) => !ids.includes(x)));
+  for (const [k, ids, shown = []] of BASICS) {
+    const out = basics ? shown : [...ids, ...shown];
+    setPref(k, [...new Set([...pref(k), ...(basics ? ids : [])])].filter((x: string) => !out.includes(x)));
+  }
   setPref('forget:on', !basics);
   basicPins(basics);
 }

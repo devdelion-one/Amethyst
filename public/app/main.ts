@@ -1,3 +1,4 @@
+import './railreset.ts';
 import '../base/hitch.ts';
 import '../base/editmenu.ts';
 import { bound } from '../base/binds.ts';
