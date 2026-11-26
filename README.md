@@ -110,7 +110,7 @@ You may share links to this page, [amethyst.run](https://amethyst.run) and the
 ## Updates
 
 Amethyst updates itself from this repo's releases. Its settings show when a new version is out. What changed is in
-[CHANGELOG.md](CHANGELOG.md).
+each release's notes on the [releases page](https://github.com/devdelion-one/Amethyst/releases).
 
 ## Source available
 
