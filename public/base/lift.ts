@@ -1,7 +1,7 @@
 import { onSize } from './measure.ts';
 type FloatAt = Element | DOMRect | null | undefined;
-type FloatOpts = { side?: 'up' | 'down'; align?: 'start' | 'center' | 'end'; match?: boolean; gap?: number; keep?: () => Element | null; away?: () => void };
-type Lifted = { at: () => FloatAt; o: FloatOpts; off: () => void };
+type FloatOpts = { side?: 'up' | 'down'; align?: 'start' | 'center' | 'end'; match?: boolean; gap?: number; keep?: () => Element | null; away?: () => void; stick?: boolean };
+type Lifted = { at: () => FloatAt; o: FloatOpts; off: () => void; went?: boolean };
 
 const EDGE = 8;
 const lifted = new Map<HTMLElement, Lifted>();
@@ -22,7 +22,8 @@ function place(el: HTMLElement, l: Lifted) {
   Object.assign(el.style, { maxHeight: '', maxWidth: innerWidth - 2 * EDGE + 'px', width: match ? Math.min(r.width, innerWidth - 2 * EDGE) + 'px' : '' });
   const cap = parseFloat(getComputedStyle(el).maxHeight) || Infinity, need = Math.min(el.offsetHeight, cap);
   const up = r.top - gap - EDGE, down = innerHeight - r.bottom - gap - EDGE;
-  const goUp = side === 'up' ? need <= up || up >= down : need > down && up > down;
+  const goUp = l.o.stick && l.went !== undefined ? l.went : side === 'up' ? need <= up || up >= down : need > down && up > down;
+  l.went = goUp;
   el.style.maxHeight = Math.max(0, Math.min(cap, goUp ? up : down)) + 'px';
   const w = el.offsetWidth, h = el.offsetHeight;
   let x = align === 'end' ? r.right - w : align === 'center' ? r.left + (r.width - w) / 2 : r.left;

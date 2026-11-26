@@ -852,10 +852,22 @@ button.ch-rl:hover { background: none; color: var(--accent); }
 .ch-mic:is(.busy, .getting) svg { animation: ch-mic-pulse 1s ease-in-out infinite alternate; }
 .ch-mic.busy { --tone: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
 @keyframes ch-mic-pulse { from { opacity: 1; } to { opacity: .3; } }
-.ch-vask { display: flex; flex-direction: column; gap: 4px; width: 290px; padding: 10px 12px; line-height: 1.45; }
+.ch-pop.ch-vask { display: flex; flex-direction: column; gap: 6px; width: 300px; padding: 12px 14px; line-height: 1.45; }
 .ch-vask[hidden] { display: none; }
+.ch-vask b { color: var(--text-strong); }
 .ch-vask .dim { color: var(--text-dim); font-size: var(--fs-xs); }
-.vk-btns { display: flex; justify-content: flex-end; gap: 6px; margin-top: 6px; }
+.vk-safe { display: flex; align-items: flex-start; gap: 6px; color: var(--accent); font-size: var(--fs-xs); }
+.vk-safe .ic { flex: none; width: 12px; height: 12px; margin-top: 2px; }
+.vk-tog { align-self: flex-start; gap: 3px; min-height: 0; padding: 0; border: 0; background: none; color: var(--text-dim); font: var(--fs-xs)/1.45 var(--font); }
+.vk-tog:hover { background: none; color: var(--text-strong); }
+.vk-more { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; padding: 8px 10px; border-radius: var(--r-lg); background: var(--chrome); color: var(--text); font-size: var(--fs-xs); user-select: text; }
+.vk-more .k { color: var(--text-faint); }
+.vk-more a { color: var(--accent); }
+.vk-btns { display: flex; justify-content: flex-end; gap: 4px; margin-top: 4px; }
+.vk-b { height: 20px; min-height: 0; padding: 0 8px; border: 0; border-radius: var(--r-pill); color: var(--text-dim); font: var(--fs-xs)/1 var(--font); }
+.vk-b:hover { background: var(--hover); color: var(--text-strong); }
+.vk-b.on { color: var(--flip-ink); background: var(--flip); }
+.vk-b.on:hover { color: var(--flip-ink); background: color-mix(in srgb, var(--flip) 88%, var(--text)); }
 .vk-bar { height: 5px; margin-top: 6px; border-radius: var(--r-sm); background: var(--hover); overflow: hidden; }
 .vk-bar i { display: block; height: 100%; background: var(--accent); transition: width .3s; }
 .ch-wt.on { --tone: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }

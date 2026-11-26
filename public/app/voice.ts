@@ -64,11 +64,18 @@ function askHtml() {
   const s = state;
   if (s?.installing) {
     const pct = s.total ? Math.min(100, (100 * s.got) / s.total) : 0;
-    return `<b>Downloading the speech model</b><span class="dim">${mb(s.got)} MB of ${s.total ? mb(s.total) + ' MB' : 'about ' + sizeMb() + ' MB'}. You can close this, it carries on.</span><div class="vk-bar"><i style="width:${pct.toFixed(1)}%"></i></div><div class="vk-btns"><button type="button" class="chip" data-vk="close">Close</button></div>`;
+    return `<b>Downloading the speech model</b><span class="dim">${mb(s.got)} MB of ${s.total ? mb(s.total) + ' MB' : 'about ' + sizeMb() + ' MB'}. You can close this, it carries on.</span><div class="vk-bar"><i style="width:${pct.toFixed(1)}%"></i></div><div class="vk-btns"><button type="button" class="vk-b" data-vk="close">Close</button></div>`;
   }
-  if (askMode === 'failed') return `<b>The download didn't finish</b><span class="dim">${esc(s?.error || 'Nothing was installed.')} Nothing was installed.</span><div class="vk-btns"><button type="button" class="chip" data-vk="close">Not now</button><button type="button" class="chip on" data-vk="get">Try again</button></div>`;
-  return `<b>Download the speech model?</b><span class="dim">About ${sizeMb()} MB, once, from Hugging Face. Then speech turns into text on this computer, offline.</span><div class="vk-btns"><button type="button" class="chip" data-vk="close">Not now</button><button type="button" class="chip on" data-vk="get">Download</button></div>`;
+  if (askMode === 'failed') return `<b>The download didn't finish</b><span class="dim">${esc(s?.error || 'Nothing was installed.')} Nothing was installed.</span><div class="vk-btns"><button type="button" class="vk-b" data-vk="close">Not now</button><button type="button" class="vk-b on" data-vk="get">Try again</button></div>`;
+  return `<b>Download the speech model?</b><span class="dim">About ${sizeMb()} MB, once.</span><span class="vk-safe">${icon('sandbox')}<span>Runs on this computer. Works offline, and nothing you say leaves it.</span></span>` +
+    `<button type="button" class="vk-tog" data-vk="more" aria-expanded="${askMore}">details<span aria-hidden="true">${askMore ? '▾' : '▸'}</span></button>${askMore ? MORE : ''}` +
+    `<div class="vk-btns"><button type="button" class="vk-b" data-vk="close">Not now</button><button type="button" class="vk-b on" data-vk="get">Download</button></div>`;
 }
+let askMore = false;
+const MORE = `<div class="vk-more"><span class="k">What</span><span>Whisper, free open speech recognition made by OpenAI, run by whisper.cpp, a free open source program.</span>` +
+  `<span class="k">From</span><span>The model from <a href="https://huggingface.co/ggerganov/whisper.cpp" target="_blank">Hugging Face</a>, the biggest public library of open AI models. The program from <a href="https://github.com/ggml-org/whisper.cpp" target="_blank">GitHub</a>.</span>` +
+  `<span class="k">Checked</span><span>Amethyst knows each file's fingerprint in advance. A download that doesn't match is thrown away and nothing is installed.</span>` +
+  `<span class="k">Kept in</span><span>Amethyst's own folder. Remove it any time in Settings, speech to text.</span></div>`;
 function paintAsk() {
   if (askEl && !askEl.hidden) askEl.innerHTML = askHtml();
 }
@@ -84,6 +91,11 @@ function showAsk(at: HTMLElement | null, mode: 'ask' | 'failed' = 'ask') {
     askEl.addEventListener('click', (e) => {
       const v = (e.target as HTMLElement).closest<HTMLElement>('[data-vk]')?.dataset.vk;
       if (v === 'close') closeAsk(true);
+      if (v === 'more') {
+        askMore = !askMore;
+        paintAsk();
+        askEl?.querySelector<HTMLElement>('[data-vk="more"]')?.focus();
+      }
       if (v === 'get') voiceGet().catch((err) => tell(askEl, { title: "Can't download it now", line: String(err.message || err), ms: 3000 }));
     });
     document.body.append(askEl);
@@ -97,9 +109,9 @@ function showAsk(at: HTMLElement | null, mode: 'ask' | 'failed' = 'ask') {
     const r = at!.getBoundingClientRect(), B = x.getBoundingClientRect();
     return new DOMRect(r.left, B.top, r.width, B.height);
   };
-  lift(askEl, spot, { side: 'up', align: 'end', keep: box, away: () => closeAsk() });
+  lift(askEl, spot, { side: 'up', align: 'end', stick: true, keep: box, away: () => closeAsk() });
   at.setAttribute('aria-expanded', 'true');
-  askEl.querySelector<HTMLElement>('.chip.on, .chip')?.focus();
+  askEl.querySelector<HTMLElement>('.vk-b.on, .vk-b')?.focus();
   offAsk();
   const off = onOutside([askEl, at], () => closeAsk());
   const esc = (e: KeyboardEvent) => {
