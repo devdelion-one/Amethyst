@@ -7,7 +7,7 @@ import { esc, showErr, store } from '../base/util.ts';
 import { busyNow, gem } from '../base/kinds.ts';
 import { tell } from '../base/notify.ts';
 import { codeOf, groupOf, markOf, providerOf, spark, stepWord, titleOf } from '../base/agentlook.ts';
-import { doneInner, markBtn, markSign, noteBtn, noteSign, renameAsk, renameItem } from '../base/agentrow.ts';
+import { cacheFlip, cacheOpt, doneInner, markBtn, markSign, noteBtn, noteSign, renameAsk, renameItem } from '../base/agentrow.ts';
 import { anchorOf, foldHead, SPOT_IC } from './fold.ts';
 import { agents } from '../base/stream.ts';
 import { modelTip } from '../base/words.ts';
@@ -54,7 +54,7 @@ function headActs(el: HTMLElement, spot = false) {
   const who = hd.querySelector<HTMLElement>('.dk-id[data-chat]')?.dataset.chat, a = who ? agents.all.get(who) : null;
   const ren = a ? (spot ? renameItem(a).replace('rename…', 'rename the chat…') : renameItem(a)) : '';
   const close = x ? `<button class="mi" data-head-x${x.title ? ` title="${esc(x.title)}"` : ''}><i class="tb-ic">${ICONS.x}</i><span class="mi-n">${chat ? (spot ? 'close the chat…' : 'close…') : 'close'}</span></button>` : '';
-  const ask = a?.kind === 'chat' ? `<div class="sep"></div>` + topRow(!!pref('clear:ask'), `data-clear-ask title="Clear asks first&#10;Clearing the chat asks first; enter clears. Unticked, it clears at once, and ctrl z brings it back."`, icon('clear'), 'clear asks first') : '';
+  const ask = a?.kind === 'chat' ? `<div class="sep"></div>` + cacheOpt(a) + topRow(!!pref('clear:ask'), `data-clear-ask title="Clear asks first&#10;Clearing the chat asks first; enter clears. Unticked, it clears at once, and ctrl z brings it back."`, icon('clear'), 'clear asks first') : '';
   return { html: `${ren}${more.map(row).join('')}${close}`, ask, chat, x, more, hd, a };
 }
 const PLACE_KEYS = ['deck:spotBtn', 'deck:benchBtn', 'deck:setBtn', 'deck:orchBtn', 'deck:tabBtn', 'deck:pinBtn', 'deck:closeBtn', 'orch:closeBtn', 'orch:folderBtn', 'orch:termBtn'];
@@ -69,6 +69,7 @@ export const headMenu = (el: HTMLElement, e?: MouseEvent) => {
     onPick: (b: HTMLElement) => {
       if ('headSettings' in b.dataset) return headSettings();
       if ('clearAsk' in b.dataset) return setPref('clear:ask', !pref('clear:ask'));
+      if ('cacheOn' in b.dataset) return acts.a && cacheFlip(acts.a, acts.hd);
       if ('rename' in b.dataset) return acts.a && renameAsk(acts.a);
       if ('headX' in b.dataset) return acts.x?.click();
       if (b.dataset.headDo != null) acts.more[+b.dataset.headDo]?.click();

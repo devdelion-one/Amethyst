@@ -4,7 +4,7 @@ import { esc, showErr, sinceShort, store } from './util.ts';
 import { busyNow, gem, workCorner, workGem } from './kinds.ts';
 import { clearedOf, codeOf, markOf, providerOf, setCleared } from './agentlook.ts';
 import { crystalOf } from './codes.ts';
-import { ask, colorRow, ICONS, MARK_NOS, markName, miRow, popMenu } from './controls.ts';
+import { ask, colorRow, ICONS, MARK_NOS, markName, miRow, popMenu, topRow } from './controls.ts';
 import { tell } from './notify.ts';
 import { api, markNo, S } from './model.ts';
 import { runTime } from './words.ts';
@@ -108,6 +108,7 @@ export async function cacheFlip(a: Agent, over: HTMLElement | null) {
 }
 export const cacheShows = (a: Agent | null | undefined): a is Agent => !!a && a.kind === 'chat' && a.program === 'claude' && a.status !== 'ended' && !!pref('cache:notice');
 export const cacheWords = (a: Agent) => (a.cacheOff ? { label: 'cache notices for this chat', tip: "No notice comes before this chat's cache runs out. Click to get one again, 15 minutes before." } : { label: 'no cache notices for this chat', tip: "A notice comes 15 minutes before this chat's cache runs out. Click to stop it for this chat." });
+export const cacheOpt = (a: Agent | null | undefined) => (cacheShows(a) ? topRow(!a.cacheOff, `data-cache-on title="${esc("Cache notices for this chat\nTicked, a notice comes 15 minutes before this chat's cache runs out. Unticked, none comes for this chat.")}"`, icon('history'), 'cache notices for this chat') : '');
 export const cacheRow = (a: Agent) => {
   if (!cacheShows(a)) return '';
   const w = cacheWords(a);
