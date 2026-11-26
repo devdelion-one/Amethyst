@@ -1478,7 +1478,7 @@ body.fg-toast { margin: 0; overflow: hidden; background: var(--raised); user-sel
 .oc-ic { display: grid; place-items: center; font-style: normal; }
 .oc-ic.oc-cold { position: relative; color: var(--text-faint); }
 .oc-ic.oc-cold > svg + svg { position: absolute; inset: 0; margin: auto; }
-.oc-ics .mk-d { display: grid; place-items: center; width: 14px; height: 14px; padding: 0; border: 0; background: none; box-shadow: none; }
+.oc-ics .mk-d { display: grid; place-items: center; width: 14px; height: 14px; min-height: 0; padding: 0; border: 0; background: none; box-shadow: none; }
 .oc-ics .mk-d .ic { width: 13px; height: 13px; }
 .oc-slot { position: relative; flex: none; display: flex; align-items: center; justify-content: flex-end; min-width: 22px; height: 18px; }
 .oc-slot .dk-when { position: static; font: 500 var(--fs-2xs)/1 var(--mono); color: var(--text-faint); }
@@ -1506,7 +1506,7 @@ body.fg-toast { margin: 0; overflow: hidden; background: var(--raised); user-sel
 .oc-sl { display: grid; place-items: center; width: 18px; height: 18px; color: var(--text-dim); }
 .oc-sl .ic, .oc-sl .gem { width: 13px; height: 13px; }
 .oc-sl-b { display: inline-flex; align-items: center; justify-content: center; gap: 2px; width: auto; min-width: 18px; }
-.oc-sl-m .mk-d { display: grid; place-items: center; width: 16px; height: 16px; padding: 0; border: 0; background: none; box-shadow: none; }
+.oc-sl-m .mk-d { display: grid; place-items: center; width: 16px; height: 16px; min-height: 0; padding: 0; border: 0; background: none; box-shadow: none; }
 .oc-sl-m .mk-d .ic { width: 13px; height: 13px; }
 .oc-fin { display: grid; place-items: center; width: 15px; height: 15px; border: 1.4px solid var(--ok); border-radius: 50%; color: var(--ok); }
 .oc-fin .ic { width: 9px; height: 9px; stroke-width: 2.2; }
