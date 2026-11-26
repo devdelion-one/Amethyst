@@ -24,6 +24,7 @@ interface UpState {
   error?: string;
   stage?: string;
   license?: string;
+  looking?: boolean;
 }
 type Say = (s: UpState) => string;
 
@@ -94,6 +95,7 @@ export function updateGroup({ group, row, chip, tg, rows = '', tail = '' }: { gr
       `<div class="up-under${s.status === 'failed' ? ' err' : ''}" title="${esc(under(s))}" data-tip-cut>${esc(under(s))}</div>` +
       `</div>` +
       row('check for updates',
+        (s.status === 'ready' ? `<button class="up-link up-again" data-update="check" title="Look for a newer version than ${A(s.next)}.\nIf there is one, it downloads in its place."${s.looking ? ' disabled' : ''}>${s.looking ? 'checking…' : 'check'}</button>` : '') +
         `<span class="up-checked">${esc(checkedText(s))}</span>` + tg(s.look, `data-up-look="${s.look ? '' : '1'}" aria-label="check for updates" ${off}`),
         { desc: 'when the app opens, at 12:00 and on entering settings; off: only when you click check' }) +
       row('download', `<span class="seg">${chip(!s.auto, `data-up-auto="" ${off}`, 'on click') + chip(s.auto, `data-up-auto="1" ${off}`, 'by itself')}</span>`,
@@ -198,7 +200,7 @@ export function tellUpdate() {
 
 export async function watchUpdate() {
   if (!UPDATE) return;
-  const shape = (s: UpState | null) => s && [s.status, s.next, s.look, s.auto, s.error, s.stage, s.license, starting(s)].join();
+  const shape = (s: UpState | null) => s && [s.status, s.next, s.look, s.auto, s.error, s.stage, s.license, s.looking, starting(s)].join();
   const use = (s: UpState) => {
     const same = shape(s) === shape(up);
     up = s;

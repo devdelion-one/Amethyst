@@ -1251,8 +1251,9 @@ interface Update {
   auto: boolean;
   started: string;
   license: string;
+  looking: boolean;
 }
-const update: Update = { status: app.isPackaged ? 'idle' : 'dev', version: app.getVersion(), next: null, percent: 0, done: 0, total: 0, speed: 0, stage: '', error: '', notes: NOTES, checked: state.update?.checked || 0, look: state.update?.look !== false, auto: !!state.update?.auto, started: state.update?.started && state.update.started !== app.getVersion() ? state.update.started : '', license: '' };
+const update: Update = { status: app.isPackaged ? 'idle' : 'dev', version: app.getVersion(), next: null, percent: 0, done: 0, total: 0, speed: 0, stage: '', error: '', notes: NOTES, checked: state.update?.checked || 0, look: state.update?.look !== false, auto: !!state.update?.auto, started: state.update?.started && state.update.started !== app.getVersion() ? state.update.started : '', license: '', looking: false };
 let updater: AppUpdater | null = null, looking = false, looked = 0, wanted = false, stopDownload: CancellationToken | null = null, installing = false, sent = 0, noonTimer: NodeJS.Timeout | null = null;
 
 function tellUpdate(change: Partial<Update>, tick = false) {
@@ -1280,11 +1281,11 @@ async function look(asked = false) {
   if (looking || update.status === 'downloading' || !feed()) return;
   looking = true;
   looked = Date.now();
-  if (asked && update.status !== 'ready') tellUpdate({ status: 'checking', stage: '', error: '' });
+  if (asked) tellUpdate(update.status === 'ready' ? { looking: true } : { status: 'checking', stage: '', error: '' });
   try {
     const r = await updater!.checkForUpdates();
     const next = r?.isUpdateAvailable ? r.updateInfo.version : null;
-    const { change, get } = settle(update, next);
+    const { change, get } = settle(update, next, asked);
     if (get) Object.assign(update, change);
     else tellUpdate(change);
     keepUpdate();
@@ -1295,6 +1296,7 @@ async function look(asked = false) {
     if (update.status === 'checking') tellUpdate({ status: 'failed', stage: 'look', error: whyFailed(e) });
   } finally {
     looking = wanted = false;
+    if (update.looking) tellUpdate({ looking: false });
   }
 }
 
