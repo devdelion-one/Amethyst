@@ -91,7 +91,7 @@ export function knownCaller(a: Args): Caller {
   if (!key || key !== String(a.key || '')) throw new HttpError(403, "that key isn't this chat's: Amethyst tools work only from the chat Amethyst started them for");
   const id = aliases.get(by) || by;
   const me = live.get(id) as Live | undefined;
-  if (!me) throw new HttpError(404, 'the calling chat has ended');
+  if (!me || me.status === 'ended') throw new HttpError(404, 'the calling chat has ended');
   return { id, pid: me.pid || '', root: me.cwd, am: me.am || 1 };
 }
 

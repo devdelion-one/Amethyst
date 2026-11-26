@@ -524,6 +524,20 @@ amethyst git skip [--repo <repo>]
 
 - `--repo` (string, optional): A repository inside the project, by its folder (amethyst git repos lists them); the project’s own when left out
 
+### `amethyst git init`
+
+**Surface:** CLI only
+
+Start a git repository in this project, write a default .gitignore when none is there, and make the first commit (secrets left out). Refuses if the folder is already in git or holds another repository.
+
+```powershell
+amethyst git init [--branch <branch>]
+```
+
+- `--branch` (string, optional): The first branch name (main by default)
+
+Example: `amethyst git init --branch main`
+
 ### `amethyst git clone`
 
 **Surface:** CLI only
@@ -899,7 +913,7 @@ Example: `amethyst issue start 12`
 
 **Surface:** CLI and MCP tool `ue_project`
 
-Make a new, empty Unreal C++ project in this folder: <Name>.uproject, Source/<Name>.Target.cs, Source/<Name>Editor.Target.cs (BuildSettingsVersion and IncludeOrderVersion Latest), one Runtime module Source/<Name> with IMPLEMENT_PRIMARY_GAME_MODULE, Config/DefaultEngine.ini, Config/DefaultGame.ini and Content/. It refuses if the folder already has a .uproject, and never overwrites a file. It lists the files it made.
+Make a new, empty Unreal C++ project in this folder: <Name>.uproject, Source/<Name>.Target.cs, Source/<Name>Editor.Target.cs (BuildSettingsVersion and IncludeOrderVersion Latest), one Runtime module Source/<Name> with IMPLEMENT_PRIMARY_GAME_MODULE, Config/DefaultEngine.ini, Config/DefaultGame.ini, .gitignore (when none is there) and Content/. It refuses if the folder already has a .uproject, and never overwrites a file. It lists the files it made.
 
 ```powershell
 amethyst ue project <name> [--engine <engine>]
@@ -917,7 +931,7 @@ Example: `amethyst ue project ProjectIsometric --engine 5.7`
 Add a plugin, a module or a class to this Unreal project from the engine's own templates, as Unreal Editor would. A plugin goes in Plugins/<Name> and is enabled in the .uproject; a module goes in Source/<Name> (or in a plugin's Source with --plugin) and is added to the .uproject or .uplugin and to every target; a class goes in Source/<Project> or --dir. Nothing is overwritten. It lists the files it made and changed; generate project files and build next.
 
 ```powershell
-amethyst ue new <kind> <name> [--template <template>] [--plugin <plugin>] [--type <type>] [--phase <phase>] [--targets <a,b>] [--parent <parent>] [--dir <dir>] [--public] [--description <description>]
+amethyst ue new <kind> <name> [--template <template>] [--plugin <plugin>] [--type <type>] [--phase <phase>] [--targets <a,b>] [--parent <parent>] [--dir <dir>] [--public] [--description <description>] [--friendly-name <friendly-name>] [--category <category>] [--deps <a,b>] [--private-deps <a,b>] [--class <class>]
 ```
 
 - `kind` (string, required): class, module or plugin
@@ -931,8 +945,30 @@ amethyst ue new <kind> <name> [--template <template>] [--plugin <plugin>] [--typ
 - `--dir` (string, optional): A class: the folder it goes in, relative to the project; Source/<Project> by default
 - `--public` (boolean, optional): A class in a module with Public and Private folders: put the header in Public
 - `--description` (string, optional): A plugin: its .uplugin's Description
+- `--friendly-name` (string, optional): A plugin: its .uplugin's FriendlyName (defaults to the plugin name)
+- `--category` (string, optional): A plugin: its .uplugin's Category (Other by default)
+- `--deps` (list, optional): A module: extra public dependency module names, comma separated
+- `--private-deps` (list, optional): A module: extra private dependency module names, comma separated
+- `--class` (string, optional): A module: IModuleInterface class name (e.g. FMyEditorModule) instead of FDefaultModuleImpl
 
 Example: `amethyst ue new module MyToolsEditor --plugin MyTools --type Editor`
+
+### `amethyst ue deps`
+
+**Surface:** CLI and MCP tool `ue_deps`
+
+Add public or private module dependencies to an existing module's .Build.cs (in Source/ or in a plugin's Source/). Skips dependencies already listed.
+
+```powershell
+amethyst ue deps <module> [--add <a,b>] [--private-add <a,b>] [--plugin <plugin>]
+```
+
+- `module` (string, required): The module name, e.g. MyGame or MyToolsEditor
+- `--add` (list, optional): Public dependency module names to add, comma separated
+- `--private-add` (list, optional): Private dependency module names to add, comma separated
+- `--plugin` (string, optional): The plugin containing the module (optional, found automatically if omitted)
+
+Example: `amethyst ue deps MyToolsEditor --add Slate,SlateCore --private-add AssetTools`
 
 ### `amethyst ue generate`
 
@@ -997,13 +1033,15 @@ Example: `amethyst ue cancel`
 
 **Surface:** CLI and MCP tool `ue_editor`
 
-Open Unreal Editor on this project and return at once; ue log shows how far it got. It refuses when the Editor target was never built (Unreal would stop at a dialog), unless --force. While the user has "chats answer other chats' permission asks" off, each run first waits for their OK in Amethyst's window.
+Open Unreal Editor on this project and return at once; ue log shows how far it got. It refuses when the Editor target was never built (Unreal would stop at a dialog), unless --force. With --close, request a graceful close of the project's running Unreal Editor and wait for it to exit. While the user has "chats answer other chats' permission asks" off, each run first waits for their OK in Amethyst's window.
 
 ```powershell
-amethyst ue editor [--force]
+amethyst ue editor [--force] [--close] [--timeout <timeout>]
 ```
 
 - `--force` (boolean, optional): Open it even though the Editor target isn't built
+- `--close` (boolean, optional): Close the project's running Unreal Editor gracefully and wait for it to exit
+- `--timeout` (number, optional): With --close, seconds to wait for the editor to exit (15 by default)
 
 Example: `amethyst ue editor`
 
