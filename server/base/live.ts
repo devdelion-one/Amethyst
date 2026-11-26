@@ -4,6 +4,7 @@ import path from 'path';
 import url from 'url';
 import { execFile } from 'child_process';
 import { guard, HttpError } from './routes.ts';
+import { dataDir } from './datadir.ts';
 import { sortOf, SAFE_OPEN } from '../../public/base/files.ts';
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { AgentInfo, AskCard, ChatDraft, ChatPlace, ChatReview, Routes, SubSummary } from '../../public/base/types.ts';
@@ -274,7 +275,7 @@ const ROUTES: Routes = {
   'GET /api/img': async (_, q, root: string) => {
     const name = String(q!.get('name') || '');
     if (!/^[\w\- ]+\.(png|jpe?g|gif|webp)$/i.test(name)) throw new HttpError(400, 'bad image name');
-    const dir = path.join(root, '.amethyst', 'images');
+    const dir = path.join(dataDir(root), 'images');
     let p = path.join(dir, name);
     if (!fs.existsSync(p)) p = path.join(dir, 'unused', name);
     return raw(await fs.promises.readFile(p), p, "default-src 'none'; img-src data:");

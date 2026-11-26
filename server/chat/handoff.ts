@@ -14,6 +14,7 @@ interface Input {
   files?: string[];
   rules?: string | null;
   saved?: string | null;
+  imageAt?: (rel: string) => string;
   budget?: number;
   names?: Record<string, string>;
 }
@@ -111,7 +112,7 @@ function latestSummary(events: Ev[], since: number) {
   return { text: since ? clean : '', cut: since };
 }
 
-function walk(events: Ev[], since: number, cwd: string, names: Record<string, string>, agent: string, filterNoise = false) {
+function walk(events: Ev[], since: number, cwd: string, names: Record<string, string>, agent: string, filterNoise = false, imageAt?: (rel: string) => string) {
   const items: Item[] = [];
   const tools = new Map<string, Ev>();
   const order: { id: string; at: number }[] = [];
@@ -130,7 +131,7 @@ function walk(events: Ev[], since: number, cwd: string, names: Record<string, st
     if ((ev.at || 0) <= since) continue;
     if (ev.type === 'you') {
       turns++;
-      const extra = [ev.images?.length ? ` [images: ${ev.images.map((i: Ev) => i.path).join(', ')}]` : '', ev.ctx?.path ? ` [open file: ${ev.ctx.path}]` : ''].join('');
+      const extra = [ev.images?.length ? ` [images: ${ev.images.map((i: Ev) => (imageAt ? imageAt(i.path) : i.path)).join(', ')}]` : '', ev.ctx?.path ? ` [open file: ${ev.ctx.path}]` : ''].join('');
       items.push({ who: 'user', text: String(ev.text || '') + extra });
     } else if (ev.type === 'turn') {
       if (ev.stopReason === 'cancelled') items.push({ who: 'note', text: '(the user stopped that turn)' });
@@ -273,9 +274,9 @@ export function handoff(events: Ev[], o: Input) {
   const from = names[o.from] || o.from, to = names[o.to] || o.to;
   const first = events.find((e) => e.type === 'switch')?.from || o.from;
   const sum = latestSummary(events, since);
-  const win = walk(events, sum.cut, o.cwd, names, first, true);
+  const win = walk(events, sum.cut, o.cwd, names, first, true, o.imageAt);
   const now = shrink(win.items, budget);
-  const all = walk(events, 0, o.cwd, names, first, false);
+  const all = walk(events, 0, o.cwd, names, first, false, o.imageAt);
 
   const files = [...new Set([...(o.files || []), ...all.items.filter((i) => i.who === 'tool' && /^edited /.test(i.text)).flatMap((i) => i.text.slice(7).replace(/ \(failed\)$/, '').split(', '))])].filter(Boolean);
   const plan = planOf(events);

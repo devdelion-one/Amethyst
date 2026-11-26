@@ -40,6 +40,7 @@ import type { ChildProcess, ChildProcessWithoutNullStreams } from 'child_process
 import type { ChatEvent, ChatPlace, Routes } from '../../public/base/types.ts';
 import { firstLine, replaceSync, stamp, TAIL, WIN } from '../base/util.ts';
 import { HttpError } from '../base/routes.ts';
+import { dataDir } from '../base/datadir.ts';
 
 interface AgentDef {
   name: string;
@@ -306,6 +307,7 @@ const sessionMeta = (c: Chat) => {
   if (c.agent === 'copilot') return {};
   if (c.agent === 'grok') return grokMeta(c.grokMode);
   const options = { thinking: { type: 'adaptive', display: 'summarized' }, ...(c.wt && !c.wt.gone ? { projectConfigRoot: c.wt.root } : {}), ...c.meta?.claudeCode?.options };
+  options.additionalDirectories = [...new Set([...(c.meta?.claudeCode?.options?.additionalDirectories || []), dataDir(home(c))])];
   if (c.memory) options.settings = { ...c.memory, ...c.meta?.claudeCode?.options?.settings };
   return { ...c.meta, claudeCode: { ...c.meta?.claudeCode, options, emitRawSDKMessages: [{ type: 'assistant' }] } };
 };
@@ -1569,7 +1571,8 @@ async function boot(c: Chat, a: AgentDef, how: How | null) {
   c.acct = acc?.id || null;
   c.memory = acc ? accts.memorySetting(acc, home(c)) : null;
   if (c.agent === 'copilot') c.copilotEffortRan = c.copilotEffort || '';
-  const args = [...a.args, ...(c.agySkip ? ['--dangerously-skip-permissions'] : []), ...(c.agySandbox ? ['--sandbox'] : []), ...(c.agent === 'copilot' && c.copilotEffort ? ['--reasoning-effort', c.copilotEffort] : [])];
+  try { fs.mkdirSync(dataDir(home(c)), { recursive: true }); } catch {}
+  const args = [...a.args, ...(c.agySkip ? ['--dangerously-skip-permissions'] : []), ...(c.agySandbox ? ['--sandbox'] : []), ...(c.agent === 'copilot' && c.copilotEffort ? ['--reasoning-effort', c.copilotEffort] : []), ...(c.agent === 'copilot' ? ['--add-dir', dataDir(home(c))] : [])];
   if (c.ended) throw new HttpError(409, 'the agent stopped');
   if (entry) c.proc = spawn(process.versions.electron ? 'node' : process.execPath, [entry], { cwd: home(c), env, windowsHide: true, stdio: 'pipe' });
   else if (WIN) {
@@ -1987,6 +1990,8 @@ function giveTo(c: Chat, am = 1) {
 }
 
 const IMAGE_DIR = '.amethyst/images';
+const imageFile = (cwd: string, rel: string) => path.join(dataDir(cwd), 'images', path.basename(rel));
+const handoffFile = (c: Chat, name: string) => path.join(dataDir(home(c)), 'handoffs', name);
 const IMAGE_EXT: Record<string, string> = { 'image/png': '.png', 'image/jpeg': '.jpg', 'image/gif': '.gif', 'image/webp': '.webp' };
 const MIME_OF: Record<string, string> = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp' };
 const MAX_IMAGE = 5 * 1024 * 1024, MAX_IMAGES = 6, MAX_ALL = 12 * 1024 * 1024;
@@ -1995,7 +2000,7 @@ function storeImage(cwd: string, im: any): ChatImage {
   if (!ext || typeof im.data !== 'string') throw new HttpError(400, 'images: png, jpeg, gif or webp only');
   const buf = Buffer.from(im.data, 'base64');
   if (buf.length > MAX_IMAGE) throw new HttpError(413, 'an image is bigger than 5 MB');
-  const dir = path.join(cwd, IMAGE_DIR);
+  const dir = path.join(dataDir(cwd), 'images');
   fs.mkdirSync(dir, { recursive: true });
   const base = String(im.name || '').replace(/\.[^.]*$/, '').replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-').slice(0, 60) || 'paste-' + stamp();
   let name = base + ext;
@@ -2009,7 +2014,7 @@ function saveImages(c: Chat, images: any): ChatImage[] {
   if (images.length > MAX_IMAGES) throw new HttpError(400, `at most ${MAX_IMAGES} images a message`);
   const out: ChatImage[] = [];
   for (const im of images) {
-    const file = typeof im?.path === 'string' && IMAGE_REL.test(im.path) ? path.join(home(c), im.path) : null;
+    const file = typeof im?.path === 'string' && IMAGE_REL.test(im.path) ? imageFile(home(c), im.path) : null;
     if (file && fs.existsSync(file)) out.push({ path: im.path, mimeType: MIME_OF[path.extname(file).toLowerCase()], data: fs.readFileSync(file).toString('base64') });
     else if (typeof im?.data === 'string') out.push(storeImage(home(c), im));
   }
@@ -2018,13 +2023,15 @@ function saveImages(c: Chat, images: any): ChatImage[] {
   return out;
 }
 function unuseImage(cwd: string, rel: string) {
-  const from = path.join(cwd, rel), dir = path.join(cwd, IMAGE_DIR, 'unused');
+  const from = imageFile(cwd, rel), dir = path.join(dataDir(cwd), 'images', 'unused');
   if (!fs.existsSync(from)) return;
   fs.mkdirSync(dir, { recursive: true });
   const ext = path.extname(rel), base = path.basename(rel, ext);
   let name = base + ext;
   for (let n = 2; fs.existsSync(path.join(dir, name)); n++) name = `${base}-${n}${ext}`;
   fs.renameSync(from, path.join(dir, name));
+  const now = new Date();
+  fs.utimesSync(path.join(dir, name), now, now);
 }
 function dropImages(c: Chat) {
   if (!c.images?.size || !c.cwd) return;
@@ -2035,6 +2042,11 @@ function dropImages(c: Chat) {
     try { unuseImage(home(c), rel); } catch {}
   }
   c.images.clear();
+}
+function dropHandoffs(c: Chat) {
+  if (!c.cwd) return;
+  const dir = path.dirname(handoffFile(c, 'x'));
+  for (const f of fs.existsSync(dir) ? fs.readdirSync(dir) : []) if (f.startsWith(c.id + '-') && f.endsWith('.md')) fs.rmSync(path.join(dir, f), { force: true });
 }
 function contextOf(c: Chat, ctx: any): Ctx | null {
   if (!ctx || typeof ctx.path !== 'string') return null;
@@ -2061,11 +2073,10 @@ function handoffOf(c: Chat, to: string, o: { from?: string; since?: number; befo
   const since = o.since ?? lastSpoke(c.events, to, c.agent);
   const events = o.before ? c.events.filter((e) => (e.at || 0) < o.before!) : c.events;
   const k = events.filter((e) => e.type === 'switch').length;
-  const file = path.join('.amethyst', 'handoffs', `${c.id}-${k}.md`);
-  const made = handoff(events, { from, to, since: o.all ? 0 : since, cwd: c.cwd, wt: c.wt && !c.wt.gone ? c.wt : null, files: Object.keys(c.review?.files || {}), rules: rulesFor(c, from, to), saved: o.all ? null : path.join(home(c), file), budget: o.all ? Infinity : undefined, names: NAMES });
+  const at = handoffFile(c, `${c.id}-${k}.md`);
+  const made = handoff(events, { from, to, since: o.all ? 0 : since, cwd: c.cwd, wt: c.wt && !c.wt.gone ? c.wt : null, files: Object.keys(c.review?.files || {}), rules: rulesFor(c, from, to), saved: o.all ? null : at, imageAt: (rel) => imageFile(home(c), rel), budget: o.all ? Infinity : undefined, names: NAMES });
   if (o.write) {
     try {
-      const at = path.join(home(c), file);
       fs.mkdirSync(path.dirname(at), { recursive: true });
       fs.writeFileSync(at, made.full + '\n');
     } catch {}
@@ -2084,7 +2095,7 @@ function blocksOf(c: Chat, { text, images, ctx }: Queued, carried?: string | nul
   const link = (rel: string, at = c.cwd) => ({ type: 'resource_link', uri: pathToFileURL(path.join(at, rel)).href, name: rel });
   const out: any[] = text ? [{ type: 'text', text: text.replace(/^\/clear(?=\s|$)/, ' $&') }] : [];
   if (carried) out[text.startsWith('/') ? 'push' : 'unshift']({ type: 'text', text: carried });
-  for (const im of images) out.push({ type: 'image', data: im.data, mimeType: im.mimeType }, link(im.path, home(c)));
+  for (const im of images) out.push({ type: 'image', data: im.data, mimeType: im.mimeType }, { type: 'resource_link', uri: pathToFileURL(imageFile(home(c), im.path)).href, name: im.path });
   if (ctx) out.push(ctx.sel ? { type: 'resource', resource: { uri: pathToFileURL(ctx.abs).href, mimeType: 'text/plain', text: ctx.sel } } : link(ctx.path));
   return out;
 }
@@ -2132,7 +2143,7 @@ async function prompt(c: Chat, msg: Queued) {
       const context = msg.ctx ? `\n\nCurrent file: ${msg.ctx.path}${msg.ctx.sel ? `\nSelected text:\n${msg.ctx.sel}` : ''}` : '';
       const input: any[] = [];
       if (msg.text || context || carried) input.push({ type: 'text', text: (carried ? carried.text + '\n\n' : '') + (msg.text || '') + context });
-      for (const im of msg.images) input.push({ type: 'localImage', path: path.resolve(home(c), im.path) });
+      for (const im of msg.images) input.push({ type: 'localImage', path: imageFile(home(c), im.path) });
       const done = new Promise<any>((resolve) => (c.turnDone = resolve));
       const mode = c.codexModePresets.find((m) => m.mode === c.codexMode);
       const params: any = { threadId: c.sessionId, input };
@@ -2307,7 +2318,7 @@ function shrinks(c: Chat, config: any) {
 }
 function saveWhole(c: Chat) {
   const n = 1 + c.events.filter((e) => e.type === 'shrink' && e.state === 'done').length;
-  const file = path.join('.amethyst', 'handoffs', `${c.id}-shrink-${n}.md`), at = path.join(home(c), file);
+  const at = handoffFile(c, `${c.id}-shrink-${n}.md`), file = at;
   try {
     fs.mkdirSync(path.dirname(at), { recursive: true });
     fs.writeFileSync(at, handoffOf(c, c.agent, { all: true }).full + '\n');
@@ -3133,6 +3144,7 @@ const ROUTES: Routes = {
       saidCache.delete(c.id);
       stop(c, 'closed');
       dropImages(c);
+      dropHandoffs(c);
     }
     live.drop(String(q!.get('id') || ''));
     return { ok: true };

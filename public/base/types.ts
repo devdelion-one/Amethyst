@@ -4,6 +4,7 @@ export interface FileMeta {
   seen?: number;
   created?: number;
   rank?: number;
+  gone?: number;
   ring?: number;
   [key: string]: unknown;
 }

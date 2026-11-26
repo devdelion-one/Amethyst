@@ -88,10 +88,11 @@ export const knownBinary = (name: string) => BINARY_EXT.test(name);
 const MAX_ENTRIES = 10000;
 export const ID = /^[a-z0-9]{1,24}$/;
 export const HEX = /^#[0-9a-f]{6}$/i;
-const META = `${DOT}/meta.json`;
-const SCRATCH = `${DOT}/scratch.json`;
-const SCRATCH_TEXT = `${DOT}/scratch.md`;
-const HIDE = `${DOT}/hide.json`;
+const META = 'meta.json';
+const SCRATCH = 'scratch.json';
+const SCRATCH_TEXT = 'scratch.md';
+const HIDE = 'hide.json';
+const GONE_FOR = 30 * 24 * 3600e3;
 const UE_HIDE = ['Intermediate', 'Binaries', 'Saved', 'DerivedDataCache', '.vs'];
 
 export const kindOf = (name: string) => (TEXT_EXT.test(name) ? 'code' : BOARD_EXT.test(name) ? 'board' : 'file');
@@ -337,7 +338,7 @@ const pickMeta = (m: Record<string, any> = {}) =>
       .map(([k, v]) => [k, k === 'color' && v ? v.toLowerCase() : v]),
   );
 
-export function openRoot(disk: Disk, saved: string | null, store: ArchiveStore) {
+export function openRoot(disk: Disk, saved: string | null, store: ArchiveStore, data: Disk = disk) {
   const same = (a: string, b: string) => (disk.caseless ? a.toLowerCase() === b.toLowerCase() : a === b);
   const isDir = async (rel: string) => !!(await disk.stat(rel))?.dir;
   const tree = treeCache(disk.caseless), raw = disk;
@@ -410,7 +411,7 @@ export function openRoot(disk: Disk, saved: string | null, store: ArchiveStore) 
     }
   }
   load(saved);
-  disk.remove(`${DOT}/prio.json`).catch(() => {});
+  data.remove('prio.json').catch(() => {});
   const unsaved = () => new HttpError(409, `${META} doesn't parse (${broken}): fix it and try again`);
 
   let metaWrite: Promise<unknown> = Promise.resolve(), writing = 0, known: number | null | undefined, checking: Promise<void> | null = null;
@@ -424,15 +425,15 @@ export function openRoot(disk: Disk, saved: string | null, store: ArchiveStore) 
       .then(async () => {
         if (!add) return;
         try {
-          const was = (await disk.read(SCRATCH_TEXT)) ?? '';
-          await disk.write(SCRATCH_TEXT, was.trim() ? `${was.replace(/\s+$/, '')}\n\n${add}\n` : `${add}\n`, { atomic: true });
+          const was = (await data.read(SCRATCH_TEXT)) ?? '';
+          await data.write(SCRATCH_TEXT, was.trim() ? `${was.replace(/\s+$/, '')}\n\n${add}\n` : `${add}\n`, { atomic: true });
         } catch (e) {
           moved = [add, ...(moved || [])];
           throw e;
         }
       })
-      .then(() => disk.write(META, json, { atomic: true }))
-      .then(() => disk.stat(META))
+      .then(() => data.write(META, json, { atomic: true }))
+      .then(() => data.stat(META))
       .then((s) => (known = s?.mtime))
       .finally(() => writing--);
     metaWrite = w.catch(() => {});
@@ -445,10 +446,10 @@ export function openRoot(disk: Disk, saved: string | null, store: ArchiveStore) 
     return (checking ||= (async () => {
       if (moved && !broken) await saveMeta();
       if (writing) return;
-      const mtime = (await disk.stat(META))?.mtime ?? null;
+      const mtime = (await data.stat(META))?.mtime ?? null;
       if (mtime === known || writing) return;
       if ((known !== undefined || broken) && mtime !== null) {
-        const text = await disk.read(META);
+        const text = await data.read(META);
         if (writing) return;
         load(text);
       }
@@ -510,7 +511,7 @@ export function openRoot(disk: Disk, saved: string | null, store: ArchiveStore) 
   const cleanHide = (l: unknown): string[] => (Array.isArray(l) ? l : []).map((n) => String(n).trim()).filter((n) => n && n.length <= 200 && !/[\r\n]/.test(n)).slice(0, 200);
   async function hideList() {
     try {
-      return cleanHide(JSON.parse((await disk.read(HIDE)) ?? '[]'));
+      return cleanHide(JSON.parse((await data.read(HIDE)) ?? '[]'));
     } catch {
       return [];
     }
@@ -526,12 +527,12 @@ export function openRoot(disk: Disk, saved: string | null, store: ArchiveStore) 
   async function readRules(): Promise<Ignored> {
     const at = (await disk.stat('.gitignore'))?.mtime || 0;
     if (at !== ignoreRule.at) ignoreRule = { at, test: at ? gitignore(await disk.read('.gitignore'), disk.caseless) : () => false };
-    let hat = (await disk.stat(HIDE))?.mtime || 0;
+    let hat = (await data.stat(HIDE))?.mtime || 0;
     if (!hat && !seeded) {
       seeded = true;
       if ((await disk.list('')).some((e) => e.file && /\.uproject$/i.test(e.name))) {
-        await disk.write(HIDE, JSON.stringify(UE_HIDE, null, 2) + '\n', { atomic: true });
-        hat = (await disk.stat(HIDE))?.mtime || 0;
+        await data.write(HIDE, JSON.stringify(UE_HIDE, null, 2) + '\n', { atomic: true });
+        hat = (await data.stat(HIDE))?.mtime || 0;
       }
     }
     if (hat !== hideRule.at) {
@@ -690,7 +691,7 @@ export function openRoot(disk: Disk, saved: string | null, store: ArchiveStore) 
     },
     touched(rel: string | null, skip?: Promise<boolean>) {
       if (!index.on) return;
-      if (rel == null || same(rel, '.gitignore') || same(rel, HIDE)) return void (index.all = true);
+      if (rel == null || same(rel, '.gitignore')) return void (index.all = true);
       const p = (skip ?? skips(rel))
         .then((skip) => skip || (index.dirty.size >= MAX_DIRTY ? (index.all = true) : index.dirty.add(rel)), () => {})
         .finally(() => index.waiting.delete(p));
@@ -788,7 +789,7 @@ export function openRoot(disk: Disk, saved: string | null, store: ArchiveStore) 
 
     'PUT /api/hidden': async ({ hidden }) => {
       if (!Array.isArray(hidden)) throw new HttpError(400, 'hidden must be a list');
-      await disk.write(HIDE, JSON.stringify(cleanHide(hidden), null, 2) + '\n', { atomic: true });
+      await data.write(HIDE, JSON.stringify(cleanHide(hidden), null, 2) + '\n', { atomic: true });
       await rulesChanged();
       return { ok: true };
     },
@@ -1004,8 +1005,8 @@ export function openRoot(disk: Disk, saved: string | null, store: ArchiveStore) 
     },
 
     'GET /api/scratch': async (_, q) => {
-      if (q.get('mode') === 'text') return { content: (await disk.read(SCRATCH_TEXT)) ?? '' };
-      const content = (await disk.read(SCRATCH)) ?? '';
+      if (q.get('mode') === 'text') return { content: (await data.read(SCRATCH_TEXT)) ?? '' };
+      const content = (await data.read(SCRATCH)) ?? '';
       let d: { items?: { type?: string; text?: unknown }[] } | null = null;
       try {
         d = JSON.parse(content);
@@ -1013,16 +1014,16 @@ export function openRoot(disk: Disk, saved: string | null, store: ArchiveStore) 
       const texts = Array.isArray(d?.items) ? d.items.filter((n) => n?.type === 'text') : [];
       if (!texts.length) return { content };
       const add = texts.map((n) => String(n.text ?? '').trim()).filter(Boolean).join('\n\n');
-      const was = (await disk.read(SCRATCH_TEXT)) ?? '';
-      if (add) await disk.write(SCRATCH_TEXT, was.trim() ? `${was.replace(/\s+$/, '')}\n\n${add}\n` : `${add}\n`, { atomic: true });
+      const was = (await data.read(SCRATCH_TEXT)) ?? '';
+      if (add) await data.write(SCRATCH_TEXT, was.trim() ? `${was.replace(/\s+$/, '')}\n\n${add}\n` : `${add}\n`, { atomic: true });
       d!.items = d!.items!.filter((n) => n?.type !== 'text');
       const next = JSON.stringify(d);
-      await disk.write(SCRATCH, next, { atomic: true });
+      await data.write(SCRATCH, next, { atomic: true });
       return { content: next };
     },
 
     'PUT /api/scratch': async ({ content, mode }) => {
-      await disk.write(mode === 'text' ? SCRATCH_TEXT : SCRATCH, String(content ?? ''), { atomic: true });
+      await data.write(mode === 'text' ? SCRATCH_TEXT : SCRATCH, String(content ?? ''), { atomic: true });
       return { ok: true };
     },
 
@@ -1072,5 +1073,21 @@ export function openRoot(disk: Disk, saved: string | null, store: ArchiveStore) 
         return f(...a);
       };
 
-  return { ROUTES, disk, archivePlace: () => store.abs(''), walkFiles, skips, hiddenTop, rulesChanged, search, tree, saveMeta, fresh, get meta() { return meta; }, get broken() { return broken; } };
+  async function pruneGone(now = Date.now()) {
+    if (broken || !(await disk.stat(''))?.dir) return 0;
+    let changed = 0;
+    for (const [rel, f] of Object.entries(meta.files)) {
+      const there = !!(await disk.stat(rel));
+      if (there && f.gone == null) continue;
+      if (there) delete f.gone;
+      else if (f.gone == null) f.gone = now;
+      else if (now - f.gone > GONE_FOR) delete meta.files[rel];
+      else continue;
+      changed++;
+    }
+    if (changed) await saveMeta();
+    return changed;
+  }
+
+  return { ROUTES, disk, archivePlace: () => store.abs(''), walkFiles, skips, hiddenTop, rulesChanged, search, tree, saveMeta, fresh, pruneGone, get meta() { return meta; }, get broken() { return broken; } };
 }

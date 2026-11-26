@@ -34,6 +34,8 @@ import { checkActs } from './server/base/acts.ts';
 import { installCli, removeCli } from './server/cli/install.ts';
 import { inFlight, startHitch } from './server/base/hitch.ts';
 import { Raw, raw, serveStatic } from './server/base/page.ts';
+import { dataDir, initDataDir, sweepUnused } from './server/base/datadir.ts';
+import { moveOldData, moveOne } from './server/base/olddata.ts';
 import { DOT, HttpError, HEX, ID, MAX_TEXT, cleanName, guard, knownBinary, newId, openRoot } from './server/base/routes.ts';
 import { MAX_PATHS, TEXT_EXT, BOARD_EXT } from './public/base/files.ts';
 import type { IncomingMessage, ServerResponse } from 'http';
@@ -79,6 +81,7 @@ const APP_DATA = (() => {
   return fs.existsSync(path.join(base, now, 'workspace')) || !fs.existsSync(path.join(base, old, 'workspace')) ? path.join(base, now) : path.join(base, old);
 })();
 const WS_DIR = path.resolve(flag('workspace') || process.env.MIND_WORKSPACE || path.join(APP_DATA, 'workspace'));
+initDataDir({ base: flag('workspace') || process.env.MIND_WORKSPACE ? path.join(WS_DIR, DOT, 'projects') : path.join(APP_DATA, 'projects'), home: WS_DIR });
 const PORT = Number(process.env.PORT) || 4777;
 delete process.env.PORT;
 const ARCHIVE = path.resolve(flag('archive') || (flag('workspace') || process.env.MIND_WORKSPACE ? path.join(WS_DIR, DOT, 'archive') : path.join(APP_DATA, 'archive')));
@@ -245,12 +248,15 @@ function dropCached(p: string) {
 function rootAt(dir: string): Root {
   const key = WIN ? dir.toLowerCase() : dir;
   if (!roots.has(key)) {
+    moveOne(dir, WS_DIR);
+    const data = dataDir(dir);
     let saved: string | null = null;
     try {
-      saved = fs.readFileSync(path.join(dir, DOT, 'meta.json'), 'utf8');
+      saved = fs.readFileSync(path.join(data, 'meta.json'), 'utf8');
     } catch {}
-    const R = Object.assign(openRoot(nodeDisk(dir), saved, archiveStore(dir)), { ROOT: dir });
-    if (R.broken) console.error(`${path.join(dir, DOT, 'meta.json')} doesn't parse (${R.broken}): it is not saved until it is fixed`);
+    const R = Object.assign(openRoot(nodeDisk(dir), saved, archiveStore(dir), nodeDisk(data)), { ROOT: dir });
+    if (R.broken) console.error(`${path.join(data, 'meta.json')} doesn't parse (${R.broken}): it is not saved until it is fixed`);
+    setTimeout(() => R.pruneGone().catch(() => {}), 5000).unref();
     roots.set(key, R);
   }
   return roots.get(key)!;
@@ -258,7 +264,9 @@ function rootAt(dir: string): Root {
 
 fs.mkdirSync(WS_DIR, { recursive: true });
 const HOME = 'main';
+moveOldData(WS_DIR);
 const HOME_ROOT = rootAt(WS_DIR);
+setTimeout(() => sweepUnused().catch(() => {}), 10000).unref();
 agents.init({ dataDir: path.join(WS_DIR, DOT), claudeTerms: (account, am) => terms.claudeOff(account, am), claudeTermsOn: (account) => terms.claudeOn(account), archive: (from, label) => moveAcross(from, path.join(archiveAt('claude accounts'), label)), checkpoints: CHECKPOINTS });
 const worktreesDir = () => {
   const w = HOME_ROOT.meta.worktrees;
@@ -519,13 +527,13 @@ function watchFiles(R: Root, out: Out) {
         const rel = name.split(path.sep).join('/');
         if (!rel.includes('/') || !R.hiddenTop(rel)) R.tree.changed(rel);
         if (rel.startsWith('.git/') && gitState(rel.slice(5))) return;
-        const meta = same(rel, `${DOT}/meta.json`), rules = same(rel, '.gitignore') || same(rel, `${DOT}/hide.json`);
+        const rules = same(rel, '.gitignore');
         if (rules) R.rulesChanged();
-        else if (!meta && R.hiddenTop(rel)) return;
+        else if (R.hiddenTop(rel)) return;
         const skip = R.skips(rel).catch(() => true);
         R.search.touched(rel, skip);
         if (ownChange(path.join(R.ROOT, name))) return ring(false);
-        if (meta || same(rel, '.gitignore')) return ring(null);
+        if (rules) return ring(null);
         skip.then((s: boolean) => s || ring(rel));
       });
     } catch {
@@ -828,7 +836,7 @@ const APP_ROUTES: Routes = {
     if (!R.meta.projects.length) {
       for (const d of await fsp.readdir(p, { withFileTypes: true }).catch(() => [])) {
         const sub = path.join(p, d.name);
-        if (d.isDirectory() && !d.name.startsWith('.') && !wsList().some((x) => same(x.path, sub)) && (await isDir(path.join(sub, DOT)))) R.meta.projects.push({ id: newId(), name: d.name, path: sub, desc: '', color: null });
+        if (d.isDirectory() && !d.name.startsWith('.') && !wsList().some((x) => same(x.path, sub)) && ((await isDir(dataDir(sub))) || (await isDir(path.join(sub, DOT))))) R.meta.projects.push({ id: newId(), name: d.name, path: sub, desc: '', color: null });
       }
       R.meta.projects = cleanProjects(R.meta.projects);
       if (R.meta.projects.length) await R.saveMeta();

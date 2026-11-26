@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { DOT } from '../base/routes.ts';
+import { dataDir } from '../base/datadir.ts';
 
 export interface Bp {
   file: string;
@@ -36,7 +36,7 @@ export function readBps(root: string): Bp[] {
   if (cache.has(k)) return cache.get(k)!;
   let list: Bp[] = [];
   try {
-    const j = JSON.parse(fs.readFileSync(path.join(root, DOT, FILE), 'utf8'));
+    const j = JSON.parse(fs.readFileSync(path.join(dataDir(root), FILE), 'utf8'));
     list = (Array.isArray(j?.list) ? j.list : []).map(clean).filter(Boolean) as Bp[];
   } catch {}
   cache.set(k, list);
@@ -53,7 +53,7 @@ export async function writeBps(root: string, list: Bp[]) {
   });
   out.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line);
   cache.set(fold(root), out);
-  const dir = path.join(root, DOT);
+  const dir = dataDir(root);
   if (!out.length && !fs.existsSync(path.join(dir, FILE))) return out;
   await fs.promises.mkdir(dir, { recursive: true });
   const tmp = path.join(dir, `${FILE}.${process.pid}.tmp`);
