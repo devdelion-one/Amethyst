@@ -171,6 +171,7 @@ export const ICONS: Record<string, string> = {
   modes: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 5.5h3.5v5h-3.5zM6.25 5.5h3.5v5h-3.5zM11 5.5h3.5v5h-3.5z"/></svg>',
   create: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg>',
   strip: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 2.5h11v11h-11zM6.5 2.5v11M3.75 5h1.5M3.75 7.5h1.5M3.75 10h1.5"/></svg>',
+  stripR: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 2.5h11v11h-11zM9.5 2.5v11M10.75 5h1.5M10.75 7.5h1.5M10.75 10h1.5"/></svg>',
   topDash: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 2.5h11v11h-11zM2.5 6.5h11M9.75 4.5h2"/></svg>',
   fmtBar: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 2.5h13v6h-13zM4.5 4.5v2M7 4.5v2M9.5 4.5v2M12 4.5v2M3 12.5h10"/></svg>',
   sepAdd: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v11M3.5 8h1.5M11 8h1.5"/></svg>',
@@ -484,7 +485,8 @@ ${cap(t)}${/[.!?]$/.test(t) ? '' : '.'}`;
   }
   if (flyNow) flyNow.style.display = '';
   const r = m.getBoundingClientRect(), fitX = (v: number) => Math.max(8, Math.min(v, innerWidth - r.width - 8)), fitY = (v: number) => Math.max(8, Math.min(v, innerHeight - r.height - 8));
-  m.style.left = fitX(was ? was[0] : x) + 'px';
+  const rr = document.querySelector('#app.rail-right #activity')?.getBoundingClientRect(), byRail = !was && !!rr?.width && x >= rr.left - 1 && y >= rr.top && y <= rr.bottom;
+  m.style.left = fitX(was ? was[0] : byRail ? rr!.left - 6 - r.width : x) + 'px';
   m.style.top = fitY(was ? was[1] : up ? y - r.height : y) + 'px';
   m.scrollTop = was ? scrolled : 0;
   scrolled = m.scrollTop;
@@ -818,7 +820,7 @@ export function topBarMenu(x: number, y: number, o: TopOpts = {}) {
       return inner ? subLabel(name) + inner : '';
     };
     const tools = TOPBAR.map((g) => g.g).filter((g) => g !== 'strip' && g !== 'modes');
-    html = (o.head || menuHead(ICONS.strip, 'rail')) + bands({ actions: ((o.acts ?? railActs.rows()) || '') + dashRow(), buttons: band('panels', ['strip']) + band('modes', ['modes']) + band('tools', tools) });
+    html = (o.head || menuHead(ICONS.strip, 'rail')) + bands({ actions: ((o.acts ?? railActs.rows()) || '') + dashRow() + railRow(), buttons: band('panels', ['strip']) + band('modes', ['modes']) + band('tools', tools) });
   } else {
     const g = TOPBAR.find((t) => t.g === o.tray)!;
     html = (o.head || menuHead(g.icon?.() || '', g.name)) + bands({ actions: (o.acts || '') + (g.acts?.() || ''), options: o.opts, buttons: (o.buttons || '') + rowsOf(g), pick: o.pick, other: `<button class="mi tb-all" data-tball><i class="tb-ic">${ICONS.strip}</i><span class="mi-n">all rail buttons</span><span class="kc">›</span></button>` });
@@ -833,6 +835,7 @@ export function topBarMenu(x: number, y: number, o: TopOpts = {}) {
     }
     if ('use' in d) return useBtn(b, null);
     if (!o.tray && dashPick(b)) return;
+    if (!o.tray && railPick(b)) return;
     if (!o.tray && d.qpin && !b.classList.contains('on')) o.onShow?.({ pin: d.qpin });
     if (!o.tray && TOPBAR.some((g) => g.pre?.pick(b))) return;
     if (d.tbact) return TOPBAR.find((g) => g.g === d.tbact)?.onAct?.(b);
@@ -849,6 +852,11 @@ ${PREFS['dash:on'].desc}`;
   return `<button class="mi" data-dashhide title="${esc(say)}"><i class="tb-ic">${ICONS.topDash}</i><span class="mi-n">${on ? 'hide the dashboard' : 'show the dashboard'}</span>${keyChip('dashKey')}</button>`;
 };
 export const dashPick = (b: HTMLElement) => 'dashhide' in b.dataset && (setPref('dash:on', !pref('dash:on')), true);
+export const railRow = () => {
+  const r = !!pref('rail:right'), say = `Rail on the ${r ? 'left' : 'right'}\nMoves the rail to the ${r ? 'left' : 'right'} edge of the window. You can also drag an empty spot of the rail there.`;
+  return `<button class="mi" data-railside title="${esc(say)}"><i class="tb-ic">${r ? ICONS.strip : ICONS.stripR}</i><span class="mi-n">${r ? 'rail on the left' : 'rail on the right'}</span></button>`;
+};
+export const railPick = (b: HTMLElement) => 'railside' in b.dataset && (setPref('rail:right', !pref('rail:right')), true);
 const railActs: { rows: () => string; pick: (b: HTMLElement, at: number | null) => unknown } = { rows: () => '', pick: () => {} };
 export const railActions = (rows: () => string, pick: (b: HTMLElement, at: number | null) => unknown) => Object.assign(railActs, { rows, pick });
 export const topBarRows = (g: string, pre: TopPre) => void (TOPBAR.find((t) => t.g === g)!.pre = pre);

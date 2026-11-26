@@ -31,6 +31,7 @@ function saveDash(at: Spots) {
 }
 const kindOf = (ref: string) => ref.slice(0, ref.indexOf(':'));
 export const inDash = (ref: string) => Number.isInteger(dashSpots()[ref]);
+export const dashSpot = (ref: string): number | null => (Number.isInteger(dashSpots()[ref]) ? dashSpots()[ref] : null);
 
 const RAIL: [string, string, 't' | 'b', string][] = [
   ['btn:index', '#btn-index', 't', 'strip'],
@@ -391,8 +392,9 @@ function placeFold(sf: Surf) {
     box.style.left = Math.max(8, Math.min(l, innerWidth - w - 8)) + 'px';
     return;
   }
+  const a = $('#activity').getBoundingClientRect();
   box.style.top = '';
-  box.style.left = $('#activity').getBoundingClientRect().right + 6 + 'px';
+  box.style.left = ($('#app').classList.contains('rail-right') ? a.left - 6 - box.offsetWidth : a.right + 6) + 'px';
   box.style.bottom = Math.max(8, innerHeight - r.bottom - 3) + 'px';
 }
 function setFold(sf: Surf, on: boolean) {

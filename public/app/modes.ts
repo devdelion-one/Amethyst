@@ -327,6 +327,7 @@ function dropRef(ref: string, slot: number, side: Side = 'rail') {
   drawn = '';
   paintSwitch();
   if (!atWs()) syncOrders();
+  page.layout();
   landSlot(ref);
 }
 slotDrag(dropRef);

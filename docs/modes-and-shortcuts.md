@@ -4,7 +4,7 @@ Amethyst is built around switching cleanly between views of your work without lo
 
 ## Workspace modes
 
-Switch between modes from the left rail or with shortcuts:
+Switch between modes from the rail or with shortcuts:
 
 - **Editor (`Alt+E`):** CodeMirror 6 editor with splits (`Ctrl+\`), tab groups, diff tabs, Markdown preview, image/PDF viewing, and chats beside your code. Press `Alt+E` again to cycle saved editor layouts (`Alt+Shift+E` creates a new layout).
 - **Agents (`Alt+A`):** a live grid of chats organized into sets, with a spotlight column and a bench (`Alt+B`) for chats that keep running out of view. Press `Alt+A` again to cycle sets (`Alt+Shift+A` creates a new set).

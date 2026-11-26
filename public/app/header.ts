@@ -13,6 +13,7 @@ import { newProject } from './levels.ts';
 import { web } from '../minds/minds.ts';
 import { addAgent, MODES, openSettings, setMode } from './modes.ts';
 import { railChanged, setPinDrag, usePins } from './slots.ts';
+import { sideOf, stripMenu } from './railside.ts';
 import { api, atLaunch, atWs, mode, S } from '../base/model.ts';
 import { newQuickAgent, toggleQuickAgent } from '../chat/qagent.ts';
 import { agentRight, pinOf } from '../base/agentmenu.ts';
@@ -96,7 +97,7 @@ onPref('act:off', () => {
   if (isOff('act:off', 'github') && S.sideView === 'github' && sideShown()) toggleGithub(false);
   paintStrip();
 });
-barMenu('#switch > .sv[data-g=strip]', '', { open: (_el, e) => topBarMenu(e.clientX, e.clientY, { tray: 'strip' }) });
+barMenu(':is(#switch, #dash > .slots) > .sv[data-g=strip]', '', { open: (el, e) => stripMenu(el, e.clientX, e.clientY) });
 barMenu('#pins > .bt', '');
 
 export const newWindowKey = () => show(bound('newWindowKey'));
@@ -219,7 +220,7 @@ $<HTMLElement>('#side-grip').addEventListener('pointerdown', (e) => {
   track(e, {
     capture: e.currentTarget as HTMLElement,
     move(ev) {
-      want = w0 + ev.clientX - x0;
+      want = w0 + (ev.clientX - x0) * (sideOf() === 'right' ? -1 : 1);
       frame ||= requestAnimationFrame(() => ((frame = 0), sideW(want)));
     },
     end() {

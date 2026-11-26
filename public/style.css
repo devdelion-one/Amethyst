@@ -140,10 +140,23 @@ body.resizing-y, body.resizing-y * { cursor: row-resize !important; user-select:
 
 #side { position: relative; flex: none; width: var(--side-w, 240px); margin: 0; border: 0; border-radius: var(--r-panel); background: var(--chrome); }
 #app.side-hidden #side { display: none; }
-#app.side-over #side { position: absolute; z-index: 30; top: 0; bottom: 0; left: calc(var(--act-w) + var(--gap)); max-width: calc(100% - var(--act-w) - 12px); box-shadow: var(--float); animation: side-in .12s ease-out; }
-#app.orch.side-over #side { left: var(--side-l, calc(var(--act-w) + var(--gap))); max-width: var(--side-mw, calc(100% - var(--act-w) - 12px)); }
+#app.side-over #side { position: absolute; z-index: 30; top: 0; bottom: 0; left: var(--rail-l); max-width: calc(100% - var(--act-w) - 12px); box-shadow: var(--float); animation: side-in .12s ease-out; }
+#app.orch.side-over #side { left: var(--side-l, var(--rail-l)); max-width: var(--side-mw, calc(100% - var(--act-w) - 12px)); }
+#app.side-over.side-right #side { left: auto; right: var(--rail-r); animation-name: side-in-r; }
+#app.orch.side-over.side-right #side { left: auto; right: var(--side-r, var(--rail-r)); }
 #app.side-over.side-away #side { visibility: hidden; pointer-events: none; }
 @keyframes side-in { from { translate: -12px 0; opacity: 0; } }
+@keyframes side-in-r { from { translate: 12px 0; opacity: 0; } }
+#app { --rail-l: calc(var(--act-w) + var(--gap)); --rail-r: 0px; }
+#app.rail-right { --rail-l: 0px; --rail-r: calc(var(--act-w) + var(--gap)); }
+#app.rail-right #activity { order: 99; }
+#app.side-right :is(#side, #wsx) { order: 98; }
+#app.side-right #side-grip { right: auto; left: calc(-1 * var(--gap)); }
+#activity { cursor: grab; }
+#activity.rd-lift { opacity: .35; }
+#activity.rd-ghost { position: fixed; z-index: 1000; margin: 0; pointer-events: none; opacity: .95; box-shadow: var(--float); }
+body.rd-moving, body.rd-moving * { cursor: grabbing !important; user-select: none; }
+.rd-land { position: fixed; z-index: 999; width: 3px; border-radius: var(--r-xs); background: color-mix(in srgb, var(--accent) 70%, transparent); pointer-events: none; }
 #side-grip { position: absolute; top: 0; right: calc(-1 * var(--gap)); bottom: 0; z-index: 4; width: var(--gap); border-radius: var(--r-xs); cursor: col-resize; }
 #side-grip::after, .oc-grip::after, .oc-lgrip::after, .rs-sg::after, .gut::after { content: ""; position: absolute; inset: 0 calc((var(--gap) - 8px) / 2); }
 :is(.spl.sp-col > .gut, .rs-sp[data-split="col"] > .rs-sg)::after { inset: calc((var(--gap) - 8px) / 2) 0; }
@@ -3229,6 +3242,8 @@ a.up-btn { display: flex; align-items: center; text-decoration: none; }
 .hr-uebar { background: var(--bg); }
 .hr-railfig { display: flex; justify-content: center; padding: 6px 0; background: var(--ground); }
 .hr-railfig > .hr-rail { flex: none; }
+.hr-railfig.hr-rright { justify-content: flex-end; padding-right: 12px; }
+.hr-railfig.hr-rleft { justify-content: flex-start; padding-left: 12px; }
 .hr-pic[data-place=top] > .hr-rail { zoom: .6; }
 .hr-uebar > :is(.ue-top, .ue-lbar) { position: static; border-bottom: 0; }
 .hr-dbg { background: var(--bg); }
@@ -4344,9 +4359,10 @@ body.site-doc { display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto
 
 @media (max-width: 860px) {
   .gbody > #editor:not(.docked) { left: 0; width: auto; translate: none; }
-  #side { position: absolute; z-index: 30; top: 0; bottom: 0; left: var(--act-w); max-width: calc(100% - var(--act-w) - 12px); box-shadow: var(--float); }
-  #pins { position: absolute; z-index: 30; top: 0; bottom: 0; right: 0; box-shadow: var(--float); }
-  #app.orch #pins { right: var(--pins-r, 0); max-width: var(--pins-mw, none); }
+  #side { position: absolute; z-index: 30; top: 0; bottom: 0; left: max(0px, calc(var(--rail-l) - var(--gap))); max-width: calc(100% - var(--act-w) - 12px); box-shadow: var(--float); }
+  #app.side-right #side { left: auto; right: max(0px, calc(var(--rail-r) - var(--gap))); }
+  #pins { position: absolute; z-index: 30; top: 0; bottom: 0; right: max(0px, calc(var(--rail-r) - var(--gap))); box-shadow: var(--float); }
+  #app.orch #pins { right: var(--pins-r, max(0px, calc(var(--rail-r) - var(--gap)))); max-width: var(--pins-mw, none); }
   .spl.sp-row { flex-direction: column; }
   .spl.sp-row > .gut { width: auto; height: 1px; pointer-events: none; }
 }

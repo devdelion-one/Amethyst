@@ -19,6 +19,7 @@ import { renderModes } from './modes.ts';
 import { filesUnder, placeFiles, setAutoUnder } from '../orch/orch.ts';
 import { placeAll } from './places.ts';
 import { renderPins } from './pins.ts';
+import { paintSides, railRight, sideOf } from './railside.ts';
 import { onPjHidden, pjHidden, setPjHidden } from './pjhide.ts';
 import { icon } from '../base/icon.ts';
 import { api, atLaunch, atWs, dirGem, dirLabel, gemOf, HOME, inboxLoc, inboxTint, levelKey, load, matches, patch, mode, pjColor, projectOf, rawUrl, S, setLayout, sizeOf, tintOf, within } from '../base/model.ts';
@@ -108,6 +109,7 @@ export function sideNow() {
   const wsed = S.wsEditor && mode() === 'editor';
   app.classList.toggle('side-hidden', !sideShown() || wsed);
   app.classList.toggle('side-over', sideOver());
+  paintSides();
   app.classList.toggle('scm', S.sideView === 'git');
   app.classList.toggle('setup', S.sideView === 'setup');
   app.classList.toggle('ghv', S.sideView === 'github');
@@ -164,7 +166,7 @@ function underIf(on: boolean) {
   app.classList.toggle('orch-under', want);
   placeFiles();
 }
-const ORCH_VARS = ['--side-l', '--side-mw', '--pins-r', '--pins-mw'];
+const ORCH_VARS = ['--side-l', '--side-r', '--side-mw', '--pins-r', '--pins-mw'];
 type OrchFit = { off: true } | { off: false; under: boolean | null; vars: Record<string, string | null> | null };
 function readOrch(): OrchFit {
   const app = $('#app'), shell = $('#shell');
@@ -179,22 +181,21 @@ function readOrch(): OrchFit {
     under = need > end - shell.getBoundingClientRect().left + 0.5 || ar.height > ar.width;
   }
   if (!rail) return { off: false, under, vars: null };
-  const s = { left: shell.getBoundingClientRect().left, right: end }, r = rail.getBoundingClientRect(), a = $('#activity').getBoundingClientRect();
-  const left = (a.width ? a.right : s.left) - s.left, vars: Record<string, string | null> = {};
-  if (r.left - s.left - left <= gap * 2 + 1) {
-    vars['--side-l'] = `${r.right - s.left + gap}px`;
-    vars['--side-mw'] = `${s.right - r.right - gap * 2}px`;
+  const s = { left: shell.getBoundingClientRect().left, right: end }, r = rail.getBoundingClientRect(), a = $('#activity').getBoundingClientRect(), rr = railRight();
+  const lw = a.width && !rr ? a.right - s.left : 0, rw = a.width && rr ? s.right - a.left : 0, vars: Record<string, string | null> = {};
+  const atLeft = r.left - s.left - lw <= gap * 2 + 1, atRight = s.right - rw - r.right <= gap * 2 + 1;
+  const leftMw = `${r.left - s.left - lw - gap * 2}px`, rightMw = `${s.right - rw - r.right - gap * 2}px`;
+  vars['--side-l'] = null;
+  vars['--side-r'] = null;
+  if (sideOf() === 'right') {
+    if (atRight) vars['--side-r'] = `${s.right - r.left + gap}px`;
+    vars['--side-mw'] = atRight ? leftMw : rightMw;
   } else {
-    vars['--side-l'] = null;
-    vars['--side-mw'] = `${r.left - s.left - left - gap * 2}px`;
+    if (atLeft) vars['--side-l'] = `${r.right - s.left + gap}px`;
+    vars['--side-mw'] = atLeft ? rightMw : leftMw;
   }
-  if (s.right - r.right <= gap + 1) {
-    vars['--pins-r'] = `${s.right - r.left + gap}px`;
-    vars['--pins-mw'] = `${r.left - s.left - left - gap * 2}px`;
-  } else {
-    vars['--pins-r'] = null;
-    vars['--pins-mw'] = `${s.right - r.right - gap * 2}px`;
-  }
+  vars['--pins-r'] = atRight ? `${s.right - r.left + gap}px` : null;
+  vars['--pins-mw'] = atRight ? leftMw : rightMw;
   return { off: false, under, vars };
 }
 function writeOrch(f: OrchFit): boolean {

@@ -12,7 +12,7 @@ import { esc } from '../base/util.ts';
 import { addPart, box, isOn, mark, markAll, pic, rowHtml, subh, wordsOf } from './setstd.ts';
 import type { At, Row } from './setstd.ts';
 
-export const TOP_LEAD = 'What shows in the left rail. Click a switch to hide or show a button. Right-clicking the rail does the same, and dragging a button moves it to another cell, also into the dashboard and back.';
+export const TOP_LEAD = 'What shows in the rail, and which edge it sits at. Click a switch to hide or show a button. Right-clicking the rail does the same, and dragging a button moves it to another cell, also into the dashboard and back.';
 type Tray = (typeof TOPBAR)[number];
 type TopRow = Tray['rows'][number];
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -93,6 +93,7 @@ const rowInDash = (a: At) => {
   return !!ref && inDash(ref);
 };
 const DASH_SEL: Record<string, string> = { 'dash:on': '#dash' };
+const sideRow = (): Row => ({ id: 'rail:right', key: 'rail:right', sw: 'onoff', plain: true, at: [{ key: 'rail:right', place: 'top' }] });
 const dashRow = (): Row => ({ id: 'dash:on', key: 'dash:on', at: [{ key: 'dash:on', place: 'dash' }], ctl: () => keyChip('dashKey') });
 
 const cells = (navs: string[]) => `<nav id="activity" class="hr-rail" style="height:${navs.length * 32}px"><div id="switch" class="slots">${navs.map((n, i) => n.replace('<nav ', `<nav style="top:${i * 32}px" `)).join('')}</div></nav>`;
@@ -123,14 +124,16 @@ const dbgBar = () => {
 function example(a: At) {
   if (a.place === 'dash') return pic(mark(dashPic(), [a], sel, a), 'dash', ' hr-ex');
   if (a.place === 'top' && rowInDash(a)) return pic(mark(dashPic(), [a], sel, a), 'top', ' hr-ex');
-  if (a.place === 'top') return pic(markAll(railHtml(), barRows().map((r) => r.at[0]), sel, a), 'top', ' hr-ex hr-railfig');
+  const edge = pref('rail:right') ? ' hr-rright' : a.key === 'rail:right' ? ' hr-rleft' : '';
+  if (a.key === 'rail:right') return pic(railHtml(), 'top', ' hr-ex hr-railfig' + edge);
+  if (a.place === 'top') return pic(markAll(railHtml(), barRows().map((r) => r.at[0]), sel, a), 'top', ' hr-ex hr-railfig' + edge);
   if (a.place === 'make') return pic(mark(makePic(), pinRows().map((r) => r.at[0]), sel, a), 'make', ' hr-ex hr-railfig');
   if (a.place === 'edbtn' || a.place === 'modebtn') return pic(mark(wkPic(a.place, isOn(a)), [a], sel, a), a.place, ' hr-ex hr-railfig');
   if (a.place === 'ue') return pic(mark(ueBar(a.id), ueRows().map((r) => r.at[0]), sel, a), 'ue', ' hr-ex');
   return pic(mark(dbgBar(), dbgRows().map((r) => r.at[0]), sel, a), 'dbg', ' hr-ex');
 }
 
-addPart({ rows: () => [...barRows(), ...pinRows(), ...alsoRows(), dashRow()], sel, look: () => '', example, home: 'show/top' });
+addPart({ rows: () => [sideRow(), ...barRows(), ...pinRows(), ...alsoRows(), dashRow()], sel, look: () => '', example, home: 'show/top' });
 addPart({ rows: ueRows, sel, look: () => '', example, home: 'show/quick' });
 addPart({ rows: dbgRows, sel, look: () => '', example, home: 'show/edit' });
 
@@ -141,8 +144,8 @@ export function topHtml() {
     rows += subh(TRAYS[t.g][0]) + sub(TRAYS[t.g][1]) + t.rows.map((r) => rowHtml(barRow(r))).join('');
     if (t.g === 'make' && pinRows().length) rows += subh('Pinned under new') + sub('Buttons that make one thing in one click. They sit just under new. Pick which ones.') + pinRows().map(rowHtml).join('');
   }
-  return box('top', 'Left rail', rows, 'The column of buttons down the left edge of the main window: the panels at the top, then the modes, and the tools at the bottom. Drag a button to another cell to move it, or up into the dashboard. Only Window 1 has one.') +
-    box('topalso', 'Also on the left rail', alsoRows().map(rowHtml).join('')) +
+  return box('top', 'Rail', rowHtml(sideRow()) + rows, 'The column of buttons down the left or right edge of the main window: the panels at the top, then the modes, and the tools at the bottom. Drag a button to another cell to move it, or up into the dashboard. Drag an empty spot of the rail to move it to the other edge. Only Window 1 has one.') +
+    box('topalso', 'Also on the rail', alsoRows().map(rowHtml).join('')) +
     box('dash', 'Dashboard', rowHtml(dashRow()), 'The row above the windows. It starts with start agent at its right end. Drag any rail button into it, or back to the rail. Right-click an empty cell to put a button there. Only Window 1 has one.');
 }
 export const ueBarHtml = () => (ueRows().length ? box('uebar', "Unreal build window's bar", ueRows().map(rowHtml).join(''), 'The bar at the top of the Unreal build window, and the bar over each of its logs. Right-clicking either bar hides and shows the same buttons.') : '');
