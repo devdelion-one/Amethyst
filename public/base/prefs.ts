@@ -606,11 +606,6 @@ export const chatsOn = (): string[][] => {
   const off = pref('agents:off'), on = CHATS.filter(([k]) => !off.includes(k));
   return on.length ? on : CHATS.slice(0, 1);
 };
-{
-  const met: string[] = store.get('agents:optin', []), fresh = OPT_IN.filter((k) => !met.includes(k)), was = store.get('agents:off', null);
-  if (fresh.length && Array.isArray(was)) store.set('agents:off', [...new Set([...was, ...fresh])]);
-  if (fresh.length) store.set('agents:optin', [...met, ...fresh]);
-}
 export const termOn = (id: string): boolean => id === 'claude' || !CHATS.some(([k]) => k === id) || chatOn(id);
 export const savedOff = (key: string, id: string): boolean => saved(key).includes(id);
 export const setOff = (key: string, id: string, off: boolean) => setPref(key, saved(key).filter((x: string) => x !== id).concat(off ? [id] : []));
