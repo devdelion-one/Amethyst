@@ -16,6 +16,7 @@ import { ghNote, renderGithub } from '../github/ghpanel.ts';
 import { handle, runWeb, web } from '../minds/minds.ts';
 import { follow } from '../base/stream.ts';
 import { renderModes } from './modes.ts';
+import { filesUnder, placeFiles, setAutoUnder } from '../orch/orch.ts';
 import { placeAll } from './places.ts';
 import { renderPins } from './pins.ts';
 import { onPjHidden, pjHidden, setPjHidden } from './pjhide.ts';
@@ -155,11 +156,19 @@ const flowW = (e: Element) => {
   const cs = getComputedStyle(e);
   return cs.display === 'none' || cs.display === 'contents' || cs.position === 'absolute' ? -1 : (e as HTMLElement).offsetWidth;
 };
+function underIf(on: boolean) {
+  const app = $('#app');
+  setAutoUnder(on);
+  const want = app.classList.contains('orch') && filesUnder();
+  if (want === app.classList.contains('orch-under')) return;
+  app.classList.toggle('orch-under', want);
+  placeFiles();
+}
 function fitOrch() {
   const app = $('#app'), shell = $('#shell'), st = app.style;
   const rail = [...document.querySelectorAll<HTMLElement>('#decks .oc:not([hidden]) > .oc-rail')].find((e) => e.offsetParent);
   if (!app.classList.contains('orch') || (!rail && !app.classList.contains('orch-nolist'))) {
-    app.classList.remove('orch-tight');
+    underIf(false);
     for (const k of ['--side-l', '--side-mw', '--pins-r', '--pins-mw']) st.removeProperty(k);
     return;
   }
@@ -167,9 +176,9 @@ function fitOrch() {
   const end = ar.right - px(ac.paddingRight) - px(ac.borderRightWidth);
   if (app.classList.contains('orch-files')) {
     const main = $('#main'), ws = [...shell.children].filter((e) => e !== main).map(flowW).filter((w) => w >= 0);
-    const need = ws.reduce((a, w) => a + w, 0) + (rail?.offsetWidth || 0) + px(getComputedStyle(app).getPropertyValue('--oc-chat-min')) + px(getComputedStyle(main).minWidth) + gap * (ws.length + 2);
-    app.classList.toggle('orch-tight', need > end - shell.getBoundingClientRect().left + 0.5);
-  } else app.classList.remove('orch-tight');
+    const need = ws.reduce((a, w) => a + w, 0) + (rail?.offsetWidth || 0) + px(ac.getPropertyValue('--oc-chat-min')) + px(ac.getPropertyValue('--oc-files-min')) + gap * (ws.length + 2);
+    underIf(need > end - shell.getBoundingClientRect().left + 0.5 || ar.height > ar.width);
+  } else underIf(false);
   if (!rail) {
     for (const k of ['--side-l', '--side-mw', '--pins-r', '--pins-mw']) st.removeProperty(k);
     return;

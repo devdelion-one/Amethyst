@@ -16,7 +16,7 @@ import { gem, modeGem, pjMark, workGem, workMark } from '../base/kinds.ts';
 import { icon } from '../base/icon.ts';
 import { dockProjects, onPjHidden, pjHidden } from './pjhide.ts';
 import { createResearch, researchInfo } from '../chat/research.ts';
-import { createOrch, listSides, orchOrder, orchWidth } from '../orch/orch.ts';
+import { createOrch, filesUnder, listSides, orchOrder, orchWidth, placeFiles } from '../orch/orch.ts';
 import { addText, createChat } from '../chat/chat.ts';
 import { isQuickChat, showQuickAgent } from '../chat/qagent.ts';
 import { createTerm } from '../terminal/term.ts';
@@ -93,7 +93,6 @@ export function setMode(m: string) {
 
 function orchFile(path: string) {
   if (!pref('orch:files')) setPref('orch:files', true);
-  if ($('#app').classList.contains('orch-tight')) tell(document.activeElement, { title: 'The window is too narrow for files beside the chat', line: 'The file is open there. Make the window wider to see it.', ms: 3000 });
   return openInTab(path);
 }
 function deckOpen(path: string) {
@@ -193,6 +192,7 @@ export function renderModes() {
   $('#app').classList.toggle('orch', orch);
   $('#app').classList.toggle('orch-files', orch && !!pref('orch:files'));
   $('#app').classList.toggle('orch-nolist', orch && !pref('orch:list'));
+  $('#app').classList.toggle('orch-under', orch && filesUnder());
   const o = orchOrder(), files = o.indexOf('files'), chat = o.indexOf('chat');
   for (const [i, k] of o.entries()) $('#app').style.setProperty('--o-' + k, String(i * 2 + 2));
   $('#app').style.setProperty('--o-grip', String(chat * 2 + 2 + (files < chat ? -1 : 1)));
@@ -206,6 +206,7 @@ export function renderModes() {
   $('#app').classList.toggle('orch-lmid', nolist && !!ls.l && !!ls.r);
   $('#decks').style.setProperty('--orch-w', orchWidth() ? orchWidth() + 'px' : '');
   if (!atLaunch() && !atWs()) useOrch(orch);
+  placeFiles();
   $('#app').classList.toggle('noagent', m !== 'editor' && m !== 'chat' && m !== 'orch');
   const at = m !== 'editor' ? `${m}|${S.wid}|${S.pid}` : '';
   if (at !== warmed) {

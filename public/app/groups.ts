@@ -711,7 +711,7 @@ barMenu('.tbar', 'tbar', {
   order: false,
   make: (el) => {
     const g = groupById(el.closest<HTMLElement>('.grp')?.dataset.g as string);
-    const only = (k: string) => mode() === 'orch' || !['orch:files', 'orch:list'].includes(k);
+    const only = (k: string) => mode() === 'orch' || !['orch:files', 'orch:under', 'orch:list'].includes(k);
     if (!g) return { only };
     return { only, acts: groupActs(), onPick: (b) => { const k = b.dataset.ga; if (k === 'gclose') return askCloseGroup(g); if (k) return split(g, k); } };
   },

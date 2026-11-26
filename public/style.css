@@ -1549,10 +1549,9 @@ body.fg-toast { margin: 0; overflow: hidden; background: var(--raised); user-sel
 .oc-main:has(> .oc-bar .dk-st[data-st="asks"]) > .oc-chat::before { background: color-mix(in srgb, var(--ask) 3%, transparent); }
 .oc-main:has(> .oc-bar .dk-st[data-st="done"]) > .oc-bar { background-image: linear-gradient(color-mix(in srgb, var(--done-tint) 5%, transparent), color-mix(in srgb, var(--done-tint) 5%, transparent)); }
 .oc-chat > .chat { flex: 1; }
-#app { --oc-chat-min: 320px; }
+#app { --oc-chat-min: 320px; --oc-files-min: 280px; }
 #app.orch.orch-files .oc-main { flex: 0 1 var(--orch-w, calc(52% - 270px - 6px)); min-width: var(--oc-chat-min); }
 #app.orch.orch-files.orch-nolist .oc-main { flex-basis: var(--orch-w, calc(52% - 6px)); }
-#app.orch.orch-files.orch-tight .oc-main { flex: 1; min-width: 0; }
 #app.orch.orch-nolist .oc-rail { display: none; }
 #app.orch.orch-nolist .oc-lgrip { width: 4px; margin: 0; background: var(--line); cursor: col-resize; touch-action: none; }
 #app.orch.orch-nolist .oc-lgrip:is(:hover, .on) { background: color-mix(in srgb, var(--accent) 45%, transparent); }
@@ -1560,7 +1559,14 @@ body.fg-toast { margin: 0; overflow: hidden; background: var(--raised); user-sel
 #app.orch.orch-nolist:not(.orch-lmid) .oc-lgrip[data-side="l"]::after { inset: 0 0 0 -6px; }
 #app.orch.orch-nolist .oc-lgrip[data-side="r"]::after { inset: 0 -6px 0 0; }
 #app.orch.orch-nolist.orch-lmid .oc-lgrip[data-side="l"]::after { inset: 0 -3px; }
-#app.orch.orch-files.orch-tight #main { display: none; }
+.oc-col { display: contents; }
+.oc-fgrip { display: none; }
+#app.orch.orch-files.orch-under .oc:not([hidden]) .oc-col { order: var(--o-chat, 4); flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+#app.orch.orch-files.orch-under .oc-col > .oc-main { order: 0; flex: 1 1 0; min-width: 0; min-height: 200px; }
+#app.orch.orch-files.orch-under .oc-col > #main { display: flex; order: 0; flex: 0 1 var(--oc-fh, 50%); min-width: 0; min-height: 150px; }
+#app.orch.orch-files.orch-under .oc-fgrip { display: block; position: relative; z-index: 4; flex: none; height: var(--gap); border-radius: var(--r-xs); cursor: row-resize; touch-action: none; }
+.oc-fgrip::after { content: ""; position: absolute; inset: calc((var(--gap) - 8px) / 2) 0; }
+.oc-fgrip:hover, body.resizing-y .oc-fgrip { background: color-mix(in srgb, var(--accent) 45%, transparent); }
 .oc-tgrip { position: relative; z-index: 2; flex: none; height: 5px; margin: -2px 0; cursor: row-resize; }
 .oc-tgrip:hover, body.resizing-y .oc-tgrip { background: color-mix(in srgb, var(--accent) 45%, transparent); }
 .oc-term { flex: none; display: flex; min-height: 120px; max-height: calc(100% - 200px); border-top: 1px solid var(--line); }
@@ -1578,7 +1584,7 @@ body.fg-toast { margin: 0; overflow: hidden; background: var(--raised); user-sel
 .oc-lgrip[data-side="l"] { order: var(--o-lgl, 1); }
 #app.orch.orch-lgl .oc-lgrip[data-side="l"], #app.orch.orch-lgr .oc-lgrip[data-side="r"] { display: block; }
 .oc-lgrip:hover, body.resizing-x .oc-lgrip { background: color-mix(in srgb, var(--accent) 45%, transparent); }
-#app.orch-files.orch-tight .oc-grip { display: none; }
+#app.orch-files.orch-under .oc-grip { display: none; }
 .oc-grip:hover, body.resizing-x .oc-grip { background: color-mix(in srgb, var(--accent) 45%, transparent); }
 .rs-groups > .rs-sp { gap: 0; }
 .rs-grp { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--bg); border-radius: var(--r-panel); overflow: hidden; }

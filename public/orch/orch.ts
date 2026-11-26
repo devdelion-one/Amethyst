@@ -52,7 +52,7 @@ const NAMES = ['list', 'chat', 'files'];
 const LABEL: Record<string, string> = { list: 'the list', chat: 'the chat', files: 'your files' };
 const TERM_IC = '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5 6.5 8 3 11.5M8 12h5"/></svg>';
 export const termBtn = (on: boolean) => `<button class="oc-tb${on ? ' on' : ''}" data-oc-term aria-pressed="${on}" title="${on ? 'Terminal\nHides the terminal under the chat. It keeps running.' : 'Terminal\nOpens a terminal under the chat, in the project folder.'}" aria-label="terminal">${TERM_IC}</button>`;
-const MIN_W = 320, MIN_FILES = 280, MIN_TERM = 120, MIN_CHAT = 200;
+const MIN_W = 320, MIN_FILES = 280, MIN_TERM = 120, MIN_CHAT = 200, MIN_FILES_H = 150;
 export const folderBtn = (on: boolean) => `<button class="oc-fb${on ? ' on' : ''}" data-oc-folder aria-haspopup="menu" title="${on ? 'Move to folder\nIt is in one of your folders: pick another, or take it out.' : 'Move to folder\nPick one of your folders in the list, or make one. The chat keeps running.'}" aria-label="move to folder">${icon('folder')}</button>`;
 
 export function orchWidth() {
@@ -65,8 +65,39 @@ export function orchWidth() {
   return w >= MIN_W ? w : 0;
 }
 export function listSides() {
-  const v = orchOrder().filter((k) => k !== 'files' || pref('orch:files')), i = v.indexOf('list');
+  const v = orchOrder().filter((k) => k !== 'files' || (pref('orch:files') && !filesUnder())), i = v.indexOf('list');
   return { l: v[i - 1] || '', r: v[i + 1] || '' };
+}
+
+let auto = false;
+export const filesUnder = () => !!pref('orch:files') && (!!pref('orch:under') || auto);
+export function setAutoUnder(on: boolean) {
+  auto = on;
+}
+export const filesShare = () => {
+  const f = Number(store.get('orch:filesH', 0.5));
+  return f >= 0.1 && f <= 0.9 ? f : 0.5;
+};
+
+function keepWhileMoving(m: HTMLElement, put: () => void) {
+  const kept = [m, ...m.querySelectorAll<HTMLElement>('*')].filter((e) => e.scrollTop || e.scrollLeft).map((e) => [e, e.scrollTop, e.scrollLeft] as const);
+  const f = document.activeElement as HTMLElement | null, had = !!f && m.contains(f);
+  put();
+  for (const [e, t, l] of kept) {
+    e.scrollTop = t;
+    e.scrollLeft = l;
+  }
+  if (had && f!.isConnected) f!.focus({ preventScroll: true });
+}
+
+export function placeFiles() {
+  const m = document.getElementById('main'), home = document.getElementById('start'), app = document.getElementById('app');
+  if (!m || !home || !app) return;
+  app.style.setProperty('--oc-fh', filesShare() * 100 + '%');
+  const col = app.classList.contains('orch-under') && live && !live.hidden ? live.querySelector<HTMLElement>('.oc-col') : null;
+  if (col) {
+    if (m.parentElement !== col) keepWhileMoving(m, () => col.append(m));
+  } else if (m.nextElementSibling !== home) keepWhileMoving(m, () => home.before(m));
 }
 
 export function orchOrder(): string[] {
@@ -80,27 +111,36 @@ export function orchOrder(): string[] {
 }
 
 let live: HTMLElement | null = null;
-const sectionOf = (k: string) => (k === 'files' ? document.getElementById('main') : live?.querySelector<HTMLElement>(k === 'list' ? '.oc-rail' : '.oc-main') || null);
+const sectionOf = (k: string) => (k === 'files' ? document.getElementById('main') : live?.querySelector<HTMLElement>(k === 'list' ? '.oc-rail' : filesUnder() ? '.oc-col' : '.oc-main') || null);
 
 export function dragSection(e: PointerEvent, which: string) {
   const me = sectionOf(which);
   if (e.button !== 0 || !live || live.hidden || !me) return;
-  const x0 = e.clientX, y0 = e.clientY, full = orchOrder();
+  const x0 = e.clientX, y0 = e.clientY, full = orchOrder(), under = filesUnder(), loose = under && which === 'files';
+  const UNDER = -2;
   let ghost: HTMLElement | null = null, land: HTMLElement | null = null, frame = 0, px = x0, py = y0, at = -1, own = -1, w = 0;
-  let shown: string[] = [], slots: number[] = [], box = { left: 0, right: 0, top: 0, bottom: 0, height: 0 };
+  let shown: string[] = [], slots: number[] = [], box = { left: 0, right: 0, top: 0, bottom: 0, height: 0 }, below: DOMRect | null = null;
   const nearest = () => {
+    if (below && px >= below.left && px <= below.right && py >= below.top + below.height / 2 && py <= below.bottom) return UNDER;
     if (px < box.left || px > box.right || py < box.top || py > box.bottom) return -1;
     let best = 0;
     slots.forEach((x, i) => Math.abs(x - px) < Math.abs(slots[best] - px) && (best = i));
     return best;
   };
+  const same = (s: number) => own >= 0 && (s === own || s === own + 1);
   const draw = () => {
     frame = 0;
     ghost!.style.transform = `translate3d(${px + 14}px, ${py + 10}px, 0)`;
     const s = nearest();
     if (s === at) return;
     at = s;
-    if (s < 0 || s === own || s === own + 1) return land!.remove();
+    if (s === UNDER) {
+      const h = Math.round(below!.height / 2);
+      land!.style.cssText = `left:0;top:0;width:${below!.width}px;height:${h}px;transform:translate3d(${below!.left}px, ${below!.bottom - h}px, 0)`;
+      if (!land!.isConnected) document.body.append(land!);
+      return;
+    }
+    if (s < 0 || same(s)) return land!.remove();
     const left = Math.min(Math.max(slots[s] - w / 2, box.left), box.right - w);
     land!.style.cssText = `left:0;top:0;width:${w}px;height:${box.height}px;transform:translate3d(${left}px, ${box.top}px, 0)`;
     if (!land!.isConnected) document.body.append(land!);
@@ -110,15 +150,17 @@ export function dragSection(e: PointerEvent, which: string) {
     py = ev.clientY;
     if (!ghost) {
       if (Math.hypot(px - x0, py - y0) < 5) return;
-      const els = full.map((k) => [k, sectionOf(k)] as const).filter(([, x]) => x && x.offsetWidth).map(([k, x]) => ({ k, r: x!.getBoundingClientRect() })).sort((a, b) => a.r.left - b.r.left);
+      const els = full.filter((k) => !(under && k === 'files')).map((k) => [k, sectionOf(k)] as const).filter(([, x]) => x && x.offsetWidth).map(([k, x]) => ({ k, r: x!.getBoundingClientRect() })).sort((a, b) => a.r.left - b.r.left);
       shown = els.map((x) => x.k);
       own = shown.indexOf(which);
-      if (own < 0) return;
+      if (own < 0 && !loose) return;
+      if (!els.length) return;
       const rs = els.map((x) => x.r);
       box = { left: rs[0].left, right: rs[rs.length - 1].right, top: Math.min(...rs.map((r) => r.top)), bottom: Math.max(...rs.map((r) => r.bottom)), height: 0 };
       box.height = box.bottom - box.top;
       slots = [rs[0].left, ...rs.slice(1).map((r, i) => (rs[i].right + r.left) / 2), rs[rs.length - 1].right];
-      w = Math.min(rs[own].width, 240);
+      w = Math.min(own >= 0 ? rs[own].width : me.getBoundingClientRect().width, 240);
+      below = which === 'files' && !under ? live?.querySelector<HTMLElement>('.oc-main')?.getBoundingClientRect() || null : null;
       ghost = document.createElement('div');
       ghost.className = 'rs-ghost oc-ghost';
       ghost.textContent = LABEL[which];
@@ -140,17 +182,20 @@ export function dragSection(e: PointerEvent, which: string) {
     me.classList.remove('oc-moving');
     if (!ok) return;
     const s = nearest();
-    if (s < 0) return tell(me, { title: 'Sections move only within orchestration', line: 'Drop it left or right of the list, the chat or your files', ms: 2500 });
-    if (s === own || s === own + 1) return;
-    const rest = shown.filter((k) => k !== which), to = s > own ? s - 1 : s, next = full.filter((k) => k !== which);
+    if (s === UNDER) return setPref('orch:under', true);
+    if (s < 0) return tell(me, { title: 'Sections move only within orchestration', line: which === 'files' ? 'Drop it left or right of the list or the chat, or on the lower part of the chat to put it under the chat' : 'Drop it left or right of the list, the chat or your files', ms: 2500 });
+    if (same(s)) return;
+    const rest = shown.filter((k) => k !== which), to = own >= 0 && s > own ? s - 1 : s, next = full.filter((k) => k !== which);
     next.splice(to < rest.length ? next.indexOf(rest[to]) : next.indexOf(rest[rest.length - 1]) + 1, 0, which);
+    if (loose && auto) tell(me, { title: 'The window is too narrow for files beside the chat', line: 'They stay under the chat until the window is wider.', ms: 3000 });
+    if (loose) setPref('orch:under', false);
     setPref('orch:order', next);
   };
   track(e, { move, end, esc: () => !!ghost });
 }
 
-rowIcons({ 'orch:term': () => TERM_IC, 'orch:termBtn': () => TERM_IC, 'orch:termX': () => ICONS.x, 'orch:folderBtn': () => icon('folder'), 'orch:closeBtn': () => ICONS.x, 'orch:files': () => ICONS.explorer, 'orch:list': () => modeGem('orch') });
-listMenu('orch', '.oc-rail', 'orch', { only: ['orch:files', 'orch:list'] });
+rowIcons({ 'orch:term': () => TERM_IC, 'orch:termBtn': () => TERM_IC, 'orch:termX': () => ICONS.x, 'orch:folderBtn': () => icon('folder'), 'orch:closeBtn': () => ICONS.x, 'orch:files': () => ICONS.explorer, 'orch:under': () => ICONS.splitCol, 'orch:list': () => modeGem('orch') });
+listMenu('orch', '.oc-rail', 'orch', { only: ['orch:files', 'orch:under', 'orch:list'] });
 let headMenu = false;
 
 export function createOrch({ head, makeChat, makeTerm, filesChanged, openFile, claim, heldAt, moveOut, mark, close, verb, report }: Opts) {
@@ -168,7 +213,7 @@ export function createOrch({ head, makeChat, makeTerm, filesChanged, openFile, c
   el.hidden = true;
   el.innerHTML = `
     <aside class="oc-rail"><div class="oc-list dk-list"></div></aside>
-    <div class="oc-main"><header class="dk-ch oc-bar" title="Header&#10;Drag to move the chat.&#10;&#10;Right-click to choose what shows in this header."></header><div class="oc-chat"></div><span class="dk-done oc-done" data-oc-seen role="button" hidden></span><div class="oc-tgrip" hidden title="Resize&#10;Drag to make the terminal taller or shorter."></div><div class="oc-term" hidden></div></div>
+    <div class="oc-col"><div class="oc-main"><header class="dk-ch oc-bar" title="Header&#10;Drag to move the chat.&#10;&#10;Right-click to choose what shows in this header."></header><div class="oc-chat"></div><span class="dk-done oc-done" data-oc-seen role="button" hidden></span><div class="oc-tgrip" hidden title="Resize&#10;Drag to make the terminal taller or shorter."></div><div class="oc-term" hidden></div></div><div class="oc-fgrip" title="Resize&#10;Drag to make the files taller or shorter."></div></div>
     <div class="oc-grip" title="Resize&#10;Drag to make the chat wider or narrower."></div>
     <div class="oc-lgrip" data-side="l"></div>
     <div class="oc-lgrip" data-side="r"></div>`;
@@ -633,6 +678,29 @@ export function createOrch({ head, makeChat, makeTerm, filesChanged, openFile, c
     });
   });
 
+  const fgrip = $('.oc-fgrip'), col = $('.oc-col');
+  fgrip.addEventListener('pointerdown', (e: PointerEvent) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    const files = document.getElementById('main');
+    if (!files) return;
+    const y0 = e.clientY, h0 = files.getBoundingClientRect().height, total = col.clientHeight - fgrip.offsetHeight;
+    if (total <= 0) return;
+    const app = document.getElementById('app')!, was = app.style.getPropertyValue('--oc-fh');
+    document.body.classList.add('resizing-y');
+    track(e, {
+      move: (ev) => {
+        const h = Math.min(total - MIN_CHAT, Math.max(MIN_FILES_H, h0 + y0 - ev.clientY));
+        app.style.setProperty('--oc-fh', (Math.max(0.1, Math.min(0.9, h / total)) * 100).toFixed(2) + '%');
+      },
+      end: (ok) => {
+        document.body.classList.remove('resizing-y');
+        if (ok) store.set('orch:filesH', parseFloat(app.style.getPropertyValue('--oc-fh')) / 100 || 0.5);
+        else app.style.setProperty('--oc-fh', was);
+      },
+    });
+  });
+
   const unwatch = onAgents(() => {
     if (el.hidden) return;
     const gone = cur && view?.id === cur ? agents.all.get(cur) : null;
@@ -668,6 +736,7 @@ export function createOrch({ head, makeChat, makeTerm, filesChanged, openFile, c
       el.hidden = !on;
       if (on) live = el;
       else if (live === el) live = null;
+      placeFiles();
       if (!on) {
         grip?.();
         termShown();
@@ -699,6 +768,7 @@ export function createOrch({ head, makeChat, makeTerm, filesChanged, openFile, c
       term = null;
       lst.off();
       if (live === el) live = null;
+      placeFiles();
     },
   };
 }
