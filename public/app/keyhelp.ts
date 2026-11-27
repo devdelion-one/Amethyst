@@ -5,12 +5,12 @@ import { isOff, onPref } from '../base/prefs.ts';
 import { $, esc } from '../base/util.ts';
 
 const GROUPS: [string, [string, string][]][] = [
-  ['Go to', [['modeChat', 'Agents'], ['modeEditor', 'Editor'], ['modeTerm', 'Terminals'], ['modeOrch', 'Orchestration']]],
+  ['Go to', [['modeEditor', 'Editor'], ['modeTerm', 'Terminals'], ['modeOrch', 'Orchestration']]],
   ['Chats', [['newAgentKey', 'New chat'], ['modelNextKey', 'Next model'], ['modelPrevKey', 'Model before'], ['modeKey', 'Next mode'], ['clearKey', 'Clear the chat'], ['find', 'Find']]],
   ['Show and hide', [['explorerKey', 'Explorer'], ['quickTerm', 'Quick terminal'], ['bottomBarKey', 'Bottom bar'], ['dashKey', 'Dashboard']]],
   ['', [['commands', 'Every command']]],
 ];
-const MODE: Record<string, string> = { modeChat: 'chat', modeEditor: 'editor', modeTerm: 'term', modeOrch: 'orch' };
+const MODE: Record<string, string> = { modeEditor: 'editor', modeTerm: 'term', modeOrch: 'orch' };
 
 const btn = document.querySelector<HTMLElement>('#btn-keys');
 let box: HTMLElement = null as unknown as HTMLElement;

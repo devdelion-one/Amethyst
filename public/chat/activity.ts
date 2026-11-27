@@ -14,7 +14,7 @@ import { claim, forMe, isSpare, on, send, SOLO, toSpare } from '../base/windows.
 
 const OWN = !!window.amethyst?.desktop;
 const RS = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'].map((z) => `<i data-rs="${z}"></i>`).join('');
-const modeOn = () => pref('subagents:on') && (pref('subagents:chat') || pref('subagents:list') || pref('decklist:subs'));
+const modeOn = () => pref('subagents:on') && (pref('subagents:chat') || pref('subagents:list'));
 const cmdsOn = () => pref('subagents:chat');
 const FOLD = 'actFold';
 const folded = new Set<string>(store.get(FOLD, []));
@@ -166,7 +166,7 @@ if (isSpare())
     page.render?.();
     send('raised');
   });
-for (const k of ['subagents:on', 'subagents:chat', 'subagents:list', 'decklist:subs']) onPref(k, () => {
+for (const k of ['subagents:on', 'subagents:chat', 'subagents:list']) onPref(k, () => {
   if (modeOn() || cmdsOn()) return;
   if (SOLO.startsWith('activity-')) return window.close();
   [...shells.keys()].forEach(close);

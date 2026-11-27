@@ -89,7 +89,7 @@ export function createLanes({ el, bar, form, log, flow, st, line, timeline, tool
     el.querySelector('.sa-ic')!.innerHTML = open ? icon(side ? 'subSide' : pref('subagents:open') === 'win' ? 'subWin' : 'subHere') : '';
     el.querySelector<HTMLElement>('.row')!.title = el.querySelector<HTMLElement>('.sa-now')!.title = !side && open ? openTip() : '';
   }
-  const sideOn = () => !!openSub && pref('subagents:on') && pref('subagents:research');
+  const sideOn = () => !!openSub && pref('subagents:on');
   function foldLane(el: Line) {
     if (!getSelection()!.isCollapsed) return;
     el.classList.toggle('shut');
@@ -106,7 +106,7 @@ export function createLanes({ el, bar, form, log, flow, st, line, timeline, tool
     if (seeing && (!subsChat() || sideOn())) hideSub();
     subsBtn();
   }
-  for (const k of ['subagents:on', 'subagents:chat', 'subagents:open', 'subagents:research']) onShut(onPref(k, relane));
+  for (const k of ['subagents:on', 'subagents:chat', 'subagents:open']) onShut(onPref(k, relane));
   function subsBtn() {
     const b = bar.querySelector<HTMLElement>('.ch-subs')!, sa = subsChat() && subs.all.size, cm = cmdsWin() && runs().all.size;
     b.hidden = !sa && !cm;
