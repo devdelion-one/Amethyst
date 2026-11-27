@@ -72,7 +72,7 @@ export function agentMenu(x: number, y: number, pick: (program: string) => unkno
   popMenu(
     x,
     y,
-    (head || menuHead(gem('ai'), o.newBtn ? 'new agent' : 'agents')) + bands({ actions: copyHook.row() + nbActs, options: nbOpts, pick: ['new chat', on.map(item).join('') + more], other: tail }),
+    (head || menuHead(gem('ai'), o.newBtn ? 'new agent' : 'agents')) + bands({ pick: ['new chat', on.map(item).join('') + more] }) + bands({ actions: copyHook.row() + nbActs, options: nbOpts, other: tail }),
     (b) => {
       if (copyHook.pick(b)) return;
       if (b.dataset.nbBig != null && bigId) return setBig(bigId, !isBig(bigId));
