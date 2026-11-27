@@ -3481,6 +3481,8 @@ a.up-btn { display: flex; align-items: center; text-decoration: none; }
 .dk-ch .dk-id { align-items: baseline; }
 .dk-badge { flex: none; display: inline-flex; align-items: center; gap: 6px; }
 .dk-ch .dk-id > .dk-badge { align-self: center; }
+.dk-ch .dk-id > .dk-badge:has(.dk-code) { align-self: baseline; align-items: baseline; }
+.dk-ch .dk-badge > .dk-mark { align-self: center; transform: translateY(-1px); }
 .dk-ch .dk-st > .dk-sw { align-self: baseline; }
 .dk-ch .dk-who { flex: none; color: var(--text-strong); font-size: var(--fs-sm); font-weight: 600; }
 .dk-code { flex: none; color: var(--gem-c, var(--accent)); font: 500 var(--fs-xs) var(--mono); letter-spacing: .02em; }
