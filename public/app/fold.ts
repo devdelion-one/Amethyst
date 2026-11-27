@@ -48,7 +48,8 @@ export const foldOrder = () => {
 };
 export const anchorOf = (b: HTMLElement) => (b.offsetWidth ? b : [...(b.closest('.dk-ch')?.querySelectorAll<HTMLElement>('.ch-more, [data-dk-fmore]') || [])].find((x) => x.offsetWidth) || b);
 
-type Look = { hd: Head; spare: number; slack: number; gap: number; kinds: [HTMLButtonElement, number | undefined][][]; swap: Element | null; more: number | undefined };
+type RowData = { menu: (HTMLElement & { _fd?: string }) | null; offs: [HTMLButtonElement, number][]; own: string[] };
+type Look = { hd: Head; spare: number; slack: number; gap: number; kinds: [HTMLButtonElement, number | undefined][][]; swap: Element | null; more: number | undefined; rows: RowData };
 const widths = new WeakMap<Element, number>();
 function widthOf(x: HTMLElement) {
   if (x.classList.contains('fold')) return widths.get(x);
@@ -64,7 +65,7 @@ function look(hd: Head): Look | null {
   const kinds = foldOrder().map((k) => [...hd.querySelectorAll<HTMLButtonElement>(SEL[k])].filter((x) => !x.hidden).map((x) => [x, widthOf(x)] as [HTMLButtonElement, number | undefined]));
   const swap = hd.querySelector<HTMLElement>('.dk-tools.nomore .ch-more, :scope > [data-dk-fmore]');
   const more = swap && hd.classList.contains('folded') ? (widths.set(swap, swap.offsetWidth), swap.offsetWidth) : swap ? widths.get(swap) : 0;
-  return { hd, spare, slack: t ? 0.5 : 1, gap: parseFloat(getComputedStyle(hd).columnGap) || 0, kinds, swap, more };
+  return { hd, spare, slack: t ? 0.5 : 1, gap: parseFloat(getComputedStyle(hd).columnGap) || 0, kinds, swap, more, rows: readRows(hd) };
 }
 function apply(l: Look | null) {
   if (!l || !l.hd.isConnected) return;
@@ -91,7 +92,7 @@ function apply(l: Look | null) {
   for (const els of kinds) for (const [x] of els) if (x.classList.contains('fold') !== on.has(x)) x.classList.toggle('fold', on.has(x));
   if (hd.classList.contains('folded') !== !!out.length) hd.classList.toggle('folded', !!out.length);
   hd._folded = out;
-  rows(hd, out);
+  rows(hd, out, l.rows);
 }
 const headsOf = (seen: ResizeObserverEntry[]) => [...new Set(seen.map((e) => (e.target as HTMLElement).closest<Head>('.dk-ch')))].filter((hd): hd is Head => !!hd?.isConnected);
 const ro = onSize(null, { name: 'deck.fold', read: (seen) => headsOf(seen).map(look), write: (all: (Look | null)[]) => all.forEach(apply) });
@@ -136,11 +137,21 @@ function row(x: HTMLButtonElement, i: number, cls: string) {
 const OWN = '[data-ch="history"], [data-ch="signin"], [data-ch="clear"], [data-ch="swap"]';
 const OFF = `[data-off], .dk-tools .ch-pill:not(.ch-more, ${OWN})`;
 const shown = (x: HTMLElement) => !x.hidden && getComputedStyle(x).display !== 'none';
-const orderOf = (x: HTMLElement) => parseFloat(getComputedStyle(x).order) || 0;
-function rows(hd: Head, out: HTMLButtonElement[]) {
-  const menu = ((hd._fdMenu as HTMLElement | null | undefined) || hd.parentElement?.querySelector<HTMLElement>(':scope > .dk-body .ch-menu')) as (HTMLElement & { _fd?: string }) | null | undefined, more = hd.querySelector<HTMLElement>('.dk-tools .ch-more');
-  const offs = [...hd.querySelectorAll<HTMLButtonElement>(OFF)].filter((x) => !x.hidden && !x.classList.contains('fold') && (x.hasAttribute('data-off') || getComputedStyle(x).display === 'none'));
-  const all = [...offs.map((x, i) => [x, i] as const).sort((a, b) => orderOf(a[0]) - orderOf(b[0]) || a[1] - b[1]).map(([x]) => x), ...out];
+function readRows(hd: Head): RowData {
+  const menu = ((hd._fdMenu as HTMLElement | null | undefined) || hd.parentElement?.querySelector<HTMLElement>(':scope > .dk-body .ch-menu')) as (HTMLElement & { _fd?: string }) | null;
+  const offs: [HTMLButtonElement, number][] = [];
+  for (const x of hd.querySelectorAll<HTMLButtonElement>(OFF)) {
+    if (x.hidden) continue;
+    const cs = getComputedStyle(x);
+    if (x.hasAttribute('data-off') || (!x.classList.contains('fold') && cs.display === 'none')) offs.push([x, parseFloat(cs.order) || 0]);
+  }
+  const own = menu ? [...menu.querySelectorAll<HTMLElement>(':scope > button:not(.dk-fd)')].filter(shown).map((x) => x.textContent!.replace(/›$/, '').trim()) : [];
+  return { menu, offs, own };
+}
+function rows(hd: Head, out: HTMLButtonElement[], data?: RowData) {
+  const d = data || readRows(hd), menu = d.menu, more = hd.querySelector<HTMLElement>('.dk-tools .ch-more');
+  const offs = d.offs.filter(([x]) => !x.classList.contains('fold'));
+  const all = [...offs.map((x, i) => [x[0], x[1], i] as const).sort((a, b) => a[1] - b[1] || a[2] - b[2]).map(([x]) => x), ...out];
   hd._rows = all;
   if (hd.classList.contains('has-off') !== !!offs.length) hd.classList.toggle('has-off', !!offs.length);
   if (!menu || !more) return;
@@ -152,8 +163,7 @@ function rows(hd: Head, out: HTMLButtonElement[]) {
   }
   const only = !!hd.querySelector('.dk-tools.nomore');
   menu.classList.toggle('dk-only', only);
-  const own = [...menu.querySelectorAll<HTMLElement>(':scope > button:not(.dk-fd)')].filter(shown).map((x) => x.textContent!.replace(/›$/, '').trim());
-  const words = [...new Set([...(only ? [] : own), ...all.map(labelOf)].map((l) => GENERAL[l.replace(/…$/, '').trim().toLowerCase()]).filter(Boolean))];
+  const words = [...new Set([...(only ? [] : d.own), ...all.map(labelOf)].map((l) => GENERAL[l.replace(/…$/, '').trim().toLowerCase()]).filter(Boolean))];
   more.title = `More\nEverything else for this chat${words.length ? `: ${words.length > 1 ? `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}` : words[0]}` : ''}.`;
 }
 

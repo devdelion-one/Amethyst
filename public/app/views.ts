@@ -2,7 +2,7 @@ import { drawerOpen, madeStep, narrowQ, moveDir, moveItem, pinOrder, resetOrder,
 import { setOn } from '../decks/deck.ts';
 import { ask, barMenu, hideMenu, ICONS, isOpen, keepShown, rowIcons, setOpen, sortable, treeRows } from '../base/controls.ts';
 import type { TreeRow } from '../base/controls.ts';
-import { onSize } from '../base/measure.ts';
+import { nextFrame, onSize } from '../base/measure.ts';
 import { markdown } from '../base/markdown.ts';
 import { span } from '../base/hitch.ts';
 import { tell } from '../base/notify.ts';
@@ -169,9 +169,11 @@ function underIf(on: boolean) {
 const ORCH_VARS = ['--side-l', '--side-r', '--side-mw', '--pins-r', '--pins-mw'];
 type OrchFit = { off: true } | { off: false; under: boolean | null; vars: Record<string, string | null> | null };
 function readOrch(): OrchFit {
-  const app = $('#app'), shell = $('#shell');
-  const rail = [...document.querySelectorAll<HTMLElement>('#decks .oc:not([hidden]) > .oc-rail')].find((e) => e.offsetParent);
-  if (!app.classList.contains('orch') || (!rail && !app.classList.contains('orch-nolist'))) return { off: true };
+  const app = $('#app');
+  if (!app.classList.contains('orch')) return { off: true };
+  const shell = $('#shell');
+  const rail = app.classList.contains('orch-nolist') ? undefined : [...document.querySelectorAll<HTMLElement>('#decks .oc:not([hidden]) > .oc-rail')].find((e) => !e.closest('[hidden]') && e.offsetParent);
+  if (!rail && !app.classList.contains('orch-nolist')) return { off: true };
   const gap = px(getComputedStyle(shell).columnGap), ac = getComputedStyle(app), ar = app.getBoundingClientRect();
   const end = ar.right - px(ac.paddingRight) - px(ac.borderRightWidth);
   let under: boolean | null = false;
@@ -210,10 +212,11 @@ function writeOrch(f: OrchFit): boolean {
   }
   return moved;
 }
+const orchJob = { name: 'orch.fit', read: readOrch, write: (f: OrchFit) => { if (writeOrch(f)) nextFrame(orchJob); } };
 function fitOrch() {
-  if (writeOrch(readOrch())) writeOrch(readOrch());
+  nextFrame(orchJob);
 }
-onSize($('#shell'), { name: 'orch.fit', read: readOrch, write: (f: OrchFit) => writeOrch(f) && fitOrch() });
+onSize($('#shell'), { name: 'orch.fit', read: readOrch, write: (f: OrchFit) => { if (writeOrch(f)) nextFrame(orchJob); } });
 narrowQ.addEventListener('change', () => layout());
 
 export function moved(from: string, to: string, tell = true) {

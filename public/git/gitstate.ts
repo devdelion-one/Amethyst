@@ -48,9 +48,12 @@ onSize(panel, {
     const now = e.contentRect.width > 0 || e.contentRect.height > 0;
     if (now === on) return;
     on = now;
-    if (on && G.key) {
-      G.repos = null;
-      refreshGit(0);
+    if (on) {
+      if (G.key) {
+        G.repos = null;
+        refreshGit(0);
+      }
+      draw();
     }
   },
 });
@@ -140,10 +143,11 @@ async function loadRepos(key: string) {
   if (!has(want)) want = has('') ? '' : G.repos[0]?.path || '';
   G.repo = want;
 }
-export async function load() {
+export async function load(all = false) {
   const key = G.key, n = ++seq, c = cseq;
   if (!key) return;
-  if (!G.repos) await loadRepos(key);
+  if ((all || shown()) && !G.repos) await loadRepos(key);
+  else if (!G.repos) G.repo = picks()[key] || '';
   if (n !== seq || key !== G.key) return;
   const repo = G.repo;
   let info: any;
@@ -166,7 +170,7 @@ export async function load() {
   if (!info.commits || info.state) G.amend = false;
   draw();
   if (info.repo && info.gh === null && shown()) refreshGit(2000);
-  prChip();
+  if (shown()) prChip();
 }
 const BASES = new Set(['main', 'master', 'develop', 'dev', 'trunk']);
 let prSeq = 0;
@@ -200,12 +204,15 @@ export function gitCount(e: { n: number }) {
 }
 export function refreshGit(ms = 300) {
   clearTimeout(soon);
-  soon = setTimeout(load, ms);
+  soon = setTimeout(() => load(), ms);
 }
 
 export function setKey(): boolean {
   const key = atWs() ? '' : levelKey();
   if (key === G.key) return false;
+  clearTimeout(soon);
+  soon = 0;
+  seq++;
   Object.assign(G, { key, info: null, at: 0, note: '', err: false, fix: '', detail: '', connect: false, wts: null, count: null, repo: '', repos: null, amend: false });
   G.open.clear();
   G.kids.clear();
@@ -266,7 +273,7 @@ export function stage(body: { paths?: string[]; on?: boolean; only?: boolean; al
     .then(() => gapi('POST', '/api/git/stage', body))
     .catch((e: any) => key === G.key && repo === G.repo && say(e.message, true))
     .then(() => {
-      if (--G.staging === 0 && key === G.key && repo === G.repo) dirsAgain().then(load);
+      if (--G.staging === 0 && key === G.key && repo === G.repo) dirsAgain().then(() => load());
     });
 }
 export async function dirsAgain() {

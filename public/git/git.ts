@@ -31,7 +31,8 @@ export function renderGit() {
   resetHist();
   build();
   draw();
-  load();
+  if (shown()) load();
+  else if (G.key) refreshGit(280);
 }
 
 every(10e3, () => G.key && !G.busy && shown() && load());
@@ -341,7 +342,7 @@ function drawBadge() {
 
 function draw() {
   if (!box) return;
-  drawPanel();
+  if (shown()) drawPanel();
   drawBadge();
 }
 onDraw({ all: draw, badge: drawBadge });
@@ -353,7 +354,7 @@ function repoOf(rel: string) {
   return { repo: list.some((r) => r.path === '') ? '' : G.repo, path: rel };
 }
 async function inRepoOf(rel: string) {
-  if (!G.repos) await load();
+  if (!G.repos) await load(true);
   const at = repoOf(rel);
   if (at.repo !== G.repo) pickRepo(at.repo);
   return at.path;
@@ -367,7 +368,7 @@ export async function fileBlame(rel: string) {
   openBlame(await inRepoOf(rel));
 }
 export async function gitShow(e: { what: string; repo?: string; path?: string; ref?: string; base?: string; a?: string; b?: string }) {
-  if (!G.repos) await load();
+  if (!G.repos) await load(true);
   if ((e.repo || '') !== G.repo) pickRepo(e.repo || '');
   if (e.what === 'pr' && (e as { n?: number }).n) return page.openPr((e as { n?: number }).n!);
   if (e.what === 'issue' && (e as { n?: number }).n) return page.openIssue((e as { n?: number }).n!);

@@ -344,7 +344,7 @@ export function createOrch({ head, makeChat, makeTerm, filesChanged, openFile, c
           const old = view.id;
           view.id = '';
           if (cur === old) cur = null;
-          paint();
+          if (!el.hidden) paint();
         }
         return;
       }
@@ -357,7 +357,7 @@ export function createOrch({ head, makeChat, makeTerm, filesChanged, openFile, c
       if (old) pass = pass.map((x) => (x === old ? id : x));
       putIn(id, { in: 'orch' });
       whenIn(id, () => putIn(id, { in: 'orch' }));
-      paint();
+      if (!el.hidden) paint();
     };
   }
 
@@ -708,8 +708,8 @@ export function createOrch({ head, makeChat, makeTerm, filesChanged, openFile, c
     onCleared(() => !el.hidden && paint()),
     onFolders(() => !el.hidden && paint()),
     ...[...listPrefs('orch'), 'orch:folderBtn', 'orch:files', 'orch:list', 'deck:doneBadge', 'agents:off', 'orch:termBtn', 'orch:closeBtn'].map((k) => onPref(k, () => !el.hidden && paint())),
-    onPref('orch:list', () => (lgripTip(), !view && chat.querySelector('.oc-empty') && empty())),
-    onPref('orch:termX', () => (tx.hidden = !pref('orch:termX'))),
+    onPref('orch:list', () => !el.hidden && (lgripTip(), !view && chat.querySelector('.oc-empty') && empty())),
+    onPref('orch:termX', () => !el.hidden && (tx.hidden = !pref('orch:termX'))),
     onPref('orch:term', () => {
       if (el.hidden) return;
       termShown();
@@ -718,10 +718,17 @@ export function createOrch({ head, makeChat, makeTerm, filesChanged, openFile, c
   ];
 
   function start() {
+    lgripTip();
+    if (fresh && view && !view.id) {
+      paint();
+      return termShown();
+    }
     if (!cur || !agents.all.has(cur) || !mine(agents.all.get(cur)!)) {
       cur = rows()[0] || (cur && agents.all.has(cur) ? null : cur);
     }
+    const same = !!(view && view.id === cur);
     mount(false);
+    if (same) paint();
     termShown();
   }
 
@@ -736,7 +743,7 @@ export function createOrch({ head, makeChat, makeTerm, filesChanged, openFile, c
       if (!on) {
         grip?.();
         termShown();
-        return letGo();
+        return;
       }
       delete bar.dataset.sig;
       badgeDrawn = '';

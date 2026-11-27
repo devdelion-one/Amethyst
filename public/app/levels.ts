@@ -3,7 +3,7 @@ import { icon } from '../base/icon.ts';
 import { ask, bands, colorRow, fileManager, ICONS, flyFocus, gripRow, gripRuns, holdFocus, keepMenu, menuHead, miRow, moveMenu, popMenu, sortable, topRow, trayName } from '../base/controls.ts';
 import { closeEditorNow, flushNow } from '../editor/editor.ts';
 import { web } from '../minds/minds.ts';
-import { api, atLaunch, atWs, HOME, wsColor, levelKey, mode, pjColor, projectOf, S, showPid } from '../base/model.ts';
+import { api, atLaunch, atWs, HOME, hydrateTree, wsColor, levelKey, mode, pjColor, projectOf, S, showPid } from '../base/model.ts';
 import { pjMark } from '../base/kinds.ts';
 import { col } from '../base/theme.ts';
 import { dockProjects, pjHidden, setDockOrder, setPjHidden } from './pjhide.ts';
@@ -47,8 +47,13 @@ export async function switchLevel(pid: string, over?: Element) {
     await leaveLevel();
     S.pid = pid;
     arrive();
-    await reload();
-    await sync();
+    if (!atWs() && hydrateTree()) {
+      await sync();
+      reload().catch(showErr);
+    } else {
+      await reload();
+      await sync();
+    }
     setSave('');
   } catch (e) {
     showErr(e);
@@ -151,6 +156,7 @@ export async function moveExt(t: Tab) {
     const { path } = await api('POST', '/api/ext/move', { path: t.abs, project: to }, '');
     dropExt(t.abs!);
     await switchLevel(to);
+    if (!S.thoughts.has(path)) await reload();
     await openInTab(path);
     setSave(`moved “${name}” into ${projectOf(to)?.name}`);
   } catch (e) {

@@ -195,6 +195,29 @@ export function showPid() {
 }
 
 const EMPTY = { root: { files: [], dirs: [] }, dirs: {}, layout: {}, order: [] } as unknown as Tree;
+const TREE_CACHE_MAX = 8;
+const treeCache = new Map<string, Tree>();
+function cacheTree(key: string, tree: Tree) {
+  if (!key) return;
+  treeCache.delete(key);
+  treeCache.set(key, tree);
+  while (treeCache.size > TREE_CACHE_MAX) {
+    const oldest = treeCache.keys().next().value;
+    if (oldest !== undefined) treeCache.delete(oldest);
+  }
+}
+export function hydrateTree(): boolean {
+  const key = levelKey();
+  if (!key) return false;
+  const tree = treeCache.get(key);
+  if (!tree) return false;
+  treeCache.delete(key);
+  treeCache.set(key, tree);
+  S.pins = tree.pins || [];
+  S.marks = tree.marks || {};
+  build(tree);
+  return true;
+}
 export function setLayout(patch: Record<string, unknown>) {
   if (!S.data) return;
   for (const [k, v] of Object.entries(patch)) v ? (S.data.layout[k] = v) : delete S.data.layout[k];
@@ -241,6 +264,7 @@ export async function load(keep = () => true, tries = 0): Promise<boolean | null
   S.pins = tree.pins || [];
   S.marks = tree.marks || {};
   build(tree);
+  if (!page) cacheTree(levelKey(), tree);
   return false;
 }
 
@@ -283,6 +307,7 @@ export async function patch(paths: string[], keep = () => true): Promise<'full' 
     }
     S.data = { ...S.data! };
   }
+  cacheTree(levelKey(), { ...S.data!, pins: S.pins, marks: S.marks });
   return false;
 }
 

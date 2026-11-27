@@ -1421,6 +1421,7 @@ body.fg-toast { margin: 0; overflow: hidden; background: var(--raised); user-sel
 #app.orch.orch-files #main { display: flex; order: var(--o-files, 6); min-width: 280px; }
 #app.orch #pins { order: 9; }
 .oc { position: relative; flex: 1; display: flex; min-width: 0; min-height: 0; gap: var(--gap); }
+.oc[hidden] { display: none; }
 .oc-moving { opacity: .45; }
 .oc-ghost { padding: 5px 12px; border-radius: var(--r-md); font-size: var(--fs-sm); font-weight: 600; white-space: nowrap; }
 .oc-rail { order: var(--o-list, 2); flex: none; display: flex; flex-direction: column; width: 270px; min-height: 0; background: var(--chrome); border-radius: var(--r-panel); }

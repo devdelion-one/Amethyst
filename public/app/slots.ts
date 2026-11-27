@@ -137,9 +137,9 @@ export const absCells = (r: string, s: number, n: number, x = false) => Array.fr
 let aimed: { kind: string; slot: number | null; side: Side } | null = null;
 export const aim = (kind: string, slot: number | null, side: Side = 'rail') => (aimed = { kind, slot, side });
 
-let cells = 0;
+let cells = 0, dashCells = -1;
 const railN = () => cells || Math.max(1, Math.floor($('#switch').clientHeight / PITCH));
-const dashN = () => Math.floor(($('#dash > .slots') as HTMLElement).clientWidth / PITCH);
+const dashN = () => (dashCells >= 0 ? dashCells : (dashCells = Math.floor(($('#dash > .slots') as HTMLElement).clientWidth / PITCH)));
 type Surf = { side: Side; get: () => Spots; put: (at: Spots) => void; n: () => number; last: Map<number, string>; el: () => HTMLElement; x: boolean; seen: Set<string>; seenAt: string; fold: boolean; off: () => void; size: number; struct: string; html: Map<string, string> };
 const RAIL_S: Surf = { side: 'rail', get: spots, put: save, n: railN, last: new Map(), el: () => $<HTMLElement>('#switch'), x: false, seen: new Set(), seenAt: '', fold: false, off: () => {}, size: 0, struct: '', html: new Map() };
 const DASH_S: Surf = { side: 'dash', get: dashSpots, put: saveDash, n: dashN, last: new Map(), el: () => $<HTMLElement>('#dash > .slots'), x: true, seen: new Set(), seenAt: '', fold: false, off: () => {}, size: 0, struct: '', html: new Map() };
@@ -519,6 +519,7 @@ export function watchSlots(sw: HTMLElement, repaint: () => void) {
     live: true,
     write: (_, [e]) => {
       const n = Math.floor(e.contentBoxSize[0].inlineSize / PITCH);
+      dashCells = n;
       if (n === DASH_S.size) return;
       DASH_S.size = n;
       repaint();
