@@ -9,7 +9,7 @@ import { api, atLaunch, atWs, edShown, fileColor, FN_DEFAULT, mode, modeFns, mod
 import { newForget } from '../forget/forget.ts';
 import { offTell, tell } from '../base/notify.ts';
 import { padOut, toggleInbox } from './float.ts';
-import { addAgent, agentTab, closeHere, closeSettings, NEW_BINDS, newView, openSettings, setMode, stepSet } from './modes.ts';
+import { addAgent, agentTab, closeHere, closeSettings, NEW_BINDS, newView, openSettings, setMode } from './modes.ts';
 import { palette } from './palette.ts';
 import { chatOn, pref } from '../base/prefs.ts';
 import { QAKEY, toggleQuickAgent } from '../chat/qagent.ts';
@@ -46,7 +46,7 @@ const toEditor = () => (mode() === 'editor' ? nextEditor() : setMode('editor'));
 const toMode = (m: string) =>
   WIN > 1 && m !== 'editor'
     ? tell($('#activity'), { title: 'The agents and terminals are in Window 1', line: 'Press the key there', ms: 2500 })
-    : m === 'editor' && mode() === 'editor' ? nextEditor() : m === 'chat' && mode() === 'chat' && !atWs() ? stepSet() : setMode(m);
+    : m === 'editor' && mode() === 'editor' ? nextEditor() : setMode(m);
 const pinsKey = () =>
   WIN > 1 ? tell($('#activity'), { title: 'The Pinned list is in Window 1', line: 'Press the key there', ms: 2500 })
   : atWs() ? tell($('#activity'), { title: 'The Pinned list is inside a project', line: 'Open a project, then press the key', ms: 2500 })
@@ -79,11 +79,9 @@ function sheet(): any[][] {
 function topGroups(all = false): any[][] {
   const modes = ['modes', [
     bk(['fn:editor', 'modeEditor'], atWs() ? 'the projects' : 'the editor: the explorer and your tabs; again: the next layout', toEditor),
-    bk(['fn:chat', 'modeChat'], atWs() ? 'agents: every chat at once' : 'agents: every chat at once; again: the next set', () => toMode('chat')),
-    bk(['fn:term', 'modeTerm'], 'terminals: every terminal at once', () => setMode('term')),
-    bk(['fn:research', 'modeResearch'], 'research: a chat and its subagents, side by side', () => setMode('research')),
     ...(atWs() ? [] : [bk(['fn:orch', 'modeOrch'], 'orchestration: one chat at a time; Tab: the next chat, top to bottom', () => setMode('orch'))]),
-    ...(atWs() ? [] : [bk('newSetChat', 'a new agents set (in the first free cell of the rail)', () => newView('chat')), bk('newLayout', 'a new editor layout (in the first free cell of the rail)', () => newView('editor')), bk('newSetTerm', 'a new terminals set', () => newView('term'))]),
+    bk(['fn:term', 'modeTerm'], 'terminals: every terminal at once', () => setMode('term')),
+    ...(atWs() ? [] : [bk('newLayout', 'a new editor layout (in the first free cell of the rail)', () => newView('editor')), bk('newSetTerm', 'a new terminals set', () => newView('term'))]),
     ...(atWs() ? [] : [bk('closeSet', 'close the set or layout on screen (the first: clear it), asked first', closeHere)]),
     bk('projPrev', 'the project before'),
     bk('projNext', 'the project after (the buttons at the bottom)'),
@@ -92,23 +90,21 @@ function topGroups(all = false): any[][] {
     bk('next', 'the next one that needs you, in the next empty window'),
     bk('cellNext', 'the next cell'),
     bk('cellPrev', 'the cell before'),
-    bk('newCell', 'a new empty cell in the set on screen'),
-    bk('benchKey', 'bench the selected chat or terminal: a chat moves to orchestration (where there is one), a terminal keeps running under Benched'),
-    bk('orchKey', "move the selected chat to orchestration: out of its set, it keeps running in orchestration's list"),
+    bk('newCell', 'a new empty cell in the terminal set on screen'),
+    bk('benchKey', 'bench the selected terminal (keeps running under Benched), or move an editor chat tab to orchestration'),
+    bk('orchKey', "move an editor chat tab to orchestration: it keeps running in orchestration's list"),
     bk('windowKey', 'the next chat, top to bottom (shift: the one before); a chat with a question lands on it'),
     bk('boxKey', 'a chat: between its question and its text box (ctrl ctrl: press ctrl twice)'),
     bk('modeKey', "in a chat's text box: step the mode (shift: back)"),
     bk('modelNextKey', "in a chat's text box: the next model"),
     bk('modelPrevKey', "in a chat's text box: the model before"),
-    bk('railKey', 'the agents or terminals list: hide / show'),
+    bk('railKey', 'the terminals list: hide / show'),
     ...[['claude', 'Claude'], ['codex', 'Codex'], ['antigravity', 'Antigravity'], ['cursor', 'Cursor'], ['copilot', 'Copilot'], ['grok', 'Grok']].filter(([a]) => all || chatOn(a)).flatMap(([a, name]) => [1, 2, 3, 4, 5].map((n) => bk(`model.${a}.${n}`, `a ${name} chat: the model of row ${n} in settings`))),
-    ['del', 'agents: close the selected chat'],
     bk('quoteKey', 'a chat: add the text selected in a reply to your message'),
     bk('noteKey', 'a chat: its note, show / hide'),
     bk('clearKey', 'a chat: clear it (asks first)'),
     bk('find', 'a chat: find in its box or in the whole chat (again: the other); settings: find a setting'),
-    bk('newAgentKey', "a new chat like the dashboard's new agent button"), bk('newChatN', `agents, orchestration and the editor: a new chat (${CHATS.map(([k, name], i) => [k, `${i + 1} ${name}`]).filter(([k]) => chatOn(k)).map(([, t]) => t).join(', ')})`),
-    bk('fireGo', "research's box: send it and go with it"),
+    bk('newAgentKey', "a new chat like the dashboard's new agent button"), bk('newChatN', `orchestration and the editor: a new chat (${CHATS.map(([k, name], i) => [k, `${i + 1} ${name}`]).filter(([k]) => chatOn(k)).map(([, t]) => t).join(', ')})`),
   ]];
   return [modes, deck];
 }
@@ -276,7 +272,7 @@ document.addEventListener('keydown', (e) => {
     return closeSettings();
   }
   const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName as string) || !!(document.activeElement as HTMLElement)?.isContentEditable;
-  const to = !atLaunch() && [['modeEditor', 'editor'], ['modeChat', 'chat'], ['modeTerm', 'term'], ['modeResearch', 'research'], ['modeOrch', 'orch']].find(([id]) => is(e, id))?.[1];
+  const to = !atLaunch() && [['modeEditor', 'editor'], ['modeTerm', 'term'], ['modeOrch', 'orch']].find(([id]) => is(e, id))?.[1];
   if (to) {
     e.preventDefault();
     return toMode(to);

@@ -76,7 +76,7 @@ function rowsOf(x: Target): Row[] {
   if (focus) rows.push('-', { label: focus.label === 'unfocus' ? 'show the whole project' : 'show only this folder', icon: '', svg: focus.svg, tip: focus.tip, run: focus.run });
   if (file(x)) {
     rows.push('-', ...opens(x));
-    if (mode() === 'chat' || mode() === 'orch') rows.push({ label: 'add to chat', icon: 'toChat', key: 'ctrl right-click', run: (t) => attachToChat(t.path) });
+    if (mode() === 'orch') rows.push({ label: 'add to chat', icon: 'toChat', key: 'ctrl right-click', run: (t) => attachToChat(t.path) });
   }
   rows.push('-');
   if (file(x) || folder(x)) rows.push({ label: 'rename…', icon: 'rename', key: 'f2', run: (t) => (file(t) ? renameFile(t.path) : renameFolder(t)) });

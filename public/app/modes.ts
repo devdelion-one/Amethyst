@@ -2,7 +2,7 @@ import { filesChanged, setMark, togglePin } from './actions.ts';
 import { markMenu } from '../base/agentrow.ts';
 import { agentMenu, launchAgent, pinOf } from '../base/agentmenu.ts';
 import { ask, barMenu, flyFocus, ICONS, keepMenu, keyChip, menuHead, modeOrder, popMenu, railActions, setSwatches, sortable, sorting, topBarMenu, topRow } from '../base/controls.ts';
-import { addSet, freeCell, setsHolding, agentLine, createDeck, dropSet, inCells, markSet, moveAway, moveSet, moveSetChats, cellsOf, chatsFromOrch, setChatsToOrch, nextColor, nextSet, orderHex, putInSet, restoreSet, swapInSet, setAgents, setAway, setColor, setInfo, setInfos, setOf, setOn, sets, setsMenu, setTurn, shareDeck, showSet, takeHere, toOrch } from '../decks/deck.ts';
+import { addSet, agentLine, createDeck, dropSet, markSet, moveAway, moveSet, moveSetChats, nextColor, orderHex, putInSet, restoreSet, setAgents, setAway, setColor, setInfo, setInfos, setOf, setOn, sets, setsMenu, setTurn, shareDeck, showSet, takeHere, toOrch } from '../decks/deck.ts';
 import { aim, bottomBtns, btnShown, dragging, freeAt, freeNear, inDash, moveRef, orderAt, paintSlots, pinDropIn, placeAt, placeBoth, railSel, slotDrag, topBtns, watchFold, watchSlots } from './slots.ts';
 import type { Side, SlotView, Spot } from './slots.ts';
 import { drawDash, showDash } from './topdash.ts';
@@ -16,7 +16,6 @@ import { follow, here } from '../base/follow.ts';
 import { gem, modeGem, pjMark, workGem, workMark } from '../base/kinds.ts';
 import { icon } from '../base/icon.ts';
 import { dockProjects, onPjHidden, pjHidden } from './pjhide.ts';
-import { createResearch, researchInfo } from '../chat/research.ts';
 import { createOrch, filesUnder, listSides, orchOrder, orchWidth, placeFiles } from '../orch/orch.ts';
 import { addText, createChat } from '../chat/chat.ts';
 import { isQuickChat, showQuickAgent } from '../chat/qagent.ts';
@@ -48,11 +47,9 @@ type NavEl = HTMLElement & { _shape?: string };
 export const MODES: Record<string, ModeDef> = {
   editor: {},
   orch: { label: 'orchestration', what: 'One chat at a time.', icon: () => modeGem('orch') },
-  chat: { label: 'agents', what: 'Every chat at once.', icon: () => modeGem('ai') },
   term: { label: 'terminals', what: 'Every terminal at once.', icon: () => gem('term') },
-  research: { label: 'research', what: 'A chat and its subagents, side by side.', icon: () => gem('research') },
 };
-const NOUN: Record<string, string> = { orch: 'chat', chat: 'chat', term: 'terminal', research: 'chat' };
+const NOUN: Record<string, string> = { orch: 'chat', term: 'terminal' };
 function orchInfo(): Info {
   const all = [...agents.all.values()].filter((a) => a.kind === 'chat' && (a.pid || '') === S.pid && !amElse(a));
   return { chats: all.length, ...Object.fromEntries(['asks', 'done', 'working'].map((st) => [st, all.filter((a) => a.status === st).length])), doneIds: all.filter((a) => a.status === 'done').map((a) => a.id) };
@@ -68,9 +65,9 @@ function editorInfo() {
   }
   return { asks, doneIds };
 }
-const infoOf = (k: string, id: string, tab?: ((a: Agent) => boolean) | null): Info => (k === 'orch' ? orchInfo() : k === 'research' ? researchInfo() : setInfo(k, id, tab));
+const infoOf = (k: string, id: string, tab?: ((a: Agent) => boolean) | null): Info => (k === 'orch' ? orchInfo() : setInfo(k, id, tab));
 const infosOf = (k: string, tab?: ((a: Agent) => boolean) | null) => {
-  const all = k === 'research' || k === 'orch' ? null : setInfos(k, tab);
+  const all = k === 'orch' ? null : setInfos(k, tab);
   return (id: string): Info => all?.get(id) ?? infoOf(k, id, tab);
 };
 export const PLUS = '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg>';
@@ -85,11 +82,11 @@ export const railViews = () => lastAll;
 let warmed = '';
 
 export function attachToChat(path: string, over: Element = document.body) {
-  if (decks.attach(...onScreen(), path) === undefined) refuse(over, { title: 'No chat is selected', line: 'Click a chat in the set first' });
+  if (decks.attach(...onScreen(), path) === undefined) refuse(over, { title: 'No chat is selected', line: 'Pick a chat in orchestration first' });
 }
 
 export function setMode(m: string) {
-  if (atLaunch() || !MODES[m] || ((m === 'research' || m === 'orch') && atWs())) return;
+  if (atLaunch() || !MODES[m] || (m === 'orch' && atWs())) return;
   if (isOff('modesHidden', m)) setOff('modesHidden', m, false);
   if (m === mode()) return decks.focus(...onScreen());
   keepMode(m);
@@ -114,7 +111,6 @@ async function orchClose(a: Agent, sure = false): Promise<'end' | 'left' | 'stay
   try {
     const id = a.id, still = stillAt(a);
     const rows = [
-      ...setsHolding('chat', id).map((x) => ({ id: 'set:' + x.set, name: `chat set ${x.n}${x.label ? ` (${x.label})` : ''}` })),
       ...chatEds(id).map((x) => ({ id: 'ed:' + x.ed, name: x.orch ? 'Orchestration files panel' : `editor set ${x.n}${x.label ? ` (${x.label})` : ''}` })),
       { id: 'orch', name: 'orchestration' },
     ];
@@ -133,11 +129,6 @@ async function orchClose(a: Agent, sure = false): Promise<'end' | 'left' | 'stay
     const on: string[] = r?.ticked || [];
     if (!on.length) return null;
     if (!agents.all.has(id)) return 'left';
-    for (const k of on.filter((x) => x.startsWith('set:'))) {
-      const set = k.slice(4);
-      if (decks.has('chat', set)) decks.letGo('chat', set, id);
-      else freeCell('chat', set, id);
-    }
     const ed = on.filter((x) => x.startsWith('ed:')).map((x) => x.slice(3));
     if (ed.length) letGoChat(id, ed);
     if (on.length === all.length) return 'end';
@@ -146,28 +137,26 @@ async function orchClose(a: Agent, sure = false): Promise<'end' | 'left' | 'stay
     closing = false;
   }
 }
-const OPEN_TIP = 'Move to\nOpens the chat in a set. It stays here in orchestration too.';
-const MOVE_TIP = 'Move to\nMoves the chat to another set: it leaves where it is now and stays here in orchestration.';
-const openAt = (a: Agent) => ({ cells: setsHolding('chat', a.id), eds: chatEds(a.id).map((x) => x.ed), tab: findTab((t) => t.chat === a.id) });
+const OPEN_TIP = 'Move to\nOpens the chat in an editor layout or another Amethyst. It stays here in orchestration too.';
+const MOVE_TIP = 'Move to\nMoves the chat to another editor layout or Amethyst: it leaves where it is now and stays here in orchestration.';
+const openAt = (a: Agent) => ({ eds: chatEds(a.id).map((x) => x.ed), tab: findTab((t) => t.chat === a.id) });
 const openSomewhere = (a: Agent) => {
   const o = openAt(a);
-  return !!(o.cells.length || o.eds.length || o.tab);
+  return !!(o.eds.length || o.tab);
 };
 async function bringHere(a: Agent) {
   if (!(await takeHere(a))) return false;
   const now = openAt(a);
-  for (const x of now.cells) decks.has('chat', x.set) ? decks.letGo('chat', x.set, a.id) : freeCell('chat', x.set, a.id);
   if (now.tab) giveAway(now.tab.t.id);
   if (now.eds.length) await letGoChat(a.id, now.eds);
   return true;
 }
 function orchToSet(a: Agent, btn: Element, layouts = false, done?: () => void, more: { html: string; pick: (b: HTMLElement) => unknown } | null = null, beside: HTMLElement | null = null) {
   const was = openAt(a), look = { verb: openSomewhere(a) ? 'move to' : 'open in', eds: was.eds };
-  setsMenu('chat', btn, inCells('chat').has(a.id) ? setOf('chat', a.id) : null, async (to, how) => {
+  setsMenu('chat', btn, null, async (to, how) => {
     if (how.am !== AM) return moveAway(a, how.am, to, how);
     if (!(await bringHere(a))) return;
     if (to?.ed != null) await openAgent(a, String(to.ed), how.go);
-    else sendChat('chat', a.id, to, how.go);
     done?.();
   }, layouts ? editors() : null, a, false, more, look, beside);
 }
@@ -184,7 +173,7 @@ const orchHead = {
 };
 
 decksMaker((k: string, set: string | null) => {
-  const d = k === 'orch' ? createOrch({ head: orchHead, makeChat: createChat, makeTerm: createTerm, filesChanged, openFile: orchFile, claim: takeHere, heldAt, moveOut: (a, btn, done, more, beside) => orchToSet(a, btn, true, done, more, beside), mark: setMark, close: orchClose, verb: (a) => (openSomewhere(a) ? 'move to' : 'open in'), report: (a, at) => reportMenu(a, at) }) : k === 'research' ? createResearch({ sendTo: sendChat, openTab: openAgent, show: showAgent, openFile: deckOpen, filesChanged, moveTo: (btn, pick) => setsMenu('chat', btn, null, pick) }) : createDeck({ kind: k, set, openTab: atWs() ? null : openAgent, layouts: atWs() ? null : editors, inTab: atWs() ? null : heldAnywhere, sendTo: atWs() ? null : sendChat, pin: atWs() ? null : togglePin, mark: atWs() ? null : setMark, show: showAgent, bring: atWs() ? null : bringHere, openFile: deckOpen, filesChanged, makeChat: createChat, makeTerm: createTerm });
+  const d = k === 'orch' ? createOrch({ head: orchHead, makeChat: createChat, makeTerm: createTerm, filesChanged, openFile: orchFile, claim: takeHere, moveOut: (a, btn, done, more, beside) => orchToSet(a, btn, true, done, more, beside), mark: setMark, close: orchClose, verb: (a) => (openSomewhere(a) ? 'move to' : 'open in'), report: (a, at) => reportMenu(a, at) }) : createDeck({ kind: k, set, openTab: atWs() ? null : openAgent, layouts: atWs() ? null : editors, inTab: atWs() ? null : heldAnywhere, sendTo: atWs() ? null : sendChat, pin: atWs() ? null : togglePin, mark: atWs() ? null : setMark, makeTerm: createTerm });
   $('#decks').append(d.el);
   return d;
 });
@@ -213,11 +202,11 @@ export function renderModes() {
   $('#decks').style.setProperty('--orch-w', orchWidth() ? orchWidth() + 'px' : '');
   if (!atLaunch() && !atWs()) useOrch(orch);
   placeFiles();
-  $('#app').classList.toggle('noagent', m !== 'editor' && m !== 'chat' && m !== 'orch');
+  $('#app').classList.toggle('noagent', m !== 'editor' && m !== 'orch');
   const at = m !== 'editor' ? `${m}|${S.wid}|${S.pid}` : '';
   if (at !== warmed) {
     warmed = at;
-    if (m === 'chat' || m === 'research' || m === 'orch') quietly(api('POST', '/api/agent/warm', { ...(pinOf('top') ? { agent: pinOf('top') } : {}) }, S.pid));
+    if (m === 'orch') quietly(api('POST', '/api/agent/warm', { ...(pinOf('top') ? { agent: pinOf('top') } : {}) }, S.pid));
   }
   decks.at(atLaunch() ? '' : `${S.wid}|${S.pid}`);
   decks.show(...((at ? [m, setOn(m)] : [null]) as [any, any]));
@@ -265,12 +254,12 @@ export function paintSwitch() {
       view('editor', e.id, `<button class="ly${m === 'editor' && e.on ? ' cur' : ''}${left && e.on ? ' last' : ''}${e.empty ? ' empty' : ''}${e.mark ? ' mk' : ''}${paleOnFlip(setColor(i, 'editor', e.color)) ? ' pale' : ''}" style="${style(setColor(i, 'editor', e.color), e.mark)}" data-ed="${e.id}" data-n="${i + 1}" title="${esc(tip)}" aria-label="layout ${i + 1}">${modeGem('editor')}${wkB(i)}</button>`);
     });
   }
-  for (const k of ['orch', 'chat', 'term', 'research']) {
-    if ((k === 'research' || k === 'orch') && ws) continue;
+  for (const k of ['orch', 'term']) {
+    if (k === 'orch' && ws) continue;
     const shown = !isOff('modesHidden', k) || m === k;
     const { list, on } = sets(k), infoAt = infosOf(k, tabbed), left = m !== k && list.length > 1, first = infoAt(list[0].id), label = MODES[k].label!;
-    const again = k === 'chat' && !ws ? 'next set' : '', more = k === 'orch' ? '=tab:the next chat, top to bottom' : '';
-    view(k, list[0].id, main(k, m === k && on === list[0].id, MODES[k].icon!(), label[0].toUpperCase() + label.slice(1), `${MODES[k].what}${said2(first)}`, marks(first, k), keys(k, label, again, more), setColor(0, k, list[0].color), left && on === list[0].id, !first.chats, true, list[0].mark as string), shown);
+    const more = k === 'orch' ? '=tab:the next chat, top to bottom' : '';
+    view(k, list[0].id, main(k, m === k && on === list[0].id, MODES[k].icon!(), label[0].toUpperCase() + label.slice(1), `${MODES[k].what}${said2(first)}`, marks(first, k), keys(k, label, '', more), setColor(0, k, list[0].color), left && on === list[0].id, !first.chats, true, list[0].mark as string), shown);
     list.slice(1).forEach((x, j) => {
       const i = j + 1, info = infoAt(x.id), empty = !info.chats, st = said(info);
       const tip = `Set ${i + 1}\n${empty ? `No ${MODES[k].label} yet.` : `${info.chats} ${NOUN[k]}${info.chats === 1 ? '' : 's'}${st ? `: ${st}` : ''}.`}${x.id === on ? (m === k ? ' On screen.' : ' Last used.') : ''}\n\n${tip2}`;
@@ -291,7 +280,7 @@ export function paintSwitch() {
   drawn = 'ok';
   paintSlots(sw, rail, at, 'rail', force);
 }
-const SLOT_KINDS = ['orch', 'chat', 'term', 'research'];
+const SLOT_KINDS = ['orch', 'term'];
 function freezeColors() {
   editors().forEach((e, i) => e.color || !orderHex(i, 'editor') || markEditor(e.id, { color: orderHex(i, 'editor') }));
   setTurn('editor', Math.max(0, eds.length - 1));
@@ -310,11 +299,11 @@ function syncOrders() {
 const allRefs = () => [
   ...topBtns().map((v) => v.ref),
   ...(atWs() ? ['editor:ws'] : eds.map((e) => `editor:${e.id}`)),
-  ...SLOT_KINDS.filter((k) => !atWs() || (k !== 'orch' && k !== 'research')).flatMap((k) => sets(k).list.map((x) => `${k}:${x.id}`)),
+  ...SLOT_KINDS.filter((k) => !atWs() || k !== 'orch').flatMap((k) => sets(k).list.map((x) => `${k}:${x.id}`)),
   ...bottomBtns().map((v) => v.ref),
 ];
-export const NEW_KINDS: [string, string][] = [['chat', 'agents set'], ['editor', 'editor layout'], ['term', 'terminals']];
-export const NEW_BINDS: Record<string, string> = { chat: 'newSetChat', editor: 'newLayout', term: 'newSetTerm' };
+export const NEW_KINDS: [string, string][] = [['editor', 'editor layout'], ['term', 'terminals']];
+export const NEW_BINDS: Record<string, string> = { editor: 'newLayout', term: 'newSetTerm' };
 export function newView(kind: string, slot: Spot | null = null) {
   if (atLaunch() || atWs()) return;
   aim(kind, slot ? slot.s : null, slot?.side);
@@ -358,12 +347,12 @@ export async function chatTo(id: string, to: any, how: MoveHow) {
   const a = agents.all.get(id);
   if (!a) return;
   if (how.am !== AM) return void (await moveAway(a, how.am, to, how));
-  if (to?.orch) {
-    toOrch([id]);
-    return how.go ? setMode('orch') : page.render();
-  }
   if (to && 'ed' in to) return openAgent(a, to.ed, how.go);
-  sendChat('chat', id, to, how.go);
+  toOrch([id]);
+  if (how.go) {
+    setMode('orch');
+    requestAnimationFrame(() => decks.open('orch', setOn('orch'), id));
+  } else page.render();
 }
 export const agentTab = (program: string) => newOfType(chatTabOf(program), activeGroup());
 export function addAgent(kind = 'chat', b = $('#btn-newchat'), program = '', at?: [number, number], place = 'top') {
@@ -373,7 +362,11 @@ export function addAgent(kind = 'chat', b = $('#btn-newchat'), program = '', at?
     if (program) return agentTab(program);
     return launchAgent(place, x, y, agentTab);
   }
-  if (kind === 'chat' && mode() === 'orch' && !atLaunch() && !atWs()) return decks.newAgent(...onScreen(), x, y, -1, place, program);
+  if (kind === 'chat') {
+    if (atLaunch() || atWs()) return;
+    if (mode() !== 'orch') setMode('orch');
+    return requestAnimationFrame(() => decks.newAgent('orch', setOn('orch'), x, y, -1, place, program));
+  }
   setMode(kind);
   requestAnimationFrame(() => decks.newAgent(...onScreen(), x, y, -1, place, program));
 }
@@ -385,14 +378,9 @@ export async function showAgent(a: Agent) {
     return page.render();
   }
   if (isQuickChat(a.id)) return showQuickAgent();
-  const o = owner(a.id)?.in;
-  if (o === 'orch') {
+  if (a.kind === 'chat') {
     setMode('orch');
     return requestAnimationFrame(() => decks.open('orch', setOn('orch'), a.id));
-  }
-  if (o === 'research') {
-    setMode('research');
-    return decks.open('research', setOn('research'), a.id);
   }
   const set = setOf(a.kind, a.id);
   toSet(a.kind, set);
@@ -416,16 +404,14 @@ async function landChat(a: Agent, p: ChatPlace) {
       await page.switchLevel(a.pid);
       if (S.pid !== a.pid) return;
     }
-    const near = p.near && owner(p.near)?.in === 'chat' ? setOf('chat', p.near) : null;
-    if (near != null && setInfo('chat', near).filled.some((f) => !f)) sendChat('chat', a.id, near, p.go);
-    else if (p.orch) {
-      for (const x of setsHolding('chat', a.id)) decks.has('chat', x.set) ? decks.letGo('chat', x.set, a.id) : freeCell('chat', x.set, a.id);
+    if (p.ed != null) await putChat(a, p, p.go);
+    else {
       putIn(a.id, { in: 'orch' });
       if (p.go) {
         setMode('orch');
-        requestAnimationFrame(() => decks.open(...onScreen(), a.id));
+        requestAnimationFrame(() => decks.open('orch', setOn('orch'), a.id));
       } else if (mode() === 'orch') decks.refresh(...onScreen());
-    } else if (p.set != null || p.ed != null) await putChat(a, p, p.go);
+    }
     if (p.go && p.from !== AM) notify(`Moved here from Amethyst ${p.from}. It kept running.`, { ms: 4000 });
   } finally {
     quietly(api('PUT', '/api/agent/owner', { id: a.id, done: p.at }, a.pid ?? S.pid));
@@ -482,7 +468,7 @@ async function handOff(btn: HTMLElement, text: string, to: any, how: MoveHow, pr
     const r = btn.getBoundingClientRect();
     return new Promise((ok, no) => agentMenu(r.left, r.bottom + 4, (k) => handOff(btn, text, to, how, k).then(ok, no), '', '', false, { place: 'text' }));
   }
-  const set = to && typeof to === 'object' ? `ed:${to.ed}` : to == null ? '+' : String(to);
+  const set = to && typeof to === 'object' && 'ed' in to ? `ed:${to.ed}` : 'orch';
   const r = await api('POST', '/api/chats/new', { agent: program || on[0][0], text, set, follow: how.go, amethyst: how.am, ...(how.draft ? { draft: true } : { attach: pics(text) }) });
   const where = how.am === AM ? how.label : `Amethyst ${how.am} · ${how.label}`;
   if (how.go && (WIN !== 1 || how.am !== AM)) window.amethyst?.openAmethyst?.(how.am);
@@ -491,41 +477,24 @@ async function handOff(btn: HTMLElement, text: string, to: any, how: MoveHow, pr
 }
 async function putChat(a: Agent, p: ChatSpot, go: boolean) {
   if (p.ed != null) return openAgent(a, p.ed === '+' ? 'new' : p.ed, go);
-  sendChat('chat', a.id, p.set?.startsWith('+') ? freshSet(p.set) : sets('chat').list.some((x) => x.id === p.set) ? p.set : setOn('chat'), go);
-}
-const fresh = new Map<string, string>();
-function freshSet(tag: string) {
-  if (tag === '+') return null;
-  const had = fresh.get(tag);
-  if (had && sets('chat').list.some((x) => x.id === had)) return had;
-  const id = addSet('chat', false);
-  fresh.set(tag, id);
-  return id;
+  putIn(a.id, { in: 'orch' });
+  if (go) {
+    setMode('orch');
+    requestAnimationFrame(() => decks.open('orch', setOn('orch'), a.id));
+  } else if (mode() === 'orch') decks.refresh(...onScreen());
 }
 every(3000, land);
 const resuming = new Set<string>();
-function heldAt(id: string) {
-  const at = setsHolding('chat', id)[0];
-  if (!at) return null;
-  const i = cellsOf('chat', at.set).indexOf(id);
-  return (nid: string) => {
-    if (!sets('chat').list.some((x) => x.id === at.set)) return false;
-    decks.has('chat', at.set) ? decks.swap('chat', at.set, id, nid, i) : swapInSet('chat', at.set, id, nid, i);
-    return true;
-  };
-}
 export function resumeChat({ session, program }: { session: string; program?: string }) {
-  if (resuming.has(session)) return;
+  if (resuming.has(session) || atWs()) return;
   resuming.add(session);
   setTimeout(() => resuming.delete(session), 5000);
-  const set = setOn('chat');
-  toSet('chat', set);
-  decks.back('chat', set, { id: null, ended: true, session, program, pid: S.pid, i: -1 });
+  setMode('orch');
+  requestAnimationFrame(() => decks.resume('orch', setOn('orch'), { session, program, pid: S.pid }));
 }
-const setGone = (d: any) => d.kind === 'chat' && !sets('chat').list.some((x: { id: string }) => x.id === d.set);
-const inDeck = (d: any, how: 'back' | 'again') => (!setGone(d) && decks.has(d.kind, d.set) ? decks[how](d.kind, d.set, d) : false);
+const inDeck = (d: any, how: 'back' | 'again') => (decks.has(d.kind, d.set) ? decks[how](d.kind, d.set, d) : false);
 undoer('deck', {
-  there: (d) => setGone(d) || (mode() === d.kind && setOn(d.kind) === d.set),
+  there: (d) => mode() === d.kind && setOn(d.kind) === d.set,
   go(d) {
     if (mode() !== d.kind) setMode(d.kind);
     if (setOn(d.kind) !== d.set) toSet(d.kind, d.set);
@@ -533,10 +502,6 @@ undoer('deck', {
   undo: (d) => inDeck(d, 'back'),
   redo: (d) => inDeck(d, 'again'),
 });
-export function stepSet() {
-  nextSet('chat');
-  toSet('chat', setOn('chat'));
-}
 function dropDeckSet(kind: string, id: string) {
   decks.close(kind, id);
   const back = dropSet(kind, id);
@@ -547,11 +512,10 @@ function dropDeckSet(kind: string, id: string) {
 async function closeSet(kind: string, id: string, n: number) {
   const main = sets(kind).list[0].id === id, { chats } = infoOf(kind, id), what = NOUN[kind];
   if (main && !chats) return;
-  const keeps = kind === 'chat' || kind === 'term', away = keeps ? awaySay(kind, id) : '';
+  const keeps = kind === 'term', away = keeps ? awaySay(kind, id) : '';
   if (chats && keeps && setAgents(kind, id).length) return closeKeeping(kind, id, n);
-  if (chats && !(await ask({ title: `Close set ${n}?`, text: away || `It ends its ${chats} ${what}${chats === 1 ? '' : 's'}${kind === 'chat' ? ' (ctrl z brings the set and its chats back)' : ' and what runs in them'}.`, confirm: true }))) return;
-  const back = dropDeckSet(kind, id);
-  if (back && kind === 'chat') record('set', `closed set ${back.at + 1}`, { kind, back });
+  if (chats && !(await ask({ title: `Close set ${n}?`, text: away || `It ends its ${chats} ${what}${chats === 1 ? '' : 's'} and what runs in them.`, confirm: true }))) return;
+  dropDeckSet(kind, id);
 }
 function awaySay(kind: string, id: string) {
   const ams = setAway(kind, id), k = ams.length, one = [...new Set(ams)];
@@ -560,67 +524,35 @@ function awaySay(kind: string, id: string) {
 }
 async function closeKeeping(kind: string, id: string, n: number) {
   const list = setAgents(kind, id), what = NOUN[kind], many = (k: number) => `${k} ${what}${k === 1 ? '' : 's'}`, away = awaySay(kind, id);
-  const orch = kind === 'chat', them = (k: number) => (k === 1 ? 'it' : 'them');
-  const say = (k: number, all: number) => away + (k === all ? `It has *${many(all)}*, still running: ${orch ? `move ${them(all)} to orchestration or another set, or end ${all === 1 ? 'it' : 'them all'}` : `move ${them(all)} to another set, here or in another Amethyst`}.` : k ? `Move the *${k} ticked*. The other ${many(all - k)} end${all - k === 1 ? 's' : ''}.` : `No ${what} is ticked: tick the ones to move, or end them all.`);
+  const them = (k: number) => (k === 1 ? 'it' : 'them');
+  const say = (k: number, all: number) => away + (k === all ? `It has *${many(all)}*, still running: move ${them(all)} to another set, here or in another Amethyst.` : k ? `Move the *${k} ticked*. The other ${many(all - k)} end${all - k === 1 ? 's' : ''}.` : `No ${what} is ticked: tick the ones to move, or end them all.`);
   const r = await ask({
     title: `Close set ${n}?`,
     text: say(list.length, list.length),
     ticks: { items: list.map((a) => ({ id: a.id, html: agentLine(a), off: false })), say },
     menu: { label: 'move to…', open: (btn, pick, ticked) => setsMenu(kind, btn, id, (to, how) => pick({ to, how }), null, list.filter((a) => ticked.includes(a.id))) },
     end: { label: list.length === 1 ? `end it` : `end all ${list.length}`, value: 'end' },
-    main: orch ? { label: 'to orchestration', value: 'orch' } : null,
+    main: null,
   });
   if (!r) return;
-  if (r.value === 'orch') {
-    const cells = cellsOf(kind, id), moved = setChatsToOrch(kind, id, r.ticked), back = dropDeckSet(kind, id);
-    if (back) record('set', `closed set ${back.at + 1}`, { kind, back, ...(moved.length && { moved: { ids: moved, to: 'orch', cells } }) });
-    return;
-  }
-  if (r.value === 'end') {
-    const back = dropDeckSet(kind, id);
-    if (back && kind === 'chat') record('set', `closed set ${back.at + 1}`, { kind, back });
-    return;
-  }
+  if (r.value === 'end') return void dropDeckSet(kind, id);
   const keep: string[] = r.ticked, { to, how } = r.value as { to: string | null; how: MoveHow };
   if (how.am !== AM) return moveThere(kind, id, n, keep.map((x) => agents.all.get(x)!).filter(Boolean), to, how, many);
-  const dest = to ?? addSet(kind, false), moved = moveSetChats(kind, id, dest, keep);
-  const back = dropDeckSet(kind, id);
+  const dest = to ?? addSet(kind, false);
+  moveSetChats(kind, id, dest, keep);
+  dropDeckSet(kind, id);
   decks.refresh(kind, dest);
   if (how.go) toSet(kind, dest);
-  if (back && kind === 'chat') record('set', `closed set ${back.at + 1}`, { kind, back, ...(moved.length && { moved: { ids: moved, to: dest } }) });
 }
 async function moveThere(kind: string, id: string, n: number, list: Agent[], to: string | null, how: MoveHow, many: (k: number) => string) {
   const tag = to ?? `+${Date.now().toString(36)}`;
   const ok = await Promise.all(list.map((a, i) => moveAway(a, how.am, tag, { ...how, go: how.go && i === 0 }, true)));
   const failed = list.filter((_, i) => !ok[i]);
   if (failed.length) return void notify(`${many(failed.length)} didn't move to Amethyst ${how.am}, so set ${n} stays open: ${failed.map((a) => esc(titleOf(a))).join(', ')}.`, { ms: 8000 });
-  const back = dropDeckSet(kind, id);
-  if (back && kind === 'chat') record('set', `closed set ${back.at + 1} (${many(list.length)} went to Amethyst ${how.am})`, { kind, back });
+  dropDeckSet(kind, id);
   if (how.go) window.amethyst?.openAmethyst?.(how.am);
   else notify(`Moved ${many(list.length)} to Amethyst ${how.am} · ${esc(how.label)}. ${how.open ? 'You stayed here; they keep running there.' : `They're there when you open Amethyst ${how.am}.`}`, { ms: 5000 });
 }
-undoer('set', {
-  there: () => true,
-  undo(d) {
-    const { entry, chats } = d.back;
-    if (d.back.at > 0) {
-      if (sets(d.kind).list.some((x: { id: string }) => x.id === entry.id)) return false;
-      restoreSet(d.kind, d.back);
-    }
-    if (d.moved?.to === 'orch') {
-      chatsFromOrch(d.kind, entry.id, d.moved.ids, d.moved.cells);
-      decks.close(d.kind, entry.id);
-      drawn = '';
-    } else if (d.moved) (moveSetChats(d.kind, d.moved.to, entry.id, d.moved.ids), decks.refresh(d.kind, d.moved.to));
-    toSet(d.kind, entry.id);
-    for (const c of chats) decks.back(d.kind, entry.id, { ...c, ended: true });
-  },
-  redo(d) {
-    if (d.moved?.to === 'orch') setChatsToOrch(d.kind, d.back.entry.id, d.moved.ids);
-    else if (d.moved) moveSetChats(d.kind, d.back.entry.id, d.moved.to, d.moved.ids);
-    dropDeckSet(d.kind, d.back.entry.id);
-  },
-});
 async function closeLayout(id: string, n: number) {
   const main = eds[0].id === id, { tabs, agents: ends } = editorLoad(id);
   if (main && !tabs) return;
@@ -629,7 +561,7 @@ async function closeLayout(id: string, n: number) {
 }
 export function closeHere() {
   const m = mode();
-  if (atLaunch() || atWs() || m === 'research' || m === 'orch') return;
+  if (atLaunch() || atWs() || m === 'orch') return;
   if (m === 'editor') {
     const i = editors().findIndex((e) => e.on);
     return i >= 0 && closeLayout(eds[i].id, i + 1);
@@ -673,7 +605,7 @@ menu.addEventListener('pointerover', (e: PointerEvent) => peekAt((e.target as El
 menu.addEventListener('pointerout', (e: PointerEvent) => peekAt((e.relatedTarget as Element | null)?.closest?.<HTMLElement>('#colormenu :is([data-sc],[data-smk])')));
 menu.addEventListener('menuclose', () => (unpeek(), (peek = null)));
 
-const CLOSES: Record<string, string> = { editor: 'Its tabs close.', chat: 'You choose where its chats go: orchestration, another set, or they end.', term: 'Its terminals stop.' };
+const CLOSES: Record<string, string> = { editor: 'Its tabs close.', term: 'Its terminals stop.' };
 const READ_ICON = '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>';
 const X_ICON ='<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg>';
 function newRowsAt(at: Spot | null) {
@@ -774,7 +706,7 @@ $('#switch').addEventListener('keydown', (e: KeyboardEvent) => {
   if (!b) return;
   const kind = b.closest<HTMLElement>('.sets')!.dataset.kind!, ed = kind === 'editor';
   e.preventDefault();
-  if ('mode' in b.dataset) return atWs() || kind === 'research' || kind === 'orch' ? undefined : ed ? closeLayout(eds[0].id, 1) : closeSet(kind, sets(kind).list[0].id, 1);
+  if ('mode' in b.dataset) return atWs() || kind === 'orch' ? undefined : ed ? closeLayout(eds[0].id, 1) : closeSet(kind, sets(kind).list[0].id, 1);
   const n = +b.dataset.n!, id = (ed ? b.dataset.ed : b.dataset.set)!;
   ed ? closeLayout(id, n) : closeSet(kind, id, n);
 });

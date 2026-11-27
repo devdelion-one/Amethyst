@@ -5,7 +5,7 @@ These guides explain how Amethyst works and what to tell your coding agents when
 ## Start here
 
 - [Getting started](getting-started.md): install on Windows, set up workspaces and projects, sign in to your agents, and learn the core workflow.
-- [Modes, browser tab, quick tools, and shortcuts](modes-and-shortcuts.md): Editor, Agents, Terminals, Research, Orchestration, The Mind, the browser element picker, quick windows, Freeze Log, and default shortcuts.
+- [Modes, browser tab, quick tools, and shortcuts](modes-and-shortcuts.md): Editor, Orchestration, Terminals, The Mind, the browser element picker, quick windows, Freeze Log, and default shortcuts.
 - [Agent setup and accounts](agent-setup-and-accounts.md): where each agent stores instructions, skills, rules, and memory, plus multi-account Claude switching and usage limits.
 - [Reviewing edits and rewind](review-and-rewind.md): review agent file edits per file or per turn, keep or reject changes, and rewind chats and files with restore points.
 

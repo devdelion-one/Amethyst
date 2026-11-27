@@ -304,7 +304,7 @@ function chatToSet(t: Tab, btn: HTMLElement) {
     await giveAway(t.id);
     if (how.am !== AM) return;
     if (set?.ed) return openAgent(a, set.ed, how.go);
-    page.sendChat('chat', id, set, how.go);
+    tabToOrch(t, btn);
   }, editors(), agents.all.get(id), toOrchHere());
 }
 
@@ -1049,18 +1049,14 @@ function takeOther(e: DragEvent, s: Drop) {
 }
 const ownOut = (e: DragEvent) => dragging && movable(dragging) && S.pid && !main.contains(e.target);
 const awayTab = (e: DragEvent) => fromOther(e) === 'tab' && mode() !== 'editor' && !main.contains(e.target);
-const toDeck = (e: DragEvent) => awayTab(e) && mode() === 'chat' && e.dataTransfer!.types.includes(CHATTAB);
-const fileOnDeck = (e: DragEvent) => mode() === 'chat' && !e.defaultPrevented && (/^(file|dir|link):/.test(S.dragging || '') || fromOther(e) === 'file') && (e.target as Element).closest?.('#decks .deck');
 document.addEventListener('dragover', (e) => {
   if (osFiles(e) && !main.contains(e.target)) {
     e.preventDefault();
     return void (e.dataTransfer!.dropEffect = 'copy');
   }
-  const deck = fileOnDeck(e);
-  if (deck) return tell((e.target as HTMLElement).closest('.dk-cell, .dk-rail') || deck, { title: 'You cannot open files in the agents tab', line: 'Use the Editor tab for it' });
   const own = ownOut(e);
   if (!own && fromOther(e) === 'tab' && !main.contains(e.target) && elsewhere(e)) return refuse(mode() === 'editor' ? main : $('#decks'));
-  if (!own && awayTab(e) && !toDeck(e)) return tell($('#decks'), { title: 'You cannot drop a tab here', line: 'Open the Editor tab first' });
+  if (!own && awayTab(e)) return tell($('#decks'), { title: 'You cannot drop a tab here', line: 'Open the Editor tab first' });
   if (!own && (fromOther(e) !== 'tab' || main.contains(e.target))) return;
   e.preventDefault();
   e.dataTransfer!.dropEffect = 'move';
@@ -1087,21 +1083,8 @@ document.addEventListener('drop', (e) => {
     return endDrag();
   }
   if (fromOther(e) !== 'tab' || main.contains(e.target)) return;
-  if (toDeck(e)) return chatToDeck(e);
   takeOther(e, { g: activeGroup(), at: null });
 });
-function chatToDeck(e: DragEvent) {
-  let d;
-  try {
-    d = JSON.parse(e.dataTransfer!.getData(TAB));
-  } catch {
-    return;
-  }
-  if (d?.lvl !== levelKey()) return void tell($('#decks'), { ...far(), ms: 2500 });
-  if (!isChatTab(d.tab?.type) || !d.tab.chat) return;
-  e.preventDefault();
-  page.sendChat('chat', d.tab.chat, setOn('chat'), false);
-}
 async function popOut(id: string, x: number, y: number) {
   if (!movable(id) || !S.pid) return;
   const n = await openWindow(x - 120, y - 20);

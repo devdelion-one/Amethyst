@@ -312,7 +312,7 @@ function nearest(sf: Surf, p: number) {
   return best;
 }
 
-const FOLD = ['btn:pins', 'btn:win', 'btn:scratch', 'btn:sketch', 'btn:qterm', 'btn:qpwsh', 'btn:qagent', 'btn:inbox', 'btn:quick', 'btn:more', 'btn:uewin', 'btn:ue', 'research', 'orch', 'btn:newchat', 'term', 'chat', 'editor', 'btn:setup', 'btn:github', 'btn:git', 'btn:index', 'btn:site'];
+const FOLD = ['btn:pins', 'btn:win', 'btn:scratch', 'btn:sketch', 'btn:qterm', 'btn:qpwsh', 'btn:qagent', 'btn:inbox', 'btn:quick', 'btn:more', 'btn:uewin', 'btn:ue', 'orch', 'btn:newchat', 'term', 'editor', 'btn:setup', 'btn:github', 'btn:git', 'btn:index', 'btn:site'];
 function fit(views: SlotView[], at: Spots, n: number) {
   const rank = new Map(views.map((v, p) => {
     const i = FOLD.indexOf(isPin(v.ref) ? 'btn:quick' : isBtn(v.ref) ? v.ref : v.kind);

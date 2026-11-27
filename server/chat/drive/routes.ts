@@ -20,11 +20,10 @@ function sayList(rows: Live[]) {
 }
 
 function spotOf(v: unknown) {
-  if (v === '') return { set: '' };
   const t = String(v ?? '').trim();
   if (!t) return null;
   const ed = /^ed:(.+)$/.exec(t);
-  return ed ? { ed: ed[1] } : { set: t };
+  return ed ? { ed: ed[1] } : { orch: true };
 }
 
 function markReport(a: Live, on: boolean) {
@@ -66,7 +65,7 @@ const ROUTES: Routes = {
     if (text && !draft && !mayAnswer(who)) heldText(text);
     const r = await startChat({ who, agent: String(body.agent || 'claude'), root: s.root, pid: s.pid, R, am: n, q, by: by || null, worktree: body.worktree === true, model: body.model, mode: body.mode });
     const notes = r.notes;
-    const place = spotOf(body.set) || (who ? { near: who.id } : follow ? { set: 'now' } : null);
+    const place = spotOf(body.set) || (follow ? { orch: true } : null);
     if (place || n !== (who?.am || am)) await route('PUT /api/agent/owner')({ id: r.id, to: n, place, go: follow }, q, s.root, s.pid, R, who?.am || am).catch(() => {});
     const code = codeOf(r.id);
     if (body.report === true) markReport(live.get(r.id) as Live, true);
@@ -165,7 +164,7 @@ const ROUTES: Routes = {
 
   'POST /api/chats/show': async (body, q, root, pid, R, am = 1) => {
     const who = callerOf(body), s = scopeOf(who, root, pid), a = find(body.chat, s);
-    const place = spotOf(body.set) || (who ? { near: who.id, set: 'now' } : { set: 'now' });
+    const place = spotOf(body.set) || { orch: true };
     await route('PUT /api/agent/owner')({ id: a.id, place, go: !who }, q, s.root, s.pid, R, who?.am || a.am || am);
     return { chat: codeOf(a.id), text: `showing ${codeOf(a.id)}.` };
   },
@@ -237,8 +236,7 @@ const ROUTES: Routes = {
     if (!words.length) throw new HttpError(400, 'move which chats? give their codes');
     if (!Number.isInteger(n) || n < 1 || n > 999) throw new HttpError(400, 'amethyst: the number of an Amethyst, from 1');
     const list = [...new Map(words.map((w) => find(w, s)).map((a) => [a.id, a])).values()];
-    const spot = spotOf(body.set), fresh = !!spot && 'set' in spot && spot.set === '+' && list.length > 1;
-    const place = fresh ? { set: `+${Date.now().toString(36)}` } : spot || { set: 'now' };
+    const place = spotOf(body.set) || { orch: true };
     for (const a of list) await route('PUT /api/agent/owner')({ id: a.id, to: n, place, go: false }, q, s.root, s.pid, R, who?.am || a.am || am);
     const codes = list.map((a) => codeOf(a.id));
     return { chats: codes, amethyst: n, text: `moved ${codes.join(', ')} to Amethyst ${n}; ${codes.length === 1 ? 'it keeps' : 'they keep'} running there.` };

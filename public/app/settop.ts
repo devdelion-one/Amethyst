@@ -54,7 +54,7 @@ const items = (key: string) => (PREFS[key].items || []).map(([id]) => ({ id: `${
 const ueRows = (): Row[] => (pref('ue:on') ? items('ue:off') : []);
 const dbgRows = (): Row[] => (pref('ue:on') && pref('debug:on') ? items('debug:off') : []);
 
-const WK_SEL: Record<string, string> = { edWork: '.sets[data-kind=editor] .ly-wk', 'switch:wkOn': '.sets[data-kind=chat] .ly-wk' };
+const WK_SEL: Record<string, string> = { edWork: '.sets[data-kind=editor] .ly-wk', 'switch:wkOn': '.sets[data-kind=orch] .ly-wk' };
 const rowOf = (a: At) => TOPBAR.flatMap((g) => g.rows).find((r) => r.k === a.key && (r.id || '') === (a.id || ''));
 const topSel = (a: At) => (a.key === 'modesHidden' ? `:is(#switch, #dash) .sets[data-kind=${a.id}] > button` : rowOf(a)?.sel || '');
 const sel = (a: At) => DASH_SEL[a.key] || WK_SEL[a.key] || (a.place === 'top' ? topSel(a) : a.key === 'quick:pins' ? `[data-qk="${a.id}"]` : BTN_OF[`${a.key}:${a.id}`] || '');
@@ -109,7 +109,7 @@ const makePic = () => {
 const modeNav = (k: string, inner: string) => `<nav class="sets sv" data-kind="${k}">${inner}</nav>`;
 const wkPic = (place: string, on: boolean) => cells(place === 'edbtn'
   ? [modeNav('editor', `<button data-mode="editor" class="on" aria-label="Editor">${modeGem('editor')}${workMark()}</button>`), modeNav('editor', `<button class="ly" aria-label="layout 2">${modeGem('editor')}${on ? workMark() : ''}</button>`)]
-  : [modeNav('chat', `<button data-mode="chat" aria-label="${esc(cap(MODES.chat.label!))}">${MODES.chat.icon!()}<b class="md-n" data-st="done">2</b>${workMark()}</button>`)]);
+  : [modeNav('orch', `<button data-mode="orch" aria-label="${esc(cap(MODES.orch.label!))}">${MODES.orch.icon!()}<b class="md-n" data-st="done">2</b>${workMark()}</button>`)]);
 const LOG_IDS = ['refresh', 'asfile'];
 const ueBar = (id = '') => {
   const f = frag(LOG_IDS.includes(id) ? ueBars().log : ueBars().top);

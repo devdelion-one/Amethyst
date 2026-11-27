@@ -31,7 +31,7 @@ let known: WorkspaceEntry[] = [];
 let view: 'main' | 'ws' | 'pj' = 'main', drafts: Place[] = [], made: Place[] = [], places = new Map<string, string>(), dflt = '', draftN = 0;
 
 const BASICS: [string, string[], string[]?][] = [
-  ['modesHidden', ['term', 'research'], ['chat']],
+  ['modesHidden', ['term'], []],
   ['bar:off', ['timer', 'hitch', 'clips']],
   ['drafts:off', ['scratch', 'sketch', 'inbox']],
   ['qterm:off', ['term', 'pwsh', 'agent']],
@@ -47,7 +47,7 @@ export function startWith(basics: boolean) {
   basicPins(basics);
 }
 const START: ['basics' | 'all', string, string][] = [
-  ['basics', 'the basics', 'The basics\nThe dock holds the editor, orchestration, agents, usage and settings. Every other button waits in Settings until you turn it on.'],
+  ['basics', 'the basics', 'The basics\nThe rail holds the editor, orchestration, usage and settings. Every other button waits in Settings until you turn it on.'],
   ['all', 'everything', 'Everything\nShows every mode, button and tool in the bars.\n\nYou can hide any of them later with a right-click on its bar.'],
 ];
 const startRows = () =>

@@ -101,7 +101,7 @@ amethyst chat list
 
 **Surface:** CLI and MCP tool `chat_new`
 
-Start a new chat in this project. It is a normal chat the user sees and can type into; it goes next to yours when your set has a free cell, else in the set given, else in the agents list. With text it gets that as its first message (or, with draft, finds it in its message box for the user to send). Returns its code. Give it more work with amethyst chat send. A mode that may work without asking is the user's to pick: a chat, an agent outside Amethyst or a terminal can't start one in it unless the user allowed chats to answer permission asks. To a chat in a mode that may work without asking, its first message waits for the user to allow it, unless the user allowed chats to answer permission asks; that chat shows a permission ask with it.
+Start a new chat in this project. It is a normal chat the user sees and can type into; it goes in Orchestration by default, or in an editor layout when given. With text it gets that as its first message (or, with draft, finds it in its message box for the user to send). Returns its code. Give it more work with amethyst chat send. A mode that may work without asking is the user's to pick: a chat, an agent outside Amethyst or a terminal can't start one in it unless the user allowed chats to answer permission asks. To a chat in a mode that may work without asking, its first message waits for the user to allow it, unless the user allowed chats to answer permission asks; that chat shows a permission ask with it.
 
 ```powershell
 amethyst chat new [text...] [--agent <agent>] [--model <model>] [--mode <mode>] [--worktree] [--set <set>] [--report] [--attach <a,b>] [--draft] [--follow] [--amethyst <amethyst>]
@@ -111,7 +111,7 @@ amethyst chat new [text...] [--agent <agent>] [--model <model>] [--mode <mode>] 
 - `--model` (string, optional): A model it offers, e.g. opus or sonnet (amethyst chat options lists them)
 - `--mode` (string, optional): A mode it offers that asks, e.g. default or plan
 - `--worktree` (boolean, optional): Work in its own git worktree (made with its first message)
-- `--set` (string, optional): Where to show it: a chat set (its id, or + for a new one), or an editor set (ed:<id>, or ed:new for a new one)
+- `--set` (string, optional): Where to show it: orch (Orchestration, the default), or an editor layout (ed:<id>, or ed:new for a new one)
 - `--report` (boolean, optional): Notify me: the user gets a notification each time it is ready (amethyst chat report turns it off)
 - `text` (string, optional): Its first message, sent at once
 - `--attach` (list, optional): Files to send with the first message (files in this project): pictures go as pictures, other files as @path
@@ -119,7 +119,7 @@ amethyst chat new [text...] [--agent <agent>] [--model <model>] [--mode <mode>] 
 - `--follow` (boolean, optional): Take the user to it (not from a chat: a chat never moves the user)
 - `--amethyst` (number, optional): The Amethyst (window) it opens in, 1 by default; it shows there when that Amethyst opens
 
-Example: `amethyst chat new --set + --follow "plan the landing page"`
+Example: `amethyst chat new --follow "plan the landing page"`
 
 ### `amethyst chat send`
 
@@ -270,14 +270,14 @@ Example: `amethyst chat set Q20 model sonnet`
 
 **Surface:** CLI and MCP tool `chat_show`
 
-Show the chat to the user: in the set given, or next to the calling chat when its set has a free cell, or in the chat set that's on.
+Show the chat to the user: in Orchestration, or in the editor layout given.
 
 ```powershell
 amethyst chat show <chat> [--set <set>]
 ```
 
 - `chat` (string, required): The chat: its code (Q20 or @Q20), its title, or its id. Only chats in your own project.
-- `--set` (string, optional): A chat set (its id, or + for a new one), or an editor set (ed:<id>, or ed:new)
+- `--set` (string, optional): orch (Orchestration, the default), or an editor layout (ed:<id>, or ed:new)
 
 ### `amethyst chat review`
 
@@ -346,7 +346,7 @@ Example: `amethyst chat rename Q20 plan for the importer`
 
 **Surface:** CLI and MCP tool `chat_move`
 
-Move chats to another Amethyst (a window of the app, numbered from 1), into a set there. They keep running; that Amethyst shows them, this one doesn't.
+Move chats to another Amethyst (a window of the app, numbered from 1), into Orchestration or an editor layout there. They keep running; that Amethyst shows them, this one doesn't.
 
 ```powershell
 amethyst chat move <chats...> [--amethyst <amethyst>] [--set <set>]
@@ -354,7 +354,7 @@ amethyst chat move <chats...> [--amethyst <amethyst>] [--set <set>]
 
 - `chats` (list, required): The chats to move: codes, titles or ids
 - `--amethyst` (number, required): The number of the Amethyst to move them to
-- `--set` (string, optional): Where there: a chat set (its id, or + for one new set for all of them), or an editor set (ed:<id>, or ed:new). Default: the set that's on there
+- `--set` (string, optional): Where there: orch (Orchestration, the default), or an editor layout (ed:<id>, or ed:new)
 
 Example: `amethyst chat move Q20 V10 --amethyst 1`
 

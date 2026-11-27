@@ -16,8 +16,6 @@ function migrate(): Record<string, any> {
     const wid = at[2].includes(':') ? at[2].slice(0, at[2].indexOf(':')) : 'main';
     for (const [id, set] of Object.entries(store.get(k!, {}))) m[id] = { in: at[1], set, wid };
   }
-  for (const id of Object.keys(store.get('research:own', {}))) m[id] = { in: 'research' };
-  old.push('research:own');
   store.set(KEY, m);
   for (const k of old) store.del(k);
   return m;

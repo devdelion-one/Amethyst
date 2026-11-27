@@ -163,7 +163,6 @@ function chipTip(p: Picker, cur: Opt | undefined, agent: string): { text: string
     const say = MODE_SAY[`${agent}:${p.value}`] || sentence(cur?.description);
     return { text: `Mode: ${name}\n${say ? say + ' ' : ''}Click to pick another mode.`, keys: `modeKey:next mode${bound('modeKey') ? `;=shift+${bound('modeKey')}:previous mode` : ''}` };
   }
-  if (p.category === 'research') return { text: `${p.name}: ${cur ? short(cur) : name}\nThe agent this chat talks to${cur?.description ? ', ' + cur.description.replace(/^uses /, 'with ') : ''}. Click to pick another agent.`, keys: '=arrowup:previous agent;=arrowdown:next agent' };
   const say = sentence(cur?.description);
   return { text: `${p.name}: ${name}\n${say ? say + ' ' : ''}Click to pick another, or scroll over it to step through the list.`, keys: '=arrowup:previous;=arrowdown:next' };
 }
@@ -191,7 +190,7 @@ export function chipHtml(p: Picker, agent: string, open?: string) {
   }
   const tone = p.category === 'mode' && TONE[p.value];
   const ic = icon(p.category === 'mode' ? p.value : p.category === 'model' ? 'model' : p.key);
-  const minor = p.category !== 'mode' && p.category !== 'model' && p.category !== 'research';
+  const minor = p.category !== 'mode' && p.category !== 'model';
   return `<button class="ch-chip${minor ? ' ch-minor' : ''}${p.category === 'model' ? ' ch-pill' : ''}" ${attrs} ${tone ? `data-tone="${tone}"` : ''}>${ic}${val}</button>`;
 }
 export function shrinkHtml(on: boolean) {

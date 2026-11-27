@@ -135,8 +135,8 @@ export const ocHead = (k: string, label: string, n: number, add = false): Row =>
   return { key: 'h:' + k, html: h, cmp: h, shape: '', text: '', at: 0, a: null };
 };
 
-for (const l of ['orch', 'deck']) {
-  const k = (x: string) => listKey(l, x);
+{
+  const k = (x: string) => listKey('orch', x);
   rowIcons({ [k('newBtn')]: () => gem('ai'), [k('folders')]: () => icon('folder'), [k('subs')]: () => icon('subs'), [k('code')]: () => '<b class="tb-tx">K</b>', [k('tools')]: () => TOOL_IC.claude, [k('wt')]: () => icon('branch'), [k('answer')]: () => icon('compose') });
 }
 const PICK_IC: Record<string, string> = { calm: ICONS.bars, detailed: icon('plan'), mine: icon('move'), latest: ICONS.history };

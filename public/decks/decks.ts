@@ -5,7 +5,7 @@ let make: Make | null = null;
 let level = '';
 const levels = new Map<string, Map<string, Deck>>();
 const key = (kind: string | null, set: string | null) => `${kind}:${set}`;
-const KEPT = ['chat', 'term'];
+const KEPT = ['term'];
 const wsOf = (l: string) => l.split('|')[0];
 const here = () => levels.get(level) || levels.set(level, new Map()).get(level)!;
 const drop = (m: Map<string, Deck>, k: string) => {
@@ -51,11 +51,10 @@ export const decks = {
   openFile: pass('openFile'),
   refresh: pass('refresh'),
   open: pass('open'),
+  resume: pass('resume'),
   take: pass('take'),
-  swap: pass('swap'),
   letGo: pass('letGo'),
   back: pass('back'),
   again: pass('again'),
   newAgent: pass('newAgent'),
-  newChat: pass('newChat'),
 };

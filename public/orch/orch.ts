@@ -37,7 +37,6 @@ type Opts = {
   makeTerm: MakeTerm;
   filesChanged: () => void;
   openFile: (path: string) => unknown;
-  heldAt: (id: string) => ((nid: string) => boolean) | null;
   claim: (a: Agent) => Promise<boolean>;
   moveOut: (a: Agent, btn: Element, done: () => void, more: More | null, beside?: HTMLElement | null) => unknown;
   mark: (session: string, n: number) => unknown;
@@ -198,7 +197,7 @@ rowIcons({ 'orch:term': () => TERM_IC, 'orch:termBtn': () => TERM_IC, 'orch:term
 listMenu('orch', '.oc-rail', 'orch', { only: ['orch:files', 'orch:under', 'orch:list'] });
 let headMenu = false;
 
-export function createOrch({ head, makeChat, makeTerm, filesChanged, openFile, claim, heldAt, moveOut, mark, close, verb, report }: Opts) {
+export function createOrch({ head, makeChat, makeTerm, filesChanged, openFile, claim, moveOut, mark, close, verb, report }: Opts) {
   const pid = S.pid, key = 'orch:' + levelKey() + amKey, termKey = 'orch:shell:' + levelKey() + amKey;
   let cur: string | null = store.get(key, null), view: { id: string; v: View } | null = null, grip: (() => void) | null = null;
   let fresh = false, term: TermView | null = null, badgeDrawn = '';
@@ -337,14 +336,12 @@ export function createOrch({ head, makeChat, makeTerm, filesChanged, openFile, c
   }
 
   function follow(tab: Tab, v: View) {
-    let was: ((nid: string) => boolean) | null | undefined;
     return () => {
       if (view?.v !== v) return;
       const id = tab.chat;
       if (!id) {
         if (view.id) {
           const old = view.id;
-          if (was === undefined) was = heldAt(old);
           view.id = '';
           if (cur === old) cur = null;
           paint();
@@ -352,15 +349,14 @@ export function createOrch({ head, makeChat, makeTerm, filesChanged, openFile, c
         return;
       }
       if (view.id === id) return;
-      const old = view.id, put = old ? (was === undefined ? heldAt(old) : was) : null;
-      was = undefined;
+      const old = view.id;
       view.id = id;
       fresh = false;
       cur = id;
       store.set(key, id);
       if (old) pass = pass.map((x) => (x === old ? id : x));
-      if (!put) putIn(id, { in: 'orch' });
-      whenIn(id, () => put?.(id) || putIn(id, { in: 'orch' }));
+      putIn(id, { in: 'orch' });
+      whenIn(id, () => putIn(id, { in: 'orch' }));
       paint();
     };
   }
@@ -756,6 +752,7 @@ export function createOrch({ head, makeChat, makeTerm, filesChanged, openFile, c
       if (!el.hidden) paint();
     },
     open: (id: string) => pick(id),
+    resume: (from: Earlier) => startHere(from.program, from),
     newAgent: (x: number, y: number, _into?: number, place?: string, program?: string) => newAgent(x, y, program, place),
     attach: (rel: string) => view?.v.attach?.(rel),
     detach() {

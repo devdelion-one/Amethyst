@@ -653,7 +653,7 @@ export const ROW_IC: Record<string, () => string> = {
   'drafts:off:scratch': () => gem('scratch'), 'drafts:off:sketch': () => gem('sketch'), 'drafts:off:inbox': () => gem('inbox'),
   'qterm:off:term': () => gem('term'), 'qterm:off:pwsh': () => gem('term') + '<b class="qk-tag">ps</b>', 'qterm:off:agent': () => gem('ai'), 'qterm:off:newchat': () => gem('ai') + '<b class="qk-tag">+</b>',
   'barend:off:more': () => ICONS.newAny, 'barend:off:pins': () => ICONS.pin, 'barend:off:win': () => ICONS.window,
-  'modesHidden:editor': () => modeGem('editor'), 'modesHidden:orch': () => modeGem('orch'), 'modesHidden:chat': () => modeGem('ai'), 'modesHidden:term': () => gem('term'), 'modesHidden:research': () => gem('research'),
+  'modesHidden:editor': () => modeGem('editor'), 'modesHidden:orch': () => modeGem('orch'), 'modesHidden:term': () => gem('term'),
   'switch:wkOn': () => workGem(), edWork: () => modeGem('editor'),
   'deck:markShow': () => ICONS.mark1, 'deck:noteShow': () => ICONS.note,
   foldAll: () => ICONS.foldAll, winSize: () => ICONS.window, 'win:every': () => ICONS.pin,
@@ -666,7 +666,7 @@ export const rowIcons = (m: Record<string, () => string>) => Object.assign(ROW_I
 export const MENU_IC: Record<string, () => string> = {
   bar: () => ICONS.dock, chrow: () => ICONS.toChat, tbar: () => ICONS.tab, drafts: () => ICONS.strip, modes: () => ICONS.modes, strip: () => ICONS.strip, tiles: () => gem('link'), txbar: () => gem('file'), fmt: () => ICONS.fmtBar, pad: () => gem('sketch'),
   explorer: () => ICONS.explorer, scm: () => ICONS.git, setup: () => ICONS.setup, usage: () => ICONS.usage, clips: () => ICONS.clip, settings: () => ICONS.settings, hgbar: () => ICONS.bug, forget: () => ICONS.bang, wsx: () => ICONS.explorer,
-  orch: () => modeGem('orch'), decklist: () => ICONS.rail, ochead: () => modeGem('orch'), head: () => ICONS.header, qagent: () => gem('ai'), size: () => ICONS.window, quote: () => ICONS.toChat, edfoot: () => gem('scratch'), wspage: () => ICONS.workspaces, launch: () => ICONS.workspaces, browser: () => gem('link'), inbox: () => gem('inbox'), archive: () => gem('archive'), edits: () => ICONS.editsList, artifacts: () => gem('file'), web: () => gem('core'),
+  orch: () => modeGem('orch'), ochead: () => modeGem('orch'), head: () => ICONS.header, qagent: () => gem('ai'), size: () => ICONS.window, quote: () => ICONS.toChat, edfoot: () => gem('scratch'), wspage: () => ICONS.workspaces, launch: () => ICONS.workspaces, browser: () => gem('link'), inbox: () => gem('inbox'), archive: () => gem('archive'), edits: () => ICONS.editsList, artifacts: () => gem('file'), web: () => gem('core'),
 };
 const SEEN = new Map<string, string>();
 function iconOf(key: string): string {
@@ -773,9 +773,7 @@ export const TOPBAR: { g: string; name: string; sel: string; icon?: () => string
   { g: 'modes', name: 'modes', sel: '#switch', icon: () => ICONS.modes, rows: [
     { k: 'modesHidden', id: 'editor', label: 'editor', sel: '#switch .sets[data-kind=editor]', icon: rowIc('modesHidden:editor'), fixed: true },
     { k: 'modesHidden', id: 'orch', label: 'orchestration', sel: '#switch .sets[data-kind=orch]', icon: rowIc('modesHidden:orch'), when: () => !atWs() },
-    { k: 'modesHidden', id: 'chat', label: 'agents', sel: '#switch .sets[data-kind=chat]', icon: rowIc('modesHidden:chat') },
     { k: 'modesHidden', id: 'term', label: 'terminals', sel: '#switch .sets[data-kind=term]', icon: rowIc('modesHidden:term') },
-    { k: 'modesHidden', id: 'research', label: 'research', sel: '#switch .sets[data-kind=research]', icon: rowIc('modesHidden:research'), when: () => !atWs() },
   ] },
   { g: 'agent', name: 'agents', sel: '#switch > .sv[data-g=agent]', icon: () => gem('ai'), rows: [{ k: 'qterm:off', id: 'newchat', label: 'new agent chat', sel: '#btn-newchat', icon: rowIc('qterm:off:newchat'), when: () => !atWs() }] },
   { g: 'make', name: 'create', sel: '#switch > .sv[data-g=make]', icon: () => ICONS.create, rows: [{ k: 'barend:off', id: 'more', label: 'new', sel: '#btn-more', icon: rowIc('barend:off:more'), d: 'Right-click it for its buttons.', when: () => !atWs() }] },
@@ -796,7 +794,7 @@ export const TOPBAR: { g: string; name: string; sel: string; icon?: () => string
     { k: 'barend:off', id: 'win', label: 'new window', sel: '#btn-win', icon: rowIc('barend:off:win') },
   ] },
 ];
-const MODE_KINDS = ['editor', 'orch', 'chat', 'term', 'research'];
+const MODE_KINDS = ['editor', 'orch', 'term'];
 export const modeOrder = (): string[] => {
   const saved = store.get('modes:order', []).filter((k: string) => MODE_KINDS.includes(k));
   for (const [i, k] of MODE_KINDS.entries()) if (!saved.includes(k)) saved.splice(i ? saved.indexOf(MODE_KINDS[i - 1]) + 1 : 0, 0, k);

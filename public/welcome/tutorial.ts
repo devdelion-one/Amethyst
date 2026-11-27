@@ -53,7 +53,6 @@ const STEPS: Step[] = [
   { title: 'A chat in one key', line: '', key: 'newChatN', digit: firstChat, grow: true },
   { title: 'The editor', line: 'Your files, with chats as tabs beside them. Press the key or click the lit button.', key: 'modeEditor', at: modeBtn('editor'), mode: 'editor' },
   { title: 'Orchestration', line: 'One chat at a time, big. Tab goes to the next one.', key: 'modeOrch', at: modeBtn('orch'), mode: 'orch' },
-  { title: 'Agents', line: 'Every chat at once, side by side.', key: 'modeChat', at: modeBtn('chat'), mode: 'chat' },
 ];
 
 let el: HTMLElement | null = null, ring: HTMLElement | null = null, at = 0, first = false, list: Step[] = [], start = 0;

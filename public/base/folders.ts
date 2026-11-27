@@ -29,7 +29,7 @@ function write(list: string, s: Saved) {
   fns.forEach((f) => f());
 }
 
-export const foldersOn = (list: string) => !!pref(listKey(list, 'folders'));
+export const foldersOn = (list: string) => list === 'orch' && !!pref(listKey(list, 'folders'));
 export const folders = (list: string): ChatFolder[] => (foldersOn(list) ? read(list).list : []);
 export const folderById = (list: string, id: string) => read(list).list.find((f) => f.id === id) || null;
 export const canFile = (list: string, a: Chat | null | undefined) => !!a && a.kind === 'chat' && !!a.session && foldersOn(list);
@@ -83,4 +83,4 @@ export function onFolders(fn: () => void) {
 }
 
 if (store.get('orch:folderBtn', null) == null && typeof store.get('orch:parkBtn', null) === 'boolean') store.set('orch:folderBtn', store.get('orch:parkBtn', true));
-for (const l of ['orch', 'deck']) onPref(listKey(l, 'folders'), () => fns.forEach((f) => f()));
+onPref(listKey('orch', 'folders'), () => fns.forEach((f) => f()));

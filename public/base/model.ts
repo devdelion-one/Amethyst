@@ -337,10 +337,15 @@ export const isPinned = (p: PinLike): boolean => S.pins.some((x) => samePin(x, p
 export const markNo = (a: { kind?: string; session?: string | null }): number => (a.kind === 'chat' && a.session && S.marks[a.session]) || 0;
 export const agentPin = (a: { kind: string; id?: string; session?: string | null; program?: string }, title?: string) => ((a.kind === 'term' ? { kind: 'term', id: a.id, title } : { kind: 'chat', session: a.session, program: a.program, title })) as Pin;
 
-export const modeOfOne = (): string => (atLaunch() ? 'editor' : store.get('modes' + amKey, {})[levelKey()] || 'editor');
+const VALID_MODES = ['editor', 'orch', 'term'];
+export const modeOfOne = (): string => {
+  if (atLaunch()) return 'editor';
+  const m = store.get('modes' + amKey, {})[levelKey()];
+  return VALID_MODES.includes(m) && (m !== 'orch' || !atWs()) ? m : 'editor';
+};
 export const mode = (): string => (WIN > 1 ? 'editor' : modeOfOne());
 export const FKEYS = ['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12'];
-export const FN_DEFAULT: Record<string, string> = { editor: 'F1', chat: 'F2', term: 'F3', research: '', orch: '' };
+export const FN_DEFAULT: Record<string, string> = { editor: 'F1', orch: 'F2', term: 'F3' };
 export const modeFns = (): Record<string, string> => ({ ...FN_DEFAULT, ...fnKeys() });
 export const setModeFn = (m: string, key: string | undefined) => setFnKey(m, key === FN_DEFAULT[m] ? undefined : key);
 export const resetModeFns = () => Object.keys(FN_DEFAULT).forEach((m) => setFnKey(m));

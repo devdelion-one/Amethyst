@@ -7,10 +7,8 @@ Amethyst is built around switching cleanly between views of your work without lo
 Switch between modes from the rail or with shortcuts:
 
 - **Editor (`Alt+E`):** CodeMirror 6 editor with splits (`Ctrl+\`), tab groups, diff tabs, Markdown preview, image/PDF viewing, and chats beside your code. Press `Alt+E` again to cycle saved editor layouts (`Alt+Shift+E` creates a new layout).
-- **Agents (`Alt+A`):** a live grid of chats organized into sets, with a spotlight column and a bench (`Alt+B`) for chats that keep running out of view. Press `Alt+A` again to cycle sets (`Alt+Shift+A` creates a new set).
+- **Orchestration (`Alt+Q`):** manage all active chats in the project in one calm overview, including chats waiting for your input.
 - **Terminals (`Alt+T`):** real PowerShell and Command Prompt terminals (`xterm.js` + `node-pty`) arranged in sets, plus one-click launchers for agent CLIs (`claude`, `codex`, `agy`, `cursor`, `copilot`, `gemini`). Terminals keep running when you switch projects or close the window to the tray.
-- **Research (`Alt+R`):** follow one chat alongside its live subagents and files in up to 4 tab groups side by side.
-- **Orchestration (`Alt+Q`):** manage all active chats in the project in one calm overview, including benched chats and chats waiting for your input.
 - **The Mind:** a visual canvas of your project's folders and files where recently touched files stand out.
 
 ## Built-in browser tab
@@ -45,10 +43,8 @@ Every shortcut can be rebound in **Settings**. Press `Ctrl+Shift+P` anytime to s
 | `Ctrl+Shift+P` | Command palette |
 | `Ctrl+P` | Quick open file |
 | `Alt+E` / `Alt+Shift+E` | Editor mode (cycle layouts) / new editor layout |
-| `Alt+A` / `Alt+Shift+A` | Agents mode (cycle sets) / new agents set |
-| `Alt+T` | Terminals mode |
-| `Alt+R` | Research mode |
 | `Alt+Q` | Orchestration mode |
+| `Alt+T` | Terminals mode |
 | `Alt+X` | Close or clear current set/layout |
 | `Alt+Shift+Left` / `Alt+Shift+Right` | Previous / next project |
 

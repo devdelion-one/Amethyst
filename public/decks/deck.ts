@@ -1,80 +1,61 @@
-import { is, show } from '../base/binds.ts';
+import { is } from '../base/binds.ts';
 import { icon } from '../base/icon.ts';
-import { agentMenu, launchAgent, newHint } from '../base/agentmenu.ts';
-import { openChatMenu } from './openchat.ts';
-import { ask, bands, barMenu, buttonMenu, chip, colorTray, ICONS, holdFocus, keyChip, markName, menuHead, placeSubAgain, popMenu, subMenu, topRow } from '../base/controls.ts';
-import { agentPin, api, atWs, isPinned, levelKey, markNo, S, wsColor } from '../base/model.ts';
+import { newHint } from '../base/agentmenu.ts';
+import { ask, bands, buttonMenu, chip, colorTray, ICONS, holdFocus, keyChip, menuHead, placeSubAgain, popMenu, subMenu, topRow } from '../base/controls.ts';
+import { agentPin, api, atWs, isPinned, levelKey, S, wsColor } from '../base/model.ts';
 import { page } from '../base/page.ts';
-import { chatOn, chatsOn, isOff, termOn, onPref, pref, PREFS, setOff, setPref } from '../base/prefs.ts';
-import { agents, chatOfSession, onAgents, started } from '../base/stream.ts';
-import { draftOf, freeSet, owner, place } from '../base/place.ts';
-import { DECLINED, record } from '../base/undo.ts';
-import { $, agentName, AM, amElse, amKey, chatProgram, CHATS, chatTabOf, esc, inText, quietly, setSave, showErr, sinceShort, store, track, uid } from '../base/util.ts';
-import { busyNow, gem, modeGem, workCorner, workGem } from '../base/kinds.ts';
-import { notify, offTell, tell } from '../base/notify.ts';
+import { isOff, termOn, onPref, pref, PREFS, setOff, setPref } from '../base/prefs.ts';
+import { agents, onAgents, started } from '../base/stream.ts';
+import { freeSet, owner, place } from '../base/place.ts';
+import { record } from '../base/undo.ts';
+import { $, AM, amElse, amKey, esc, inText, quietly, setSave, showErr, store, track, uid } from '../base/util.ts';
+import { gem, modeGem } from '../base/kinds.ts';
+import { notify, tell } from '../base/notify.ts';
 import { answers } from '../base/answer.ts';
 import { openAway, shareCells } from '../base/windows.ts';
 import { col } from '../base/theme.ts';
-import { every } from '../base/life.ts';
-import { addClosed, askEnd, clearedOf, codeOf, crystalOf, groupOf, markOf, onCleared, providerOf, spark, stillAt, titleOf, workVerb } from '../base/agentlook.ts';
-import { doneInner } from '../base/agentrow.ts';
+import { addClosed, askEnd, codeOf, crystalOf, groupOf, markOf, onCleared, spark, stillAt, titleOf, workVerb } from '../base/agentlook.ts';
 import { onSize } from '../base/measure.ts';
 import { anchorOf, SPOT_IC } from '../app/fold.ts';
 import { agentHead, HEAD_BTNS, HEAD_SEL, headClick, offBtn, ORCH_TIP, paintHead, spotHtml, toolsSlot } from '../app/chathead.ts';
 import type { HeadCan } from '../app/chathead.ts';
-import { agentRow, fileDrag, headRow, markBtn, markFly, markMenu, markPick, markSign, renameAsk, renameItem, NOTE_IC, noteBtn, subClear } from '../base/agentrow.ts';
-import { createChatList, LIST_W, listMenu, rowListBands, rowListPick, snapDrag } from '../app/chatlist.ts';
+import { agentRow, headRow, markMenu } from '../base/agentrow.ts';
+import { LIST_W, snapDrag } from '../app/chatlist.ts';
 import type { Row } from '../base/agentrow.ts';
-import { folderHost, moveItem, moveSub } from '../base/chatfolders.ts';
+import { folderHost } from '../base/chatfolders.ts';
 import type { Group } from '../base/chatfolders.ts';
-import { canFile, onFolders } from '../base/folders.ts';
+import { onFolders } from '../base/folders.ts';
 import type { Agent } from '../base/stream.ts';
-import type { SubSummary, Tab } from '../base/types.ts';
-import { runTime } from '../base/words.ts';
 
-type Sub = SubSummary;
 type SetEntry = { id: string; label?: string; color?: string; mark?: string; [k: string]: unknown };
 type LBox = [number, number, number, number, unknown?, unknown?];
 type SetLayout = { id: string; color?: string; on?: boolean; boxes?: LBox[] };
 type CellView = { el: HTMLElement; focus(): void; land?: (wait?: number) => unknown; detach(): void; stop(): void; home?: () => void; bar?: HTMLElement; draft?: () => string; clear?: () => unknown; take?: (e: DragEvent) => unknown; attach?: (rel: string) => unknown; key?: (e: KeyboardEvent) => unknown; find?: () => unknown };
-type Earlier = { session: string; program?: string; title?: string; pid: string };
-export type MakeChat<V> = (tab: Tab, o: { saved: () => void; filesChanged: () => void; openFile: (path: string) => unknown; titled: (title: string | null) => void; openBeside: (s: Earlier) => unknown }) => V;
 export type MakeTerm<V> = (agent: { id: string | null }) => V;
-type Cell = { id: string | null; view: CellView; tab?: Tab & { pid?: string }; opened?: boolean };
-type Closed = { session: string; title: string; pid: string; program?: string; at: number };
-export const closedInner = (rows: { session: string; title: string; at: number }[], open: boolean) => `${open ? `<div class="dk-cl">${rows.map((c) => `<div class="dk-cr" role="button" tabindex="0" data-dk-reopen="${esc(c.session)}"><b>${esc(c.title)}</b><span class="dk-when" data-at="${c.at}">${sinceShort(c.at)}</span><button class="dk-cx" data-dk-forget="${esc(c.session)}" aria-label="forget it">×</button></div>`).join('')}</div>` : ''}<button class="dk-cb" data-dk-closed aria-expanded="${open}"><i>${ICONS.archive}</i><b>Closed</b><span>${rows.length}</span></button>`;
-type Back = { i: number; id: string | null; orch?: boolean; opened?: boolean; ended?: boolean; session?: string; draft?: string; pid: string; program?: string; at?: number };
+type Cell = { id: string | null; view: CellView };
+type Back = { i: number; id: string | null; ended?: boolean; pid: string; program?: string; at?: number };
 
 const CELL = { w: 280 }, GAP = 6;
-const sideZone = (w: number) => Math.max(80, w / 10);
 const GROUPS = [['asks', 'Needs you'], ['working', 'Working'], ['done', 'Done'], ['bench', 'Benched']];
 const HEAD_IC: Record<string, string> = { asks: 'bell', done: 'check', bench: 'bench' };
 
 const KIND: Record<string, { one: string; many: string; mark: string }> = {
-  chat: { one: 'chat', many: 'chats', mark: 'ai' },
   term: { one: 'terminal', many: 'terminals', mark: 'term' },
 };
 const orList = (w: string[]) => (w.length > 1 ? `${w.slice(0, -1).join(', ')} or ${w.at(-1)}` : w[0]);
-const noneLine = (kind: string) => (kind === 'chat'
-  ? `<b>+ new</b> starts a ${orList(chatsOn().map(([, n]) => n.replace(/ Agent$/, '')))} Agent chat.`
-  : `<b>+ new</b> starts ${orList([['claude', 'claude'], ['codex', 'codex'], ['antigravity', 'agy'], ['cursor', 'agent'], ['copilot', 'copilot'], ['grok', 'grok'], ['gemini', 'gemini'], ['shell', 'a shell']].filter(([id]) => termOn(id)).map(([, w]) => w))}.`);
+const noneLine = () =>
+  `<b>+ new</b> starts ${orList([['claude', 'claude'], ['codex', 'codex'], ['antigravity', 'agy'], ['cursor', 'agent'], ['copilot', 'copilot'], ['grok', 'grok'], ['gemini', 'gemini'], ['shell', 'a shell']].filter(([id]) => termOn(id)).map(([, w]) => w))}.`;
 
 
 const gemStyle = (id: string) => (id ? ` style="--gem-c:${crystalOf(id).color}"` : '');
 for (const k of ['rail:hideBtn', 'rail:showBtn']) onPref(k, () => document.querySelectorAll('.deck').forEach((d: any) => d.railBtns?.()));
 const HIDE_IC = '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="3" width="11" height="10" rx="1.5"/><path d="M10 3v10M5.5 6.2 7.3 8l-1.8 1.8"/></svg>';
 const SHOW_IC = '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 4 6 8l4 4"/></svg>';
-const SPOT_W: Record<string, [number, number]> = { q1: [1, 4], t1: [1, 3], h: [1, 2], t2: [2, 3], q3: [3, 4] };
 export const HIDE_BTN = `<button type="button" class="dk-hide dk-rv" data-dk-hide aria-label="hide the list">${HIDE_IC}</button>`;
 export const SHOW_BTN = `<button type="button" class="dk-show" data-dk-show aria-label="show the list">${SHOW_IC}</button>`;
 export const TERM_NEW = `<button class="primary dk-plus" data-dk-new title="New terminal&#10;A terminal with claude, codex, gemini or a shell." aria-label="new"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg></button>`;
 const prefRow = (k: string, attrs: string, ic: string, key = '') => topRow(!!pref(k), `${attrs} title="${esc(PREFS[k].label)}&#10;${esc(PREFS[k].desc || '')}"`, ic, esc(PREFS[k].label), key);
 const railButtons = () => prefRow('rail:hideBtn', 'data-rb="rail:hideBtn"', icon('eyeOff'), keyChip('railKey')) + prefRow('rail:showBtn', 'data-rb="rail:showBtn"', icon('eye'));
-const closedRow = () => prefRow('closed:on', 'data-cl', ICONS.archive);
-listMenu('deck', '.deck[data-kind="chat"] > .dk-rail', 'decklist', {
-  opts: () => closedRow() + '<div class="ml">buttons</div>' + railButtons(),
-  pick: (b) => (b.dataset.rb ? setPref(b.dataset.rb, !pref(b.dataset.rb)) : b.dataset.cl != null && setPref('closed:on', !pref('closed:on'))),
-});
 const LAYOUTS: [string, string, string, string][] = [
   ['stack', 'the others stacked beside it', '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="3" width="6" height="10" rx="1"/><path d="M10.5 3h3v4.5h-3zM10.5 8.5h3V13h-3z"/></svg>', 'Puts the other chats one above another beside the spotlight.'],
   ['side', 'the others side by side', '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="3" width="6" height="10" rx="1"/><path d="M10.5 3H12v10h-1.5zM12.5 3H14v10h-1.5z"/></svg>', 'Puts the other chats in columns beside the spotlight, when there is room.'],
@@ -104,10 +85,6 @@ export function showSet(kind: string, id: string) {
   const s = sets(kind);
   if (s.list.some((x) => x.id === id)) saveSets(kind, s.list, id);
 }
-export const nextSet = (kind: string) => {
-  const { list, on } = sets(kind);
-  if (list.length > 1) showSet(kind, list[(list.findIndex((x) => x.id === on) + 1) % list.length].id);
-};
 export function addSet(kind: string, show = true) {
   const s = sets(kind), id = uid(), color = slotted() ? nextColor(kind) : '';
   saveSets(kind, [...s.list, { id, ...(color && { color }) }], show ? id : s.on);
@@ -119,18 +96,6 @@ export function putInSet(kind: string, id: string, set: string) {
   const cells = Array.from({ length: n }, (_, i) => (typeof s.cells?.[i] === 'string' ? s.cells[i] : null)), at = cells.indexOf(null);
   if (at >= 0) cells[at] = id;
   else cells[n++] = id;
-  store.set(keyOf(kind, set), { ...s, n, cells });
-  claim(kind, id, set);
-  shareDeck();
-}
-export function swapInSet(kind: string, set: string, old: string, id: string, i: number) {
-  const s = store.get(keyOf(kind, set), {});
-  let n = Number.isInteger(s.n) && s.n >= 1 ? s.n : 4;
-  const cells = Array.from({ length: n }, (_, j) => (typeof s.cells?.[j] === 'string' ? s.cells[j] : null));
-  let at = cells.indexOf(old);
-  if (at < 0) at = i >= 0 && i < n && !cells[i] ? i : cells.indexOf(null);
-  if (at < 0) at = n++;
-  cells[at] = id;
   store.set(keyOf(kind, set), { ...s, n, cells });
   claim(kind, id, set);
   shareDeck();
@@ -155,7 +120,7 @@ export function markSet(kind: string, id: string, patch: Record<string, unknown>
     return y;
   }), s.on);
 }
-export const SET_GROUPS = [['editor', 'editor'], ['chat', 'agents'], ['term', 'terminals'], ['research', 'research']];
+export const SET_GROUPS = [['editor', 'editor'], ['term', 'terminals']];
 const setOrder = () => ['', ...colorTray().slice(0, 7).map((c) => c.hex)];
 export const setColors = (kind: string) => ({ order: setOrder(), same: false, one: colorTray()[0]?.hex || '', ...store.get('setColors', {})[kind] });
 export const setSetColors = (kind: string, patch: Record<string, unknown>) => store.set('setColors', { ...store.get('setColors', {}), [kind]: { ...store.get('setColors', {})[kind], ...patch } });
@@ -225,10 +190,12 @@ export function setsMenu(kind: string, btn: Element, here: string | null | undef
   const newRow = (k: string, n: number, chip: string) => `<button class="mi" data-${k}="${k === 'ed' ? 'new' : '+'}"${tagOf(n)} data-lbl="a new set">${chip}</button>`;
   const rowsOf = (n: number) => {
     const own = n === AM, ss = own ? list : setsOfAm(kind, n, pid), eds = own ? layouts || null : layouts ? page.editorsOf(n, pid) : null;
-    let h = ss.map((x, j) => (group && own && x.id === here ? '' : setRow(x, j, n, own && x.id === here))).join('') + newRow('set', n, newChip(ic));
-    if (orch && own && kind === 'chat') h += `<div class="sep"></div><button class="mi" data-orch data-lbl="Orchestration" title="${esc(ORCH_TIP)}"><i class="dk-mark">${gem('orch')}</i>Orchestration<span class="d">out of this set</span></button>`;
-    else if (!own && kind === 'chat' && a && !group && !nc) h += `<div class="sep"></div><button class="mi" data-orch${tagOf(n)} data-lbl="orchestration" title="${esc(`Orchestration of Amethyst ${n}\nMoves the chat into that Amethyst's orchestration list, in no set. It leaves this Amethyst and keeps running.`)}"><i class="dk-mark">${gem('orch')}</i>orchestration<span class="d">its list only</span></button>`;
-    if (eds) h += '<div class="sep"></div>' + eds.map((x, i) => edRow(x, i, n, look ? own && look.eds.includes(x.id) : !nc && own && !!x.on && here == null)).join('') + newRow('ed', n, newChip(modeGem('editor')));
+    let h = kind === 'chat' ? '' : ss.map((x, j) => (group && own && x.id === here ? '' : setRow(x, j, n, own && x.id === here))).join('') + newRow('set', n, newChip(ic));
+    if (kind === 'chat') {
+      if ((orch || nc) && own) h += `<button class="mi" data-orch data-lbl="Orchestration" title="${esc(ORCH_TIP)}"><i class="dk-mark">${gem('orch')}</i>Orchestration${orch ? '<span class="d">out of this tab</span>' : ''}</button>`;
+      else if (!own && (a || nc) && !group) h += `<button class="mi" data-orch${tagOf(n)} data-lbl="orchestration" title="${esc(`Orchestration of Amethyst ${n}\nMoves the chat into that Amethyst's orchestration list. It leaves this Amethyst and keeps running.`)}"><i class="dk-mark">${gem('orch')}</i>orchestration</button>`;
+    }
+    if (eds) h += (h ? '<div class="sep"></div>' : '') + eds.map((x, i) => edRow(x, i, n, look ? own && look.eds.includes(x.id) : !nc && own && !!x.on && here == null)).join('') + newRow('ed', n, newChip(modeGem('editor')));
     return h;
   };
   const amTip = (x: AmRow) => {
@@ -371,10 +338,10 @@ export function dropSet(kind: string, id: string) {
   const s = sets(kind), i = s.list.findIndex((x) => x.id === id);
   if (i < 0) return null;
   const saved = store.get(keyOf(kind, id), {});
-  const back = { entry: s.list[i], at: i, n: saved.n, chats: [...agents.all.values()].filter((a) => a.kind === 'chat' && a.session && mineOf(kind, id)(a)).map((a) => ({ i: saved.cells?.indexOf(a.id) ?? -1, session: a.session, draft: draftOf(a.id), program: a.program, pid: a.pid ?? S.pid })) };
+  const back = { entry: s.list[i], at: i, n: saved.n };
   for (const a of [...agents.all.values()].filter(mineOf(kind, id))) {
     if (openAway(a.id)) continue;
-    api('DELETE', `/api/${a.kind === 'term' ? 'term' : 'agent'}?id=${encodeURIComponent(a.id)}`, {}).catch(showErr);
+    api('DELETE', `/api/term?id=${encodeURIComponent(a.id)}`, {}).catch(showErr);
     agents.all.delete(a.id);
   }
   store.del(keyOf(kind, id));
@@ -412,25 +379,6 @@ export function toOrch(ids: string[]) {
   setOff('modesHidden', 'orch', false);
   notify(`Orchestration is back in the rail: your ${ids.length === 1 ? 'chat is' : 'chats are'} there.`, { ms: 6000 });
 }
-export function setChatsToOrch(kind: string, from: string, ids: string[]) {
-  const moved = takeOut(kind, from, ids);
-  toOrch(moved);
-  shareDeck();
-  return moved;
-}
-export const cellsOf = (kind: string, set: string): (string | null)[] => store.get(keyOf(kind, set), {}).cells?.slice() || [];
-export function chatsFromOrch(kind: string, to: string, ids: string[], was: (string | null)[] = []) {
-  const back = ids.filter((x) => agents.all.has(x) && owner(x)?.in === 'orch');
-  for (const x of back) claim(kind, x, to);
-  const s = store.get(keyOf(kind, to), {}), cells = Array.isArray(s.cells) ? [...s.cells] : [];
-  for (const x of back) {
-    const i = was.indexOf(x);
-    if (i >= 0 && !cells[i] && !cells.includes(x)) cells[i] = x;
-  }
-  store.set(keyOf(kind, to), { ...s, cells });
-  shareDeck();
-  return back;
-}
 function setFrom(kind: string, list: SetEntry[], id: string) {
   if (!many(kind)) return '';
   const w = owner(id), o = w?.in === kind ? w.set : undefined;
@@ -461,7 +409,7 @@ export function setInfos(kind: string, inTab: InTab = null) {
 
 function mineOf(kind: string, set?: string | null) {
   const pid = atWs() ? '' : S.pid;
-  return (a: Agent) => a.kind === kind && !amElse(a) && !['research', 'orch', 'qagent'].includes(owner(a.id)?.in) && (a.pid || '') === pid && (set == null || setOf(kind, a.id) === set);
+  return (a: Agent) => a.kind === kind && !amElse(a) && !['orch', 'qagent'].includes(owner(a.id)?.in) && (a.pid || '') === pid && (set == null || setOf(kind, a.id) === set);
 }
 export async function takeHere(a: Agent) {
   const there = amElse(a);
@@ -477,30 +425,11 @@ export async function takeHere(a: Agent) {
   return true;
 }
 const listed = (mine: (a: Agent) => boolean, held: { has(id: string): boolean }, inTab: ((a: Agent) => unknown) | null) => (a: Agent) => mine(a) && (held.has(a.id) || !inTab?.(a));
-export function setsHolding(kind: string, id: string) {
-  return sets(kind).list.flatMap((x, i) => {
-    const s = store.get(keyOf(kind, x.id), {}), n = Number.isInteger(s.n) && s.n >= 1 ? s.n : 4;
-    return (s.cells || []).slice(0, n).includes(id) ? [{ set: x.id, n: i + 1, label: typeof x.label === 'string' ? x.label : '' }] : [];
-  });
-}
-export function freeCell(kind: string, set: string, id: string) {
-  const s = store.get(keyOf(kind, set), {});
-  if (!Array.isArray(s.cells) || !s.cells.includes(id)) return;
-  store.set(keyOf(kind, set), { ...s, cells: s.cells.map((c: string | null) => (c === id ? null : c)) });
-  shareDeck();
-}
-export const inCells = (kind: string) => new Set<string>(sets(kind).list.flatMap(({ id }) => {
-  const s = store.get(keyOf(kind, id), {});
-  return s.cells?.slice(0, s.n) || [];
-}));
-export function listedOf(kind: string, inTab: ((a: Agent) => unknown) | null) {
-  return listed(mineOf(kind), inCells(kind), inTab);
-}
 export function shareDeck() {
-  shareCells(['chat', 'term'].flatMap((kind) => sets(kind).list.flatMap(({ id }) => (store.get(keyOf(kind, id), {}).cells || []).filter(Boolean))));
+  shareCells(sets('term').list.flatMap(({ id }) => (store.get(keyOf('term', id), {}).cells || []).filter(Boolean)));
 }
 
-export function createDeck({ kind = 'chat', set = '', openTab = null, layouts = null, inTab = null, sendTo = null, pin = null, mark = null, show = null, bring = null, openFile = () => {}, filesChanged = () => {}, makeChat, makeTerm }: { kind?: string; set?: string | null; openTab?: ((a: Agent, ed?: string, go?: boolean) => unknown) | null; layouts?: (() => SetLayout[]) | null; inTab?: ((a: Agent) => unknown) | null; sendTo?: ((kind: string, id: string, to: any, go?: boolean) => unknown) | null; pin?: ((p: ReturnType<typeof agentPin>) => unknown) | null; mark?: ((session: string, n: number) => unknown) | null; show?: ((a: Agent) => unknown) | null; bring?: ((a: Agent) => Promise<boolean>) | null; openFile?: (path: string) => void; filesChanged?: () => void; makeChat: MakeChat<CellView>; makeTerm: MakeTerm<CellView> }) {
+export function createDeck({ kind = 'term', set = '', openTab = null, layouts = null, inTab = null, sendTo = null, pin = null, mark = null, makeTerm }: { kind?: string; set?: string | null; openTab?: ((a: Agent, ed?: string, go?: boolean) => unknown) | null; layouts?: (() => SetLayout[]) | null; inTab?: ((a: Agent) => unknown) | null; sendTo?: ((kind: string, id: string, to: any, go?: boolean) => unknown) | null; pin?: ((p: ReturnType<typeof agentPin>) => unknown) | null; mark?: ((session: string, n: number) => unknown) | null; makeTerm: MakeTerm<CellView> }) {
   const K = KIND[kind], ws = atWs(), key = keyOf(kind, set), lvl = levelKey();
   const saved = store.get(key, {});
   let n = Number.isInteger(saved.n) && saved.n >= 1 ? saved.n : 4;
@@ -508,39 +437,8 @@ export function createDeck({ kind = 'chat', set = '', openTab = null, layouts = 
   let hot = -1;
   let cells: (string | null)[] = Array.from({ length: n }, (_, i) => (typeof saved.cells?.[i] === 'string' ? saved.cells[i] : null));
   const views = new Map<number, Cell>();
-  const parked = new Map<string, Cell>();
-  const PARK_MAX = 8;
-  function park(v: Cell | null | undefined) {
-    if (!v || kind !== 'chat' || !v.id) return false;
-    parked.delete(v.id);
-    parked.set(v.id, v);
-    while (parked.size > PARK_MAX) {
-      const [oldId, oldV] = parked.entries().next().value!;
-      parked.delete(oldId);
-      oldV.view.detach();
-    }
-    return true;
-  }
-  function unpark(id: string) {
-    const v = parked.get(id);
-    if (!v) return null;
-    parked.delete(id);
-    return v;
-  }
-  function dropParked(id: string) {
-    const v = parked.get(id);
-    if (!v) return;
-    parked.delete(id);
-    v.view.detach();
-  }
   let rail = saved.rail === 'hidden' ? 'hidden' : 'show';
-  const arrangeable = kind === 'chat';
-  let spot = arrangeable && Number.isInteger(saved.spot) && saved.spot >= 0 && saved.spot < n ? saved.spot : null;
-  let side = saved.side === 'right' ? 'right' : 'left';
-  const spotOn = () => spot !== null && n > 1;
-  let spotW = SPOT_W[saved.spotW] ? saved.spotW : null;
-  let lay = saved.lay === 'side' ? 'side' : 'stack';
-  const save = () => (store.set(key, { n, sel, cells, rail, spot, side, spotW, lay }), shareDeck());
+  const save = () => (store.set(key, { n, sel, cells, rail }), shareDeck());
   const mine = mineOf(kind, set);
   const get = (id: string | null | undefined) => {
     const a = id && agents.all.get(id);
@@ -550,24 +448,19 @@ export function createDeck({ kind = 'chat', set = '', openTab = null, layouts = 
   const el = document.createElement('div');
   el.className = 'deck';
   el.dataset.kind = kind;
-  const headOn = !!ws || kind !== 'chat';
-  const hideBtn = HIDE_BTN;
   el.innerHTML = `
     <div class="dk-main">
       <div class="dk-grid"></div>
-      <div class="dk-sgrip" title="Resize the spotlight&#10;Drag to make the spotlight chat wider or narrower. Double-click to make it one column again." hidden></div>
     </div>
     <aside class="dk-rail">
       <div class="dk-grip" title="drag to make it wider or narrower">${SHOW_BTN}</div>
-      <header class="dk-rhead">${ws ? `<span class="dk-ws" style="--wc:${esc(wsColor(S.ws))}" title="Workspace: ${esc(S.ws?.name || 'workspace')}&#10;The workspace's own ${K.many}: they work in its folder. A project's ${K.many} show in that project."><span class="ws-ic">${ICONS.workspaces}</span><b>${esc(S.ws?.name || 'workspace')}</b></span>` : ''}<span class="grow"></span>${headOn ? hideBtn : ''}${kind === 'chat' ? '' : TERM_NEW}</header>${headOn ? '' : hideBtn}
-      <div class="dk-list${kind === 'chat' ? ' oc-list' : ''}"></div>
-      <div class="dk-closed" hidden></div>
+      <header class="dk-rhead">${ws ? `<span class="dk-ws" style="--wc:${esc(wsColor(S.ws))}" title="Workspace: ${esc(S.ws?.name || 'workspace')}&#10;The workspace's own ${K.many}: they work in its folder. A project's ${K.many} show in that project."><span class="ws-ic">${ICONS.workspaces}</span><b>${esc(S.ws?.name || 'workspace')}</b></span>` : ''}<span class="grow"></span>${HIDE_BTN}${TERM_NEW}</header>
+      <div class="dk-list"></div>
     </aside>`;
   const $ = (s: string) => el.querySelector<HTMLElement>(s)!;
   const grid = $('.dk-grid'), list = $('.dk-list');
   const asks = answers((id) => open(id));
   const boxes: HTMLElement[] = [];
-  let drawn = '';
   function setRail(look: string) {
     rail = look === 'hidden' ? 'hidden' : 'show';
     el.dataset.rail = rail === 'hidden' ? rail : 'full';
@@ -577,7 +470,7 @@ export function createDeck({ kind = 'chat', set = '', openTab = null, layouts = 
     const hb = $('.dk-hide'), sb = $('.dk-show');
     hb.hidden = !pref('rail:hideBtn');
     sb.hidden = !pref('rail:showBtn');
-    hb.title = `Hide the list\nHides the list of ${K.many}${kind === 'chat' ? ' beside the agents' : ''}.\n\nDrag the line back out to show it again.`;
+    hb.title = `Hide the list\nHides the list of ${K.many}.\n\nDrag the line back out to show it again.`;
     hb.dataset.tipKeys = 'railKey:hide or show the list';
     sb.title = `Show the list\nShows the list of ${K.many} again.`;
     sb.dataset.tipKeys = 'railKey:hide or show the list';
@@ -622,172 +515,69 @@ export function createDeck({ kind = 'chat', set = '', openTab = null, layouts = 
       c.dataset.cell = boxes.length as unknown as string;
       c.innerHTML = '<header class="dk-ch"></header><div class="dk-body"></div>';
       boxes.push(c);
-      (spotOn() ? rest : grid).append(c);
+      grid.append(c);
     }
-    arrange();
     fit();
   }
   function keepingScroll(fn: () => void) {
-    const kept = [...grid.querySelectorAll('.ch-log, .xterm-viewport')].map((x) => [x, x.scrollTop] as [Element, number]);
+    const kept = [...grid.querySelectorAll('.xterm-viewport')].map((x) => [x, x.scrollTop] as [Element, number]);
     fn();
     for (const [x, t] of kept) x.scrollTop = t;
   }
-  const rest = document.createElement('div');
-  rest.className = 'dk-rest';
-  function arrange() {
-    const on = spotOn(), sig = on ? `${spot}:${side}` : 'grid';
-    if (sig === drawn) return;
-    drawn = sig;
-    grid.classList.toggle('dk-spot', on);
-    grid.dataset.side = on ? side : '';
-    keepingScroll(() => {
-      if (!on) return grid.replaceChildren(...boxes);
-      rest.replaceChildren(...boxes.filter((_, i) => i !== spot));
-      grid.replaceChildren(...(side === 'left' ? [boxes[spot], rest] : [rest, boxes[spot]]));
-    });
-  }
   const colsFor = (w: number, k = n) => Math.min(k, Math.max(1, Math.floor((w + GAP) / (CELL.w + GAP))), Math.ceil(Math.sqrt(k)));
-  type Room = { x: number; w: number; gap: number; cw: number; left: number };
-  const room = (): Room => {
-    const s = getComputedStyle(grid), l = parseFloat(s.paddingLeft) || 0, cw = grid.clientWidth;
-    return { x: l, w: cw - l - (parseFloat(s.paddingRight) || 0), gap: parseFloat(s.columnGap) || 0, cw, left: grid.offsetLeft };
-  };
-  const spotCols = (r: Room) => Math.max(2, colsFor(r.cw - 2 * GAP));
-  const spotPx = ([a, b]: [number, number], r: Room) => ((r.w - r.gap) * a) / b;
-  const spotFits = (f: [number, number], r: Room) => spotPx(f, r) >= CELL.w && r.w - r.gap - spotPx(f, r) >= CELL.w;
-  const spotPart = (r: Room) => (spotW && spotFits(SPOT_W[spotW], r) ? SPOT_W[spotW] : null);
-  const oneCol = (r: Room) => (r.w - (spotCols(r) - 1) * r.gap) / spotCols(r);
-  const spotWidth = (r: Room) => (spotPart(r) ? spotPx(spotPart(r)!, r) : oneCol(r));
-  const sgrip = $('.dk-sgrip');
-  function placeGrip(r: Room) {
-    const on = spotOn();
-    if (sgrip.hidden === on) sgrip.hidden = !on;
-    if (on) sgrip.style.left = `${r.left + r.x + (side === 'left' ? spotWidth(r) + r.gap / 2 : r.w - spotWidth(r) - r.gap / 2)}px`;
-  }
-  let spotCss = '';
+  type Room = { cw: number };
+  const room = (): Room => ({ cw: grid.clientWidth });
   function fit(r = room()) {
     if (r.cw - 2 * GAP <= 0) return;
-    const set = (at: HTMLElement, cols: number) => at.style.getPropertyValue('--cols') !== String(cols) && at.style.setProperty('--cols', cols as unknown as string);
-    const f = spotOn() ? spotPart(r) : null;
-    const css = f ? (side === 'left' ? [f[0], f[1] - f[0]] : [f[1] - f[0], f[0]]).map((x) => `minmax(0, ${x}fr)`).join(' ') : '';
-    if (css !== spotCss) grid.style.gridTemplateColumns = spotCss = css;
-    placeGrip(r);
-    if (!spotOn()) return set(grid, colsFor(r.cw - 2 * GAP));
-    set(grid, spotCols(r));
-    set(rest, restCols(r));
+    const cols = colsFor(r.cw - 2 * GAP);
+    if (grid.style.getPropertyValue('--cols') !== String(cols)) grid.style.setProperty('--cols', cols as unknown as string);
   }
-  function restCols(r = room()) {
-    const f = spotPart(r), wide = colsFor(r.w - r.gap - spotWidth(r), n - 1);
-    let rc = f ? wide : spotCols(r) - 1;
-    if (lay === 'side') return Math.max(rc, wide);
-    while (rc > 1 && Math.ceil((n - 1) / rc) < rc) rc--;
-    return rc;
-  }
-  grid.dataset.lay = lay;
-  grid.addEventListener('spotlay', (e) => {
-    lay = (e as CustomEvent).detail;
-    grid.dataset.lay = lay;
-    fit();
-    save();
-    if (lay === 'side' && spotOn() && n > 2 && restCols() < 2) tell($('.dk-main'), { title: 'No room side by side', line: 'The other chats stay stacked until the window or their side is wider.', ms: 2500 });
-  });
   const columns = () => {
     fit();
     return +grid.style.getPropertyValue('--cols') || 1;
   };
-  const ro = onSize([rest, grid], { name: 'deck.fit', read: room, write: (r: Room) => fit(r) });
+  const ro = onSize([grid], { name: 'deck.fit', read: room, write: (r: Room) => fit(r) });
   const hints: HTMLElement[] = [];
   const hint = (i: number) => (hints[i] ||= Object.assign(document.createElement('div'), { className: 'dk-hint', innerHTML: newHint(K.one) }));
   function head(i: number) {
     const id = cells[i], a = get(id);
-    const x = () => `<button data-dk-out aria-label="close">×</button>`;
     if (!a) {
-      if (views.has(i)) return `<i class="dk-mark">${gem('ai')}</i><b class="dk-title">new chat</b><span class="grow"></span>${toolsSlot()}${spotBtn(i)}${x()}`;
       if (id && !agents.loaded) return `<span class="dk-st">…</span>`;
       return `<span class="dk-st">empty</span><span class="grow"></span>${n > 1 ? '<button data-dk-close aria-label="close">×</button>' : ''}`;
     }
-    return agentHead(a, { ...can, spot: spotBtn(i) });
+    return agentHead(a, can);
   }
-  function spotBtn(i: number) {
-    if (!arrangeable) return '';
-    return offBtn(spotHtml(spotOn() && spot === i, n, spotOn()), !!pref('deck:spotBtn'), 'spotlight');
-  }
-  const can: HeadCan = { mark: !!mark, pin: !!pin, set: !!sendTo, tab: !!openTab, orch: !!sendTo && kind === 'chat', bench: !(sendTo && kind === 'chat') };
-  const markSig = () => JSON.stringify([S.marks, pref('marks:on'), pref('marks:names'), pref('deck:model', 'win'), pref('deck:code', 'win'), pref('deck:title', 'win'), pref('deck:rowCode'), pref('deck:rowInfo'), pref('deck:title2'), pref('closed:on'), ...HEAD_BTNS.map((k) => pref(k, 'win'))]);
+  const can: HeadCan = { mark: !!mark, pin: !!pin, set: !!sendTo, tab: !!openTab, orch: false, bench: true };
+  const markSig = () => JSON.stringify([S.marks, pref('marks:on'), pref('marks:names'), pref('deck:model', 'win'), pref('deck:code', 'win'), pref('deck:title', 'win'), pref('deck:rowCode'), pref('deck:rowInfo'), pref('deck:title2'), ...HEAD_BTNS.map((k) => pref(k, 'win'))]);
   let markKey = '';
-  function chatIn(id: string | null, pid: string, more: Record<string, unknown> = {}) {
-    const e = { id, tab: { id: 'dk-' + uid(), type: 'ai', chat: id, pid, ...more } } as unknown as Cell;
-    e.view = makeChat(e.tab!, { saved: () => moved(e), filesChanged, openFile, titled() {}, openBeside });
-    return e;
-  }
-  function moved(e: Cell) {
-    const at = [...views].find(([, v]) => v === e)?.[0], id = e.tab!.chat;
-    if (at == null || !id || cells[at] === id) return;
-    cells[at] = e.id = id;
-    save();
-    started({ id, kind: 'chat', program: chatProgram(e.tab!.type), pid: e.tab!.pid! }, many() ? { in: kind, set } : null);
-    if (e.opened) {
-      e.opened = false;
-      record('deck', `opened “${titleOf(agents.all.get(id) ?? { kind: 'chat', program: chatProgram(e.tab!.type) })}”`, { kind, set, i: at, id, opened: true, pid: e.tab!.pid, program: chatProgram(e.tab!.type) });
-    }
-    paint();
-  }
   function paintCell(i: number) {
     const c = boxes[i];
     if (!c) return;
     c.classList.toggle('sel', i === sel);
-    c.classList.toggle('spot', spotOn() && i === spot);
     const id = cells[i], a = get(id);
     let v: Cell | null | undefined = views.get(i);
     if (v && v.id !== id) {
-      if (!park(v)) v.view.detach();
+      v.view.detach();
       views.delete(i);
       v = null;
     }
-    if (!v && a) {
-      const kept = a.kind === 'chat' ? unpark(a.id) : null;
-      views.set(i, (v = kept || (a.kind === 'term' ? { id, view: makeTerm({ id }) } : chatIn(id, a.pid ?? S.pid, { type: chatTabOf(a.program) }))));
-    }
+    if (!v && a) views.set(i, (v = { id, view: makeTerm({ id }) }));
     c.classList.toggle('empty', !v);
     if (a) c.style.setProperty('--gem-c', crystalOf(a.id).color);
     else c.style.removeProperty('--gem-c');
     const hd = c.firstElementChild as HTMLElement;
     hd.toggleAttribute('data-ask', a?.status === 'asks');
-    paintHead(hd, head(i), { bar: v?.view.bar, menu: a?.kind === 'chat' ? v?.view.el?.querySelector('.ch-menu') : null, home: () => v?.view.home?.() });
+    paintHead(hd, head(i), { bar: v?.view.bar, menu: null, home: () => v?.view.home?.() });
     const body = c.lastElementChild!, want = v ? v.view.el : hint(i);
     if (body.firstElementChild !== want) body.replaceChildren(want);
   }
 
   const repaintList = () => (el.hidden ? (stale = true) : paintList());
-  const fh = kind === 'chat' ? null : folderHost(list, { list: 'deck', attr: 'data-dk-agent', agentOf: (id) => get(id), repaint: repaintList, on: false });
-  let held = new Map<string, number>(), shown = (_a: Agent) => false;
-  const lst = kind !== 'chat' ? null : createChatList({
-    list: 'deck',
-    el: list,
-    attr: 'data-dk-agent',
-    mine: (a) => shown(a),
-    benched: (a) => !held.has(a.id),
-    cur: () => (sel >= 0 ? cells[sel] : null),
-    shown: () => !el.hidden,
-    repaint: repaintList,
-    open: (id) => open(id),
-    close: (a, sure) => end(a.id, sure),
-    mark: (a, x, y) => mark && markMenu(a, x, y, mark, paint),
-    sub: (c, s) => openSub(c, s),
-    newChat: (b, p) => newAgent(b.getBoundingClientRect().left, b.getBoundingClientRect().bottom + 6, -1, 'list', p),
-    none: () => `No ${K.many} in this ${ws ? 'workspace' : 'project'} yet. ${noneLine(kind)}`,
-  });
+  const fh = folderHost(list, { list: 'deck', attr: 'data-dk-agent', agentOf: (id) => get(id), repaint: repaintList, on: false });
   function paintList() {
     const at = new Map<string, number>();
     cells.slice(0, n).forEach((id, i) => id && at.set(id, i));
     const here = listed(mine, at, inTab);
-    if (lst) {
-      held = at;
-      shown = here;
-      lst.paint();
-      el.toggleAttribute('data-asks', [...agents.all.values()].some((a) => here(a) && a.status === 'asks'));
-      return markRows();
-    }
     const by: Record<string, Agent[]> = { asks: [], working: [], done: [], bench: [] };
     for (const a of agents.all.values()) {
       if (!here(a)) continue;
@@ -798,34 +588,20 @@ export function createDeck({ kind = 'chat', set = '', openTab = null, layouts = 
     for (const k of ['working', 'done', 'bench']) by[k].sort((x, y) => y.at - x.at);
     const head = ({ k, label }: Group): Row => headRow(k, `<h4 class="dk-gh" data-st="${k}">${HEAD_IC[k] ? `<i class="dk-gi">${ICONS[HEAD_IC[k]]}</i>` : spark(k)}<b${k === 'working' ? ' class="dk-wd"' : ''}>${k === 'working' && workVerb() !== 'Working' ? workVerb() + '…' : label}</b></h4>`);
     const row = (a: Agent, k: string) => agentRow(a, { attr: 'data-dk-agent', benched: k === 'bench', fold: true, mark: !!mark });
-    const none = agents.why ? `<p class="dk-none err">${esc(agents.why)}</p>` : `<p class="dk-none">${agents.loaded ? `No ${K.many} in this ${ws ? 'workspace' : 'project'} yet. ${noneLine(kind)}` : `Looking for ${K.many}…`}</p>`;
+    const none = agents.why ? `<p class="dk-none err">${esc(agents.why)}</p>` : `<p class="dk-none">${agents.loaded ? `No ${K.many} in this ${ws ? 'workspace' : 'project'} yet. ${noneLine()}` : `Looking for ${K.many}…`}</p>`;
     el.toggleAttribute('data-asks', by.asks.length > 0);
-    const drawn = fh!.paint(GROUPS.map(([k, label]) => ({ k, label, list: by[k] })), head, row, none, asks.card);
+    const drawn = fh.paint(GROUPS.map(([k, label]) => ({ k, label, list: by[k] })), head, row, none, asks.card);
     asks.keep(new Set(drawn.rows.filter((r) => r.a).map((r) => `${r.a!.id} ${r.a!.ask!.id}`)));
     markRows();
   }
   function markRows() {
     const here = sel >= 0 ? cells[sel] : null, warm = hot >= 0 ? cells[hot] : null;
-    for (const r of list.querySelectorAll<HTMLElement>('.dk-row, .oc-row')) {
+    for (const r of list.querySelectorAll<HTMLElement>('.dk-row')) {
       const id = r.dataset.dkAgent;
       r.classList.toggle('here', !!id && id === here);
       r.classList.toggle('hot', !!id && id === warm);
     }
   }
-
-  let closedKey = '';
-  function paintClosed() {
-    const box = $('.dk-closed'), pid = atWs() ? '' : S.pid, open = store.get('deck:closed-open', false);
-    const rows: Closed[] = kind === 'chat' && pref('closed:on') ? store.get('deck:closed', []).filter((c: Closed) => (c.pid || '') === pid && !chatOfSession(c.session)) : [];
-    const key = JSON.stringify([rows, open]);
-    if (key === closedKey) return;
-    closedKey = key;
-    box.hidden = !rows.length;
-    const keep = box.firstElementChild?.scrollTop || 0;
-    box.innerHTML = rows.length ? closedInner(rows, open) : '';
-    if (open && keep) box.firstElementChild!.scrollTop = keep;
-  }
-  const dropClosed = (session: string) => store.set('deck:closed', store.get('deck:closed', []).filter((c: Closed) => c.session !== session));
 
   let stale = false;
   const full = (i: number) => i >= 0 && i < n && (!!cells[i] || views.has(i));
@@ -842,22 +618,18 @@ export function createDeck({ kind = 'chat', set = '', openTab = null, layouts = 
     if (el.hidden) return void (stale = true);
     for (let i = 0; i < n; i++) paintCell(i);
     paintList();
-    paintClosed();
   }
   function sync({ lineOnly = false } = {}) {
     if (levelKey() !== lvl) return;
     if (lineOnly) return el.hidden ? void (stale = true) : paintList();
     if (agents.loaded) {
       let out = false;
-      cells = cells.map((id, i) => {
+      cells = cells.map((id) => {
         if (!id || get(id)) return id;
         out = true;
-        const v = views.get(i);
-        if (v?.tab && v.tab.chat !== id) return (v.id = v.tab.chat || null);
         return null;
       });
       if (out) save();
-      for (const id of [...parked.keys()]) if (!get(id)) dropParked(id);
     }
     paint();
   }
@@ -866,13 +638,6 @@ export function createDeck({ kind = 'chat', set = '', openTab = null, layouts = 
     requestAnimationFrame(() => {
       boxes[i]?.scrollIntoView({ block: 'nearest' });
       views.get(i)?.view.focus();
-    });
-  const landCell = (i: number) =>
-    requestAnimationFrame(() => {
-      boxes[i]?.scrollIntoView({ block: 'nearest' });
-      const v = views.get(i)?.view;
-      if (v?.land) v.land(get(cells[i])?.ask ? 1500 : 0);
-      else v?.focus();
     });
   function select(i: number, focus = false) {
     if (i !== -1 && !full(i)) return;
@@ -884,7 +649,6 @@ export function createDeck({ kind = 'chat', set = '', openTab = null, layouts = 
     }
     if (focus) focusCell(i);
   }
-  const openSub = (chat: string, sub: string) => page.activity?.(chat, sub);
   function open(id: string, into = -1) {
     const was = cells.slice(0, n).indexOf(id);
     if (was >= 0) return select(was, true);
@@ -900,12 +664,6 @@ export function createDeck({ kind = 'chat', set = '', openTab = null, layouts = 
     if (from === to) return;
     const was = Array.from({ length: n }, (_, i) => i);
     was.splice(to, 0, ...was.splice(from, 1));
-    reorder(was);
-  }
-  function swap(a: number, b: number) {
-    if (a === b) return;
-    const was = Array.from({ length: n }, (_, i) => i);
-    [was[a], was[b]] = [b, a];
     reorder(was);
   }
   function reorder(was: number[]) {
@@ -927,7 +685,7 @@ export function createDeck({ kind = 'chat', set = '', openTab = null, layouts = 
   function out(i: number) {
     const v = views.get(i);
     if (v && !v.id) v.view.stop();
-    else if (!park(v)) v?.view.detach();
+    else v?.view.detach();
     views.delete(i);
     cells[i] = null;
     save();
@@ -936,8 +694,7 @@ export function createDeck({ kind = 'chat', set = '', openTab = null, layouts = 
   function toTab(i: number, ed?: string, go = true) {
     const a = get(cells[i]);
     if (!a || !openTab) return;
-    const v = views.get(i);
-    if (!park(v)) v?.view.detach();
+    views.get(i)?.view.detach();
     views.delete(i);
     cells[i] = null;
     save();
@@ -948,7 +705,6 @@ export function createDeck({ kind = 'chat', set = '', openTab = null, layouts = 
     if (!get(id)) return;
     setsMenu(kind, btn, set, async (to, how) => {
       if (cells[i] !== id) return;
-      if (to?.orch && how.am === AM) return sendOrch(i, btn);
       if (how.am !== AM && !(await moveAway(get(id)!, how.am, to, how))) return;
       if (cells[i] !== id) return;
       if (how.am === AM && to?.ed) return toTab(i, to.ed, how.go);
@@ -959,31 +715,15 @@ export function createDeck({ kind = 'chat', set = '', openTab = null, layouts = 
       if (how.am === AM) sendTo!(kind, id!, to, how.go);
       paint();
       page.render();
-    }, openTab && layouts?.(), get(id), !!sendTo && kind === 'chat');
+    }, openTab && layouts?.(), get(id), false);
   }
   function closeCell(i: number, sure = false) {
     const a = get(cells[i]);
     return a ? end(a.id, sure) : out(i);
   }
-  async function closeOpened(d: Back) {
-    const id = cells[d.i] === d.id ? d.id : views.get(d.i)?.tab!.chat || cells[d.i], a = get(id);
-    if (!a || a.status === 'ended') return false;
-    if (!(await ask({ title: `Close “${titleOf(a)}”?`, text: 'It ends this chat (it stays in its history).', confirm: true }))) return DECLINED;
-    d.id = id!;
-    return end(id!, true);
-  }
-  function sendOrch(i: number, at?: Element) {
-    const a = get(cells[i]);
-    if (!a || a.kind !== 'chat') return tell(at || boxes[i] || el, { title: 'No chat here to send', line: 'Orchestration lists chats; pick a chat window.', ms: 1500 });
-    record('deck', `sent “${titleOf(a)}” to orchestration`, { kind, set, i, id: a.id, program: a.program, orch: true });
-    out(i);
-    toOrch([a.id]);
-    page.render();
-  }
   function bench(i: number, at?: Element) {
     const a = get(cells[i]);
-    if (!a) return tell(at || boxes[i] || el, { title: 'Nothing to bench here', line: 'Bench works on a chat or terminal in a window.', ms: 1500 });
-    if (a.kind === 'chat' && sendTo) return sendOrch(i, at);
+    if (!a) return tell(at || boxes[i] || el, { title: 'Nothing to bench here', line: 'Bench works on a terminal in a window.', ms: 1500 });
     record('deck', `benched “${titleOf(a)}”`, { kind, set, i, id: a.id, program: a.program });
     out(i);
   }
@@ -995,21 +735,16 @@ export function createDeck({ kind = 'chat', set = '', openTab = null, layouts = 
       return tell(at, { title: `Still open in Amethyst ${there}`, line: 'It keeps running there. Close it there to end it.' });
     }
     if (a && !sure && stillAt(a)) {
-      const cv = (cells.indexOf(id) >= 0 ? views.get(cells.indexOf(id)) : null) || parked.get(id), r = await askEnd(`End “${titleOf(a)}”?`, stillAt(a), 'A chat can be picked up again from its history; a terminal and what runs in it stop.', a.kind === 'chat' && !!cv?.view.clear);
-      if (r === 'restart') return cv?.view.clear?.();
+      const r = await askEnd(`End “${titleOf(a)}”?`, stillAt(a), 'A terminal and what runs in it stop.', false);
       if (r !== 'close') return;
     }
-    const i = cells.indexOf(id), v = i >= 0 ? views.get(i) : null, pv = v || parked.get(id);
-    if (a?.kind === 'chat') record('deck', `closed “${titleOf(a)}”`, { kind, set, i, id, ended: true, session: a.session, draft: pv?.view.draft?.() ?? draftOf(id), pid: a.pid ?? S.pid, program: a.program });
+    const i = cells.indexOf(id), v = i >= 0 ? views.get(i) : null;
     if (a) addClosed(a);
     if (v) {
       v.view.stop();
       views.delete(i);
       cells[i] = null;
-    } else if (parked.has(id)) {
-      parked.get(id)!.view.stop();
-      parked.delete(id);
-    } else api('DELETE', `/api/${a?.kind === 'term' ? 'term' : 'agent'}?id=${encodeURIComponent(id)}`, {}).catch(showErr);
+    } else api('DELETE', `/api/term?id=${encodeURIComponent(id)}`, {}).catch(showErr);
     agents.all.delete(id);
     save();
     paint();
@@ -1018,7 +753,6 @@ export function createDeck({ kind = 'chat', set = '', openTab = null, layouts = 
     if (!Number.isInteger(k) || k < 1 || k === n) return;
     cells = Array.from({ length: k }, (_, i) => cells[i] ?? null);
     n = k;
-    if (spot !== null && (spot >= n || n < 2)) spot = null;
     build();
     save();
     paint();
@@ -1034,22 +768,12 @@ export function createDeck({ kind = 'chat', set = '', openTab = null, layouts = 
     n--;
     if (sel > i) sel--;
     sel = Math.min(sel, n - 1);
-    if (spot === i || n < 2) spot = null;
-    else if (spot > i) spot--;
     save();
     paint();
     build();
   }
 
-  async function newAgent(x: number, y: number, into = -1, place = 'top', program = '') {
-    if (kind === 'chat') {
-      const go = (k: string) => start('chat:' + k, S.pid, into);
-      if (program) return go(program);
-      const more = bring && !ws && pref('agent:openRow') ? openChatMenu(S.pid, cells.slice(0, n), agentLine, (id) => bringIn(id, into)) : null;
-      if (place === 'menu') return chatsOn().length === 1 ? go(chatsOn()[0][0]) : agentMenu(x, y, go, '', 'chat:', false, { place: 'agents', more });
-      if (place === 'pick') return agentMenu(x, y, go, '', 'chat:', false, { place: 'agents', more });
-      return launchAgent(place, x, y, go, 'chat:', more);
-    }
+  async function newAgent(x: number, y: number, into = -1) {
     let terms: { available: boolean; programs: any[]; why?: string } = { available: false, programs: [] };
     try {
       terms = await api('GET', '/api/terms');
@@ -1061,12 +785,6 @@ export function createDeck({ kind = 'chat', set = '', openTab = null, layouts = 
     const html = menuHead(gem('term'), 'terminals') + bands({ pick: ['new terminal', rows] });
     popMenu(x, y, html, (btn) => start(btn.dataset.k!, S.pid, into));
   }
-  async function bringIn(id: string, into: number) {
-    const a = agents.all.get(id);
-    if (!a) return tell(grid, { title: 'This chat is gone', line: 'It was closed while the menu was open.', ms: 2500 });
-    if (!(await bring!(a))) return;
-    open(id, into);
-  }
   const firstEmpty = () => {
     for (let k = 0; k < n; k++) {
       const i = ((sel >= 0 ? sel + 1 : 0) + k) % n;
@@ -1076,19 +794,6 @@ export function createDeck({ kind = 'chat', set = '', openTab = null, layouts = 
     return n - 1;
   };
   async function start(k: string, pid: string, into = -1) {
-    if (k === 'chat' || k.startsWith('chat:')) {
-      const at = into >= 0 && !full(into) ? into : firstEmpty();
-      const e = chatIn(null, pid, { type: chatTabOf(k.slice(5)) });
-      e.opened = true;
-      views.set(at, e);
-      sel = at;
-      if (e.tab!.chat) moved(e);
-      else {
-        save();
-        paint();
-      }
-      return focusCell(at);
-    }
     try {
       const program = k.slice(5);
       const r = await api('POST', '/api/term', { program }, pid);
@@ -1099,131 +804,46 @@ export function createDeck({ kind = 'chat', set = '', openTab = null, layouts = 
     }
   }
 
-  async function openBeside({ session, program, title, pid }: { session: string; program?: string; title?: string; pid: string }) {
-    const a = chatOfSession(session);
-    if (a) {
-      if (!(await takeHere(a))) return 'none';
-      if (mine(a)) return open(a.id);
-      show?.(a);
-      return 'left';
-    }
-    const at = firstEmpty();
-    const e = chatIn(null, pid, { resume: session, title, type: chatTabOf(program) });
-    views.set(at, e);
-    sel = at;
-    if (e.tab!.chat) moved(e);
-    else {
-      save();
-      paint();
-    }
-  }
-  function reopen(session: string) {
-    const c = store.get('deck:closed', []).find((x: Closed) => x.session === session);
-    if (!c) return;
-    dropClosed(session);
-    openBeside(c);
-    paintClosed();
-  }
-  $('.dk-closed').addEventListener('keydown', (e) => {
-    const r = (e.target as HTMLElement).closest<HTMLElement>('[data-dk-reopen]');
-    if (!r || e.target !== r || (e.key !== 'Enter' && e.key !== ' ')) return;
-    e.preventDefault();
-    reopen(r.dataset.dkReopen!);
-  });
   el.addEventListener(
     'pointerdown',
     (e) => {
       const c = (e.target as HTMLElement).closest('[data-cell]') as HTMLElement;
       if (c) select(+c.dataset.cell!);
-      else if (!(e.target as HTMLElement).closest('button,input,[data-dk-agent],.rs-sg')) select(-1);
+      else if (!(e.target as HTMLElement).closest('button,input,[data-dk-agent]')) select(-1);
     },
     true,
   );
   grid.addEventListener('contextmenu', (e) => {
-    const nb = kind === 'chat' ? (e.target as HTMLElement).closest<HTMLElement>('.dk-hint [data-dk-new]') : null;
-    if (nb && !e.defaultPrevented && (chatsOn().length > 1 || (!!bring && !ws && pref('agent:openRow')))) {
-      e.preventDefault();
-      const cell = +(nb.closest<HTMLElement>('[data-cell]')?.dataset.cell as string);
-      return void newAgent(e.clientX, e.clientY, Number.isInteger(cell) ? cell : -1, 'pick');
-    }
     if (e.defaultPrevented || (e.target as HTMLElement).closest('.dk-cell')) return;
     e.preventDefault();
-    newAgent(e.clientX, e.clientY, -1, 'menu');
+    newAgent(e.clientX, e.clientY, -1);
   });
-  const rowMenu = (a: Agent, x: number, y: number, fly = ''): void => {
-    const mk = mark && pref('marks:on') && a.session ? markFly(a, fly) : '';
-    const actions = [renameItem(a) + (canFile('deck', a) ? moveItem('deck', a) : ''), mk].filter(Boolean).join('<div class="sep"></div>');
-    popMenu(x, y, menuHead(gem('ai'), titleOf(a)) + bands({ actions, ...rowListBands('deck') }), (o) => {
-      if (rowListPick('deck', o)) return;
-      if (o.dataset.fly) return rowMenu(a, x, y, fly === o.dataset.fly ? '' : o.dataset.fly);
-      if ('rename' in o.dataset) return renameAsk(a);
-      if ('cfMv' in o.dataset) return moveSub('deck', a, o);
-      if (o.dataset.mk == null) return;
-      mark!(a.session!, markPick(a, +o.dataset.mk));
-      paint();
-    });
-  };
   $('.dk-rail').addEventListener('contextmenu', (e) => {
     if ((e.target as HTMLElement).closest('.dk-ask')) return;
-    const row = (e.target as HTMLElement).closest<HTMLElement>('[data-dk-agent]');
-    if (kind !== 'chat') {
-      if (row) return;
-      e.preventDefault();
-      return popMenu(e.clientX, e.clientY, menuHead(gem('term'), 'terminal list') + bands({ buttons: railButtons() }), (b) => b.dataset.rb && setPref(b.dataset.rb, !pref(b.dataset.rb)));
-    }
-    if (row) {
-      const a = get(row.dataset.dkAgent);
-      if (!a) return;
-      if (!renameItem(a) && !canFile('deck', a) && !(mark && pref('marks:on') && a.session)) return;
-      e.preventDefault();
-      return rowMenu(a, e.clientX, e.clientY);
-    }
-    if (!(e.target as HTMLElement).closest('.dk-closed')) return;
+    if ((e.target as HTMLElement).closest('[data-dk-agent]')) return;
     e.preventDefault();
-    {
-      const open = store.get('deck:closed-open', false);
-      const show = `<button class="mi" data-cl-show title="${open ? 'Fold the chats' : 'Show the chats'}&#10;Lists the chats you closed above the bar; click one to open it again, \u00d7 forgets it."><i class="tb-ic">${ICONS.history}</i><span class="mi-n">${open ? 'fold the chats' : 'show the chats'}</span>${chip('click')}</button>`;
-      const shows = topRow(!!pref('closed:on'), `data-cl title="Shows under the list&#10;Shows the closed chats bar under the agents list. The closed chats are kept either way; the agents list's menu brings the bar back."`, ICONS.archive, 'shows under the list');
-      return popMenu(e.clientX, e.clientY, menuHead(ICONS.archive, 'closed chats') + bands({ actions: show, options: shows }), (b) => {
-        if ('clShow' in b.dataset) return store.set('deck:closed-open', !open), paintClosed();
-        setPref('closed:on', !pref('closed:on'));
-      });
-    }
+    return popMenu(e.clientX, e.clientY, menuHead(gem('term'), 'terminal list') + bands({ buttons: railButtons() }), (b) => b.dataset.rb && setPref(b.dataset.rb, !pref(b.dataset.rb)));
   });
   el.addEventListener('click', (e) => {
-    if ((e.target as HTMLElement).closest('.dk-ask') || (lst ? lst.dragged() : fh!.dragged())) return;
-    if (lst?.click(e)) return;
-    if (subClear(e.target as HTMLElement, get)) return;
-    const b = (e.target as HTMLElement).closest<HTMLElement>('[data-dk-spot],[data-dk-new],[data-dk-out],[data-dk-bench],[data-dk-orch],[data-dk-close],[data-dk-tab],[data-dk-set],[data-dk-pin],[data-dk-mark],[data-dk-report],[data-dk-end],[data-dk-agent],[data-dk-closed],[data-dk-reopen],[data-dk-forget],[data-dk-down],[data-dk-sub]');
+    if ((e.target as HTMLElement).closest('.dk-ask') || fh.dragged()) return;
+    const b = (e.target as HTMLElement).closest<HTMLElement>('[data-dk-new],[data-dk-out],[data-dk-bench],[data-dk-close],[data-dk-tab],[data-dk-set],[data-dk-pin],[data-dk-mark],[data-dk-end],[data-dk-agent]');
     if (!b) return;
     const d = b.dataset, cell = +((b.closest('[data-cell]') as HTMLElement)?.dataset.cell as string);
-    if (d.dkSub) return openSub(d.dkOf!, d.dkSub);
     if (grid.contains(b) && b.matches(HEAD_SEL))
       return headClick(b, {
         agent: () => get(cells[cell]),
         out: (_, sure) => closeCell(cell, sure),
-        spot: () => spotlight(cell),
         bench: (at) => bench(cell, at),
-        orch: (at) => sendOrch(cell, at),
         tab: () => toTab(cell),
         set: (at) => toSet(cell, at),
         pin: (a) => pin?.(agentPin(a, titleOf(a))),
         mark: (a, x, y) => mark && markMenu(a, x, y, mark, paint),
       }, e);
-    if (d.dkClosed != null) {
-      store.set('deck:closed-open', !store.get('deck:closed-open', false));
-      return paintClosed();
-    }
-    if (d.dkForget) {
-      dropClosed(d.dkForget);
-      return paintClosed();
-    }
-    if (d.dkReopen) return reopen(d.dkReopen);
     if (d.dkMark) {
       const a = get(d.dkMark), r = anchorOf(b).getBoundingClientRect();
       return a && markMenu(a, r.left, r.bottom + 4, mark!, paint);
     }
-    if (d.dkNew != null) return newAgent(b.getBoundingClientRect().left, b.getBoundingClientRect().bottom + 6, Number.isInteger(cell) ? cell : -1, kind === 'chat' && b.closest('.dk-hint') ? 'agents' : 'top');
+    if (d.dkNew != null) return newAgent(b.getBoundingClientRect().left, b.getBoundingClientRect().bottom + 6, Number.isInteger(cell) ? cell : -1);
     if (d.dkOut != null) return closeCell(cell, e.shiftKey);
     if (d.dkClose != null) return drop(cell);
     if (d.dkEnd) return end(d.dkEnd, e.shiftKey);
@@ -1232,7 +852,7 @@ export function createDeck({ kind = 'chat', set = '', openTab = null, layouts = 
   const hover = (i: number) => {
     if (i === hot) return;
     hot = i;
-    for (const r of list.querySelectorAll<HTMLElement>('.dk-row, .oc-row')) r.classList.toggle('hot', r.dataset.dkAgent === cells[i]);
+    for (const r of list.querySelectorAll<HTMLElement>('.dk-row')) r.classList.toggle('hot', r.dataset.dkAgent === cells[i]);
   };
   grid.addEventListener('mouseover', (e) => {
     const c = (e.target as HTMLElement).closest<HTMLElement>('.dk-cell');
@@ -1240,101 +860,19 @@ export function createDeck({ kind = 'chat', set = '', openTab = null, layouts = 
   });
   grid.addEventListener('mouseleave', () => hover(-1));
   list.addEventListener('keydown', (e) => {
-    if ((e.target as HTMLElement).closest('.dk-ask') || lst?.key(e)) return;
+    if ((e.target as HTMLElement).closest('.dk-ask')) return;
     const r = (e.target as HTMLElement).closest<HTMLElement>('[data-dk-agent]');
-    const s = (e.target as HTMLElement).closest<HTMLElement>('[data-dk-sub]');
-    if ((!r && !s) || (e.key !== 'Enter' && e.key !== ' ')) return;
-    e.preventDefault();
-    if (s) openSub(s.dataset.dkOf!, s.dataset.dkSub!);
-    else open(r!.dataset.dkAgent!);
-  });
-  const dropRow = (e: DragEvent) => {
-    const r = (e.target as HTMLElement).closest?.<HTMLElement>('[data-dk-agent]');
-    const file = fileDrag(e, S.dragging);
-    return r && file && get(r.dataset.dkAgent)?.kind === 'chat' ? r : null;
-  };
-  const unlight = () => list.querySelector('.drop')?.classList.remove('drop');
-  list.addEventListener('dragover', (e) => {
-    const r = dropRow(e);
-    if (!r?.classList.contains('drop')) unlight();
-    if (!r) return;
-    e.preventDefault();
-    r.classList.add('drop');
-  });
-  list.addEventListener('dragleave', (e) => !list.contains(e.relatedTarget as Node) && unlight());
-  list.addEventListener('drop', (e) => {
-    unlight();
-    const r = dropRow(e);
-    if (!r) return;
+    if (!r || (e.key !== 'Enter' && e.key !== ' ')) return;
     e.preventDefault();
     open(r.dataset.dkAgent!);
-    views.get(sel)?.view.take?.(e);
   });
-
-  function spotlight(i: number, to?: string) {
-    if (!arrangeable || n < 2 || !(i >= 0 && i < n)) return;
-    if (spotOn() && spot !== i) {
-      swap(i, spot);
-      if (!to || to === side) return;
-      side = to;
-    } else if (spot === i && !to) spot = null;
-    else {
-      spot = i;
-      if (to) side = to;
-    }
-    arrange();
-    fit();
-    save();
-    paint();
-  }
-  sgrip.addEventListener('pointerdown', (e) => {
-    if (e.button !== 0 || !spotOn()) return;
-    e.preventDefault();
-    const m = room(), keys = Object.keys(SPOT_W).filter((k) => spotFits(SPOT_W[k], m));
-    const sizes: any[] = keys.map((k) => [k, spotPx(SPOT_W[k], m)]), one = oneCol(m);
-    if (!sizes.some(([, w]) => Math.abs(w - one) < 2)) sizes.push([null, one]);
-    const c = boxes[spot].getBoundingClientRect(), g = grid.getBoundingClientRect(), half = m.gap / 2;
-    const l = g.left + m.x, r = l + m.w, top = c.top, height = c.height;
-    quitDrag = snapDrag(e, {
-      grip: sgrip,
-      sizes: sizes.map(([, w]) => w),
-      at: (ev) => (side === 'left' ? ev.clientX - l - half : r - half - ev.clientX),
-      box: (w) => ({ left: side === 'left' ? l : r - w, top, width: w, height, edge: side === 'left' ? l + w + half : r - w - half }),
-      label: () => 'spotlight',
-      apply(w, past) {
-        spotW = sizes.find(([, s]) => s === w)[0];
-        fit();
-        save();
-        if (past > 60 && keys.at(-1) !== 'q3') tell($('.dk-main'), { title: 'The other chats need room', line: 'The spotlight can’t be wider in a window this narrow.', ms: 2500 });
-      },
-    });
-  });
-  sgrip.addEventListener('dblclick', () => {
-    if (spotW === null) return;
-    spotW = null;
-    fit();
-    save();
-  });
-  grid.addEventListener('dblclick', (e) => {
-    const hd = (e.target as HTMLElement).closest('.dk-ch');
-    if (!hd || (e.target as HTMLElement).closest('button, input, textarea, select')) return;
-    spotlight(+hd.parentElement!.dataset.cell!);
-  });
-  function land(from: number, p: { k: number; side: string }) {
-    if (p.side) spotlight(from, p.side);
-    else if (spotOn()) swap(from, p.k);
-    else move(from, p.k);
-  }
-  const landing = document.createElement('div');
-  landing.className = 'rs-land';
 
   grid.addEventListener('pointerdown', (e) => {
     const hd = (e.target as HTMLElement).closest<HTMLElement>('.dk-ch'), c = hd?.parentElement, from = c ? +c.dataset.cell! : -1, id = cells[from], a = get(id);
     if (!c || e.button !== 0 || (e.target as HTMLElement).closest('button')) return;
     e.preventDefault();
     const x0 = e.clientX, y0 = e.clientY, r0 = hd!.getBoundingClientRect();
-    const stay = { k: from, side: '' };
-    let ghost: HTMLElement | null = null, to = stay;
+    let ghost: HTMLElement | null = null, to = from;
     const slot = (ev: PointerEvent) => {
       const r = grid.getBoundingClientRect();
       if (ev.clientX < r.left || ev.clientX > r.right || ev.clientY < r.top || ev.clientY > r.bottom) return from;
@@ -1343,30 +881,9 @@ export function createDeck({ kind = 'chat', set = '', openTab = null, layouts = 
       const row = Math.floor((ev.clientY - r.top - GAP + grid.scrollTop) / (c.offsetHeight + GAP));
       return Math.min(n - 1, Math.max(0, row) * cols + Math.min(cols - 1, Math.max(0, col)));
     };
-    const aim = (ev: PointerEvent) => {
-      if (!arrangeable || n < 2) return { ...stay, k: slot(ev) };
-      const r = grid.getBoundingClientRect(), x = ev.clientX - r.left, y = ev.clientY - r.top;
-      if (x < 0 || y < 0 || x > r.width || y > r.height) return stay;
-      const zone = sideZone(r.width);
-      if (x < zone || r.width - x < zone) {
-        const s = x < zone ? 'left' : 'right';
-        return spotOn() && spot === from && side === s ? stay : { ...stay, side: s };
-      }
-      const t = document.elementFromPoint(ev.clientX, ev.clientY)?.closest<HTMLElement>('.dk-cell');
-      if (!t || !boxes.includes(t)) return spotOn() ? stay : { ...stay, k: slot(ev) };
-      return t === c ? stay : { ...stay, k: +t.dataset.cell! };
-    };
-    const mark = (p: { k: number; side: string }) => {
+    const mark = (k: number) => {
       grid.querySelector('.drop')?.classList.remove('drop');
-      if (!p.side) {
-        landing.remove();
-        if (p.k !== from) boxes[p.k]?.classList.add('drop');
-        return;
-      }
-      const r = grid.getBoundingClientRect(), w = spotWidth(room());
-      landing.style.cssText = `left:${p.side === 'left' ? r.left + GAP : r.right - GAP - w}px;top:${r.top + GAP}px;width:${w}px;height:${r.height - 2 * GAP}px`;
-      landing.innerHTML = '<b>spotlight</b>';
-      document.body.append(landing);
+      if (k !== from) boxes[k]?.classList.add('drop');
     };
     const drag = (ev: PointerEvent) => {
       if (!ghost) {
@@ -1381,17 +898,17 @@ export function createDeck({ kind = 'chat', set = '', openTab = null, layouts = 
       }
       ghost.style.left = `${ev.clientX - (x0 - r0.left)}px`;
       ghost.style.top = `${ev.clientY - (y0 - r0.top)}px`;
-      const p = aim(ev);
-      if (p.k !== to.k || p.side !== to.side) mark((to = p));
+      const p = slot(ev);
+      if (p !== to) mark((to = p));
     };
     const end = (ok: boolean) => {
       if (!ghost) return;
       ghost.remove();
       c.querySelector('.dk-ph')?.remove();
       c.classList.remove('dragged');
-      mark(stay);
+      mark(from);
       document.body.classList.remove('dk-sorting');
-      if (ok && cells[from] === id && to.k < n && (to.k !== from || to.side)) land(from, to);
+      if (ok && cells[from] === id && to < n && to !== from) move(from, to);
     };
     quitDrag = track(e, { move: drag, end, esc: () => !!ghost });
   });
@@ -1406,33 +923,15 @@ export function createDeck({ kind = 'chat', set = '', openTab = null, layouts = 
   };
   const onKey = (e: KeyboardEvent) => {
     if (el.hidden || !el.isConnected || !el.offsetWidth) return;
-    if (kind === 'chat' && is(e, 'newChatN')) {
-      const c = CHATS[+e.key - 1];
-      if (!c) return;
-      e.preventDefault();
-      if (!chatOn(c[0])) return e.repeat || offTell(el, c[1]);
-      if (!e.repeat) start('chat:' + c[0], S.pid);
-      return;
-    }
     if (is(e, 'newCell')) {
       e.preventDefault();
       if (!e.repeat) setN(n + 1);
       return;
     }
-    if (kind === 'chat' && e.key === 'Delete' && !e.repeat && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey && (!inText() || (document.activeElement!.tagName === 'TEXTAREA' && !(document.activeElement as HTMLTextAreaElement).value)) && sel >= 0 && (el.contains(document.activeElement) || document.activeElement === document.body)) {
-      e.preventDefault();
-      return closeCell(sel);
-    }
     if (is(e, 'benchKey') && (el.contains(document.activeElement) || document.activeElement === document.body)) {
       e.preventDefault();
       const c = document.activeElement?.closest?.<HTMLElement>('.dk-cell');
       if (!e.repeat) bench(c && el.contains(c) ? +c.dataset.cell! : Math.max(sel, 0));
-      return;
-    }
-    if (kind === 'chat' && sendTo && is(e, 'orchKey') && (el.contains(document.activeElement) || document.activeElement === document.body)) {
-      e.preventDefault();
-      const c = document.activeElement?.closest?.<HTMLElement>('.dk-cell');
-      if (!e.repeat) sendOrch(c && el.contains(c) ? +c.dataset.cell! : Math.max(sel, 0));
       return;
     }
     if (is(e, 'railKey') && (el.contains(document.activeElement) || document.activeElement === document.body)) {
@@ -1447,14 +946,6 @@ export function createDeck({ kind = 'chat', set = '', openTab = null, layouts = 
     if (!inText() && is(e, 'find') && views.get(sel)?.view?.find) {
       e.preventDefault();
       return views.get(sel)!.view.find!();
-    }
-    if (kind === 'chat' && is(e, 'windowKey') && (el.contains(document.activeElement) || document.activeElement === document.body) && !document.activeElement?.closest?.('.cf-name')) {
-      e.preventDefault();
-      const at = document.activeElement?.closest?.<HTMLElement>('.dk-cell');
-      if (at && el.contains(at) && +at.dataset.cell! !== sel) select(+at.dataset.cell!);
-      const i = stepped(e.shiftKey ? -1 : 1);
-      select(i);
-      return landCell(i);
     }
     if (is(e, 'next')) next();
     else if (is(e, 'cellNext') || is(e, 'cellPrev')) select(stepped(is(e, 'cellNext') ? 1 : -1), true);
@@ -1473,8 +964,6 @@ export function createDeck({ kind = 'chat', set = '', openTab = null, layouts = 
     el,
     focus: () => focusCell(sel),
     newAgent,
-    newChat: (program: string) => kind === 'chat' && start('chat:' + program, S.pid),
-    attach: (rel: string) => views.get(sel)?.view.attach?.(rel),
     refresh() {
       el.hidden ? (stale = true) : paintList();
     },
@@ -1484,26 +973,18 @@ export function createDeck({ kind = 'chat', set = '', openTab = null, layouts = 
       for (const b of el.querySelectorAll<HTMLElement>('[data-dk-pin]')) {
         const a = get(b.dataset.dkPin), on = !!a && isPinned(agentPin(a, ''));
         b.classList.toggle('on', on);
-        const word = on ? 'unpin' : 'pin', kind = a?.kind === 'chat' ? 'chat' : 'terminal';
+        const word = on ? 'unpin' : 'pin';
         b.setAttribute('aria-label', word);
         if (b.classList.contains('dk-mi')) {
           b.removeAttribute('title');
           delete b.dataset.tip;
           b.lastChild!.textContent = word;
-        } else b.title = on ? `Unpin\nThis ${kind} no longer stays at the top of the list.` : `Pin\nKeeps this ${kind} at the top of the list.`;
+        } else b.title = on ? 'Unpin\nThis terminal no longer stays at the top of the list.' : 'Pin\nKeeps this terminal at the top of the list.';
       }
     },
     letGo(id: string) {
       const i = cells.indexOf(id);
       if (i >= 0) out(i);
-    },
-    swap(old: string, id: string, i: number) {
-      const was = cells.indexOf(old), free = i >= 0 && i < n && !cells[i] && (!views.has(i) || views.get(i)!.id === old);
-      const at = was >= 0 ? was : free ? i : firstEmpty();
-      cells[at] = id;
-      claim(kind, id, set);
-      save();
-      el.hidden ? (stale = true) : paint();
     },
     take(id: string) {
       const at = firstEmpty();
@@ -1525,54 +1006,31 @@ export function createDeck({ kind = 'chat', set = '', openTab = null, layouts = 
       sync();
     },
     back(d: Back) {
-      if (d.opened) return closeOpened(d);
-      if (d.orch && d.id && owner(d.id)?.in === 'orch') claim(kind, d.id, set);
       const a = get(d.id), alive = a && a.status !== 'ended';
-      if (!alive && !d.ended) return false;
+      if (!alive) return false;
       const at = d.i >= 0 && d.i < n && !cells[d.i] && !views.has(d.i) ? d.i : firstEmpty();
-      if (alive) {
-        cells[at] = d.id;
-        claim(kind, d.id!, set);
-      } else views.set(at, chatIn(null, d.pid, { resume: d.session, draft: d.draft, type: chatTabOf(d.program) }));
+      cells[at] = d.id;
+      claim(kind, d.id!, set);
       d.at = at;
       sel = at;
       save();
       paint();
     },
     again(d: Back) {
-      if (d.opened) {
-        const at = d.i < n && !cells[d.i] && !views.has(d.i) ? d.i : firstEmpty();
-        views.set(at, chatIn(null, d.pid, { type: chatTabOf(d.program) }));
-        d.i = sel = at;
-        save();
-        paint();
-        return;
-      }
-      if (!d.ended) {
-        const i = cells.indexOf(d.id);
-        if (i < 0) return false;
-        out(i);
-        if (d.orch && d.id) (toOrch([d.id]), page.render());
-        return;
-      }
-      const v = views.get(d.at!), id = v?.tab!.chat || cells[d.at!];
-      if (!id) return false;
-      d.id = id;
-      return end(id, true);
+      const i = cells.indexOf(d.id);
+      if (i < 0) return false;
+      out(i);
     },
     detach() {
       quitDrag?.();
       unwatch();
       uncleared();
       unfolders();
-      fh?.off();
-      lst?.off();
+      fh.off();
       ro.disconnect();
       document.removeEventListener('keydown', onKey);
       for (const v of views.values()) v.view.detach();
       views.clear();
-      for (const v of parked.values()) v.view.detach();
-      parked.clear();
     },
   };
 }

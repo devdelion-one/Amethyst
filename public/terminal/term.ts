@@ -10,7 +10,7 @@ import type { Sizes } from '../base/measure.ts';
 import type { Terminal } from '@xterm/xterm';
 import type { FitAddon } from '@xterm/addon-fit';
 
-const SHELL = ['files', 'commands', 'openFile', 'settings', 'newWindowKey', 'newForget', 'refreshBrowser', 'find', 'save', 'undo', 'redo', 'windowKey', 'quoteKey', 'modeKey', 'modelNextKey', 'modelPrevKey', 'fireGo', 'newChatN', 'newAgentKey'];
+const SHELL = ['files', 'commands', 'openFile', 'settings', 'newWindowKey', 'newForget', 'refreshBrowser', 'find', 'save', 'undo', 'redo', 'windowKey', 'quoteKey', 'modeKey', 'modelNextKey', 'modelPrevKey', 'newChatN', 'newAgentKey'];
 const APP = BINDS.map(([id]) => id).filter((id) => !SHELL.includes(id) && !id.startsWith('model.'));
 const passes = (e: KeyboardEvent, id: string) => is(e, id) && (howOf(id) !== 'plain' || /^(ctrl|alt)\+./.test(bound(id)));
 

@@ -13,13 +13,13 @@ export const ACTIONS: Act[] = [
   {
     name: 'chat new',
     tool: 'chat_new',
-    about: "Start a new chat in this project. It is a normal chat the user sees and can type into; it goes next to yours when your set has a free cell, else in the set given, else in the agents list. With text it gets that as its first message (or, with draft, finds it in its message box for the user to send). Returns its code. Give it more work with amethyst chat send. A mode that may work without asking is the user's to pick: a chat, an agent outside Amethyst or a terminal can't start one in it unless the user allowed chats to answer permission asks. To a chat in a mode that may work without asking, its first message waits for the user to allow it, unless the user allowed chats to answer permission asks; that chat shows a permission ask with it.",
+    about: "Start a new chat in this project. It is a normal chat the user sees and can type into; it goes in Orchestration by default, or in an editor layout when given. With text it gets that as its first message (or, with draft, finds it in its message box for the user to send). Returns its code. Give it more work with amethyst chat send. A mode that may work without asking is the user's to pick: a chat, an agent outside Amethyst or a terminal can't start one in it unless the user allowed chats to answer permission asks. To a chat in a mode that may work without asking, its first message waits for the user to allow it, unless the user allowed chats to answer permission asks; that chat shows a permission ask with it.",
     args: [
       { name: 'agent', type: 'string', about: 'claude (the default), codex, antigravity, cursor, copilot or grok' },
       { name: 'model', type: 'string', about: 'A model it offers, e.g. opus or sonnet (amethyst chat options lists them)' },
       { name: 'mode', type: 'string', about: 'A mode it offers that asks, e.g. default or plan' },
       { name: 'worktree', type: 'boolean', about: 'Work in its own git worktree (made with its first message)' },
-      { name: 'set', type: 'string', about: 'Where to show it: a chat set (its id, or + for a new one), or an editor set (ed:<id>, or ed:new for a new one)' },
+      { name: 'set', type: 'string', about: 'Where to show it: orch (Orchestration, the default), or an editor layout (ed:<id>, or ed:new for a new one)' },
       { name: 'report', type: 'boolean', about: 'Notify me: the user gets a notification each time it is ready (amethyst chat report turns it off)' },
       { name: 'text', type: 'string', pos: true, rest: true, about: 'Its first message, sent at once' },
       { name: 'attach', type: 'list', about: 'Files to send with the first message (files in this project): pictures go as pictures, other files as @path' },
@@ -28,7 +28,7 @@ export const ACTIONS: Act[] = [
       { name: 'amethyst', type: 'number', about: 'The Amethyst (window) it opens in, 1 by default; it shows there when that Amethyst opens' },
     ],
     route: 'POST /api/chats/new',
-    example: 'amethyst chat new --set + --follow "plan the landing page"',
+    example: 'amethyst chat new --follow "plan the landing page"',
   },
   {
     name: 'chat send',
@@ -133,8 +133,8 @@ export const ACTIONS: Act[] = [
   {
     name: 'chat show',
     tool: 'chat_show',
-    about: "Show the chat to the user: in the set given, or next to the calling chat when its set has a free cell, or in the chat set that's on.",
-    args: [CHAT, { name: 'set', type: 'string', about: 'A chat set (its id, or + for a new one), or an editor set (ed:<id>, or ed:new)' }],
+    about: 'Show the chat to the user: in Orchestration, or in the editor layout given.',
+    args: [CHAT, { name: 'set', type: 'string', about: 'orch (Orchestration, the default), or an editor layout (ed:<id>, or ed:new)' }],
     route: 'POST /api/chats/show',
   },
   {
@@ -172,11 +172,11 @@ export const ACTIONS: Act[] = [
   {
     name: 'chat move',
     tool: 'chat_move',
-    about: "Move chats to another Amethyst (a window of the app, numbered from 1), into a set there. They keep running; that Amethyst shows them, this one doesn't.",
+    about: "Move chats to another Amethyst (a window of the app, numbered from 1), into Orchestration or an editor layout there. They keep running; that Amethyst shows them, this one doesn't.",
     args: [
       { name: 'chats', type: 'list', pos: true, required: true, about: 'The chats to move: codes, titles or ids' },
       { name: 'amethyst', type: 'number', required: true, about: 'The number of the Amethyst to move them to' },
-      { name: 'set', type: 'string', about: "Where there: a chat set (its id, or + for one new set for all of them), or an editor set (ed:<id>, or ed:new). Default: the set that's on there" },
+      { name: 'set', type: 'string', about: 'Where there: orch (Orchestration, the default), or an editor layout (ed:<id>, or ed:new)' },
     ],
     route: 'POST /api/chats/move',
     example: 'amethyst chat move Q20 V10 --amethyst 1',
