@@ -205,7 +205,7 @@ export function nextTheme(): string {
   return names[(names.indexOf(current) + 1) % names.length];
 }
 
-export const FAR_LOOKS: Record<string, string> = { soft: 'soft squares', glint: 'glint', marks: 'marks' };
+export const FAR_LOOKS: Record<string, string> = { soft: 'Soft squares', glint: 'Glint', marks: 'Marks' };
 let far = 'soft';
 export const farLook = () => far;
 export function setFarLook(name: string): string {
@@ -216,7 +216,7 @@ export function setFarLook(name: string): string {
   return far;
 }
 
-export const SOLIDS: Record<string, string> = { v1: 'v1 · Solid', v2: 'v2 · Square' };
+export const SOLIDS: Record<string, string> = { v1: 'Rounded', v2: 'Square' };
 let solid = 'v1';
 export const solidLook = () => solid;
 export function setSolid(name: string): string {
@@ -268,21 +268,21 @@ export function setLook(key: string, value: unknown, keep = true): Look {
 }
 
 export const CODE_ROLES = [
-  { id: 'keyword', label: 'keyword', eg: 'return, if, for', def: ['red'] },
-  { id: 'declaration', label: 'declaration keyword', eg: 'class, struct, namespace', def: ['red'] },
-  { id: 'modifier', label: 'modifier', eg: 'const, static, virtual', def: ['red'] },
-  { id: 'type', label: 'type / class', eg: 'Player, std::string', def: ['amber'] },
-  { id: 'builtin', label: 'built-in type', eg: 'int, float, bool', def: ['amber'] },
-  { id: 'namespace', label: 'namespace', eg: 'std::, game::', def: ['amber'] },
-  { id: 'function', label: 'function', eg: 'update(), obj.draw()', def: ['cyan'] },
-  { id: 'member', label: 'member', eg: 'obj.health, this->pos', def: ['violet'] },
-  { id: 'variable', label: 'variable', eg: 'x, count', def: ['text'] },
-  { id: 'string', label: 'string · char · escape', eg: '"hi", \'a\', \\n', def: ['green'] },
-  { id: 'number', label: 'number · bool · null', eg: '42, true, nullptr', def: ['orange'] },
-  { id: 'comment', label: 'comment', eg: '// a note', def: ['soft', false, true] },
-  { id: 'preproc', label: 'preprocessor', eg: '#include, #define', def: ['mint'] },
-  { id: 'macro', label: 'macro', eg: 'MAX_SIZE', def: ['mint'] },
-  { id: 'operator', label: 'operator · punctuation', eg: '+ = -> ; { }', def: ['dim'] },
+  { id: 'keyword', label: 'Keywords', eg: 'return, if, for', def: ['red'] },
+  { id: 'declaration', label: 'Declaration keywords', eg: 'class, struct, namespace', def: ['red'] },
+  { id: 'modifier', label: 'Modifiers', eg: 'const, static, virtual', def: ['red'] },
+  { id: 'type', label: 'Types and classes', eg: 'Player, std::string', def: ['amber'] },
+  { id: 'builtin', label: 'Built-in types', eg: 'int, float, bool', def: ['amber'] },
+  { id: 'namespace', label: 'Namespaces', eg: 'std::, game::', def: ['amber'] },
+  { id: 'function', label: 'Functions', eg: 'update(), obj.draw()', def: ['cyan'] },
+  { id: 'member', label: 'Members', eg: 'obj.health, this->pos', def: ['violet'] },
+  { id: 'variable', label: 'Variables', eg: 'x, count', def: ['text'] },
+  { id: 'string', label: 'Strings, characters and escapes', eg: '"hi", \'a\', \\n', def: ['green'] },
+  { id: 'number', label: 'Numbers, true, false and null', eg: '42, true, nullptr', def: ['orange'] },
+  { id: 'comment', label: 'Comments', eg: '// a note', def: ['soft', false, true] },
+  { id: 'preproc', label: 'Preprocessor lines', eg: '#include, #define', def: ['mint'] },
+  { id: 'macro', label: 'Macros', eg: 'MAX_SIZE', def: ['mint'] },
+  { id: 'operator', label: 'Operators and punctuation', eg: '+ = -> ; { }', def: ['dim'] },
 ];
 export const CODE_LANGS = [
   { id: 'cpp', label: 'C++', exts: ['c', 'h', 'cc', 'cpp', 'cxx', 'hpp', 'hh', 'inl'] },

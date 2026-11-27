@@ -10,13 +10,13 @@ import { markBtn } from '../base/agentrow.ts';
 import { counts } from '../base/edits.ts';
 import { quoteBar } from '../base/quote.ts';
 import { icon } from '../base/icon.ts';
-import { PREFS } from '../base/prefs.ts';
+import { pref, PREFS, setPref } from '../base/prefs.ts';
 import type { Artifact } from '../base/types.ts';
 import type { Agent } from '../base/stream.ts';
 import { esc } from '../base/util.ts';
 import { tokens } from '../base/words.ts';
 import { addPart, bigPic, box, mark, pic, rowHtml } from './setstd.ts';
-import type { At, Row } from './setstd.ts';
+import type { At, Choice, Row } from './setstd.ts';
 
 const one = (key: string, place: string): Row => ({ id: key, key, at: [{ key, place }] });
 const item = (key: string, id: string, place: string, name?: string): Row => ({ id: `${key}:${id}`, key, at: [{ key, place, id }], name });
@@ -37,11 +37,16 @@ const boxRows = (): Row[] => [
   one('chat:mic', 'box'),
 ];
 const msgRows = (): Row[] => [one('chat:artifacts', 'art'), one('quote:on', 'sel'), one('liveCmds', 'cmd'), item('chat:off', 'compact', 'comp'), item('chat:off', 'notice', 'notice'), item('chat:off', 'time', 'time'), one('chatMarks', 'scroll'), item('chat:off', 'up', 'up'), one('chat:holdStart', 'hold'), one('edits:strip', 'edits')];
+const turnRows = (): Row[] => [{ ...one('accentTurnLines', 'turns'), sw: 'onoff', plain: true, noPic: true }];
 const marksRows = (): Row[] => [one('marks:on', 'marks')];
 const ctrlpRows = (): Row[] => [one('palette:chats', 'ctrlp')];
 
+const effortRows = (): Row[] => {
+  const e = PREFS['effort:look'];
+  return [{ id: 'effort:look', key: 'effort:look', plain: true, at: [{ key: 'effort:look', place: 'box' }], own: { label: e.label, desc: e.desc, find: 'Effort shows as' }, pick: { get: () => pref('effort:look'), set: (v) => setPref('effort:look', v), def: e.def, choices: () => e.choices as Choice[], reset: 'p:effort:look' } }];
+};
 const SEL: Record<string, string> = {
-  'chat:hint': '.ch-ta .hr-ph', 'chrow:off:attach': '.ch-attach', 'chrow:off:usage': '.ch-usage', 'chrow:off:mode': '.ch-mode', 'chat:shrinkRow': '[data-ch="shrink"]', 'chat:off:color': '.ch-usage', 'chat:worktree': '.ch-wt', 'chat:mic': '.ch-mic', 'chat:wtStrip': '.ch-wtstrip',
+  'effort:look': '[data-pick="effort"]', 'chat:hint': '.ch-ta .hr-ph', 'chrow:off:attach': '.ch-attach', 'chrow:off:usage': '.ch-usage', 'chrow:off:mode': '.ch-mode', 'chat:shrinkRow': '[data-ch="shrink"]', 'chat:off:color': '.ch-usage', 'chat:worktree': '.ch-wt', 'chat:mic': '.ch-mic', 'chat:wtStrip': '.ch-wtstrip',
   'chat:artifacts': '.ch-artifacts', 'quote:on': '.quote-bar', liveCmds: '.ch-io:has(pre.term)', 'chat:off:compact': '.st.compact', 'chat:off:notice': '.st.ch-notice', 'chat:off:time': '.ch-time', chatMarks: '.ch-marks', 'chat:off:up': '.ch-up', 'chat:holdStart': '.hr-hold', 'edits:strip': '.ch-edits',
   'marks:on': '[data-dk-mark]:not(.mk-sign)', 'palette:chats': '.hr-pal ul',
 };
@@ -153,7 +158,9 @@ function lookOf(r: Row) {
 
 const part = (rows: () => Row[], home: string) => addPart({ rows, sel, look: lookOf, example, home });
 part(boxRows, 'show/chat');
+part(effortRows, 'show/chat');
 part(msgRows, 'show/chat');
+part(turnRows, 'show/chat');
 part(marksRows, 'agents');
 part(ctrlpRows, 'show/all');
 
@@ -161,8 +168,8 @@ const bigOf = (html: string, rows: Row[], place: string, cap: string, flat = fal
 export const CHAT_LEAD = 'What shows in every chat, wherever it is: in a chat window, in orchestration and in the Quick Agent. Click a switch, or a thing in a picture, to hide or show it.';
 export function chatPartsHtml() {
   looks = {};
-  return box('cbox', 'Chat box', bigOf(chatBox(), boxRows(), 'box', 'The box under every chat, as it looks in the app. Point at a part to find its row, click it to hide or show it. Dashed and struck through: hidden.') + boxRows().map(rowHtml).join(''), 'Where you type, under the messages of every chat. Right-clicking its bar in the app hides and shows the same things.') +
-    box('msgs', 'In the messages', bigOf(allMsgs(), msgRows(), 'msgs', "A chat's messages, with every part that has a switch. Point at a part to find its row, click it to hide or show it. Dashed and struck through: hidden.", true) + msgRows().map(rowHtml).join(''), "What shows among a chat's messages, and just above its box.");
+  return box('cbox', 'Chat box', bigOf(chatBox(), boxRows(), 'box', 'The box under every chat, as it looks in the app. Point at a part to find its row, click it to hide or show it. Dashed and struck through: hidden.') + [...boxRows(), ...effortRows()].map(rowHtml).join(''), 'Where you type, under the messages of every chat. Right-clicking its bar in the app hides and shows the same things.') +
+    box('msgs', 'In the messages', bigOf(allMsgs(), msgRows(), 'msgs', "A chat's messages, with every part that has a switch. Point at a part to find its row, click it to hide or show it. Dashed and struck through: hidden.", true) + [...msgRows(), ...turnRows()].map(rowHtml).join(''), "What shows among a chat's messages, and just above its box.");
 }
 export const marksRowHtml = () => ((looks = {}), marksRows().map(rowHtml).join(''));
 export const ctrlpHtml = () => ((looks = {}), box('ctrlp', 'Ctrl p', ctrlpRows().map(rowHtml).join(''), 'The box that finds files, commands and chats, from ctrl p.'));

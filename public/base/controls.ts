@@ -73,7 +73,7 @@ const trayAdd = () => (pref('colors:add') ? SW_ADD : '');
 function toColorTray() {
   store.set('settings:tab', 'look');
   page.openSettings?.();
-  setTimeout(() => document.querySelector('#settings [data-ct-box]')?.scrollIntoView({ block: 'start' }));
+  setTimeout(() => document.querySelector('#settings [data-hr-box="lktray"]')?.scrollIntoView({ block: 'start' }));
 }
 export const swatches = (on: unknown, attr: string): string => tray().map((c) => `<button class="sw ${c.hex === on ? 'on' : ''}" data-${attr}="${c.hex}" aria-label="${esc(c.name)}" style="--c:${col(c.hex)}"></button>`).join('') + trayAdd();
 function toSetColors() {
@@ -165,20 +165,22 @@ export function paintNewBtn() {
   if (mode === 'custom') root.style.setProperty('--nb-c', col(c));
   else root.style.removeProperty('--nb-c');
 }
+export const NB_LOOKS: [string, string, string][] = [
+  ['', 'Default', 'The button is grey, with the violet star.'],
+  ['clear', 'Clear', 'The button has no fill or border, only a grey star.'],
+  ['accent', 'Accent', 'The button is in the accent colour.'],
+];
+const NB_CLS: Record<string, string> = { '': 'nb-dft', clear: 'nb-clr', accent: 'nb-acc' };
 export function newBtnColorRow(fly = ''): string {
   const cur = newBtnColor(), isHex = NB_HEX.test(cur), star = gem('ai');
   const mode = (cls: string, on: boolean, v: string, label: string, tip: string) =>
     `<button class="nb-mode ${cls}${on ? ' on' : ''}" data-nbc="${esc(v)}" title="${esc(`${label}\n${tip}`)}" aria-label="${esc(label)}">${star}<span>${esc(label)}</span></button>`;
-  const pre = `<div class="nb-modes">${
-    mode('nb-dft', !cur, '', 'Default', 'Amethyst violet star on a neutral button.') +
-    mode('nb-clr', cur === 'clear', 'clear', 'Grey', 'Subtle grey star with no fill or border.') +
-    mode('nb-acc', cur === 'accent', 'accent', 'Accent', 'Follows your current theme accent color.')
-  }</div><div class="sep"></div>`;
+  const pre = `<div class="nb-modes">${NB_LOOKS.map(([v, label, tip]) => mode(NB_CLS[v], cur === v, v, label, tip)).join('')}</div><div class="sep"></div>`;
   const cell = (cls: string, on: boolean, v: string, tip: string, style = '') => `<button class="sw-ic nb-sw ${cls}${on ? ' on' : ''}" data-nbc="${esc(v)}" aria-label="${esc(tip)}"${style ? ` style="${esc(style)}"` : ''}>${star}</button>`;
   const grid = tray().map((c) => cell('nb-hex', cur === c.hex.toLowerCase(), c.hex.toLowerCase(), c.name, `--nb-c:${col(c.hex)}`)).join('') + trayAdd();
   const chipCls = !cur ? 'nb-dft' : cur === 'clear' ? 'nb-clr' : cur === 'accent' ? 'nb-acc' : 'nb-hex';
   const chipStyle = isHex ? ` style="--nb-c:${esc(col(cur))}"` : '';
-  const now = !cur ? 'default' : cur === 'clear' ? 'grey' : cur === 'accent' ? 'accent' : trayName(cur);
+  const now = isHex ? trayName(cur) : (NB_LOOKS.find(([v]) => v === cur)?.[1] || 'Default').toLowerCase();
   const foot = `<div class="sep"></div><label class="mi nb-pick" title="Any color&#10;Pick any custom color for the new agent button."><i class="tb-ic">${ICONS.drop}</i><span class="mi-n">any color…</span><input type="color" data-nbc-pick value="${esc(isHex ? cur : '#888888')}"></label>`;
   return colorRow({ k: 'nbc', label: 'color', tip: "the new agent button's color", chip: `<i class="pk-ic sw-ic nb-sw ${chipCls}"${chipStyle}>${star}</i>`, now, attr: 'nbc', cls: 'sw-ic nb-sw', dfltCls: 'sw-ic nb-sw nb-dft', dfltTip: 'Default', dfltStyle: '', style: (h) => `--nb-c:${col(h)}`, icon: star, pre, grid, foot }, cur, fly);
 }
@@ -653,7 +655,7 @@ export const chip = (text: string | string[]): string => {
 export const keyChip = (id: string): string => chip(show(bound(id)));
 export const miRow = (attrs: string, ic: string, label: string, key = '', tip = '', cls = '') => `<button class="mi${cls ? ' ' + cls : ''}" ${attrs}${tip ? ` title="${esc(label)}&#10;${esc(tip)}"` : ''}><i class="tb-ic">${ic}</i><span class="mi-n">${esc(label)}</span>${chip(key)}</button>`;
 export const fileManager =(): string => (/mac/i.test(navigator.platform) ? 'Finder' : /win/i.test(navigator.platform) ? 'File Explorer' : 'the file manager');
-export const extColors = (): string => `<button class="mi" data-fextcol title="Opens Settings at the color of each extension."><i class="tb-ic">${ICONS.drop}</i><span class="mi-n">extension colors</span>${chip('›')}</button>`;
+export const extColors = (): string => `<button class="mi" data-fextcol title="Colours of each extension&#10;Opens Settings at the colour of each extension."><i class="tb-ic">${ICONS.drop}</i><span class="mi-n">Colours of each extension</span>${chip('›')}</button>`;
 const GRIP = '<span class="tb-grip" title="Move&#10;Drag to change the order.">⠿</span>';
 export const gripRow = (key: string, html: string) => `<div class="tb-ord" data-ord="${esc(key)}">${html}${GRIP}</div>`;
 export const actRow = (key: string, html: string, act: string, grip = true) => `<div class="tb-ord tb-use"${grip ? ` data-ord="${esc(key)}"` : ''}>${html}${act}${grip ? GRIP : ''}</div>`;

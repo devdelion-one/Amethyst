@@ -1,9 +1,10 @@
 import { isOff } from '../base/prefs.ts';
+import { FAR_LOOKS, farLook, setFarLook } from '../base/theme.ts';
 import type { Project, WorkspaceEntry } from '../base/types.ts';
 import { webBar } from '../minds/minds.ts';
 import { newTabHtml } from './groups.ts';
 import { addPart, box, markAll, pic, rowHtml } from './setstd.ts';
-import type { At, Row } from './setstd.ts';
+import type { At, Choice, Row } from './setstd.ts';
 import { newTabOrder, tileOn } from './tabs.ts';
 import { startPic, wsTile } from './views.ts';
 
@@ -23,6 +24,16 @@ const wsRows = (): Row[] => ['desc', 'note', 'newpj', 'head', 'folder', 'eye'].m
 export const launchRows = (): Row[] => [item('launch:off', 'pin', 'launch')];
 const tileRows = (): Row[] => [...tiles().map((id) => item(TILES, id, 'newtab', { blocked: () => noWay(id) })), item(TILES, 'more', 'newtab')];
 const webRows = (): Row[] => ['undo', 'reset', 'fit', 'home'].map((id) => item('web:off', id, 'web', { adv: true }));
+const FAR: Record<string, string> = { soft: 'Hubs show as soft squares.', glint: 'Hubs show as a glint.', marks: 'Hubs show as marks.' };
+const farChoices = (): Choice[] => Object.entries(FAR_LOOKS).map(([v, label]) => [v, label, FAR[v] || '']);
+const farRow = (): Row => ({
+  id: 'look:far', key: 'look:far', plain: true, noPic: true,
+  own: { label: 'Hubs on the mind web, zoomed far out', desc: 'Zoomed far out, the mind web draws each folder hub this way.', find: "zoomed-out mind web how the mind web's hubs look zoomed far out" },
+  at: [{ key: 'look:far', place: 'web-far', on: () => true }],
+  pick: { get: farLook, set: (v) => void setFarLook(v), def: 'soft', reset: 's:look:far', choices: farChoices },
+  state: () => FAR[farLook()] || '',
+  reset: () => void setFarLook('soft'), changed: () => farLook() !== 'soft',
+});
 
 const pj = (name: string): Project => ({ id: `sample-1090-${name}`, name, path: `D:\\Sites\\Northwind\\${name}`, desc: '', color: null });
 const PROJECTS = ['Atlas', 'Beacon', 'Cobalt'].map(pj);
@@ -64,12 +75,12 @@ function lookOf(r: Row) {
   return html.replace(/<button /g, '<button tabindex="-1" ');
 }
 
-addPart({ rows: () => [...wsRows(), ...launchRows(), ...tileRows(), ...webRows()], sel, look: lookOf, example, home: 'show/pages', each: true });
+addPart({ rows: () => [...wsRows(), ...launchRows(), ...tileRows(), farRow(), ...webRows()], sel, look: lookOf, example, home: 'show/pages', each: true });
 
 const rows = (list: Row[]) => list.map(rowHtml).join('');
 export function pagesPartHtml() {
   return box('wspage', "A workspace's page", rows(wsRows()), "The page with a workspace's name, its projects and its workspace.md. Click a workspace on the launch screen to open it. Right-clicking the page hides and shows the same parts.") +
     box('launch', 'Launch screen', rows(launchRows()), 'Every workspace as a tile. All workspaces, at the left end of the dock, opens it. Right-clicking it hides and shows the same buttons.') +
     box('newtab', 'New tab page', rows(tileRows()), 'What a new tab shows: a tile for each kind of tab, then your recent files. The + at the end of the tabs opens it. Right-clicking it chooses the same tiles.') +
-    box('web', 'Mind web', rows(webRows()), "A map of the folders and files in a project. The mind tile on the new tab page opens it. That tile is hidden at first. Right-clicking the map's bar hides and shows the same buttons.");
+    box('web', 'Mind web', rows([farRow(), ...webRows()]), "A map of the folders and files in a project. The mind tile on the new tab page opens it. That tile is hidden at first. Right-clicking the map's bar hides and shows the same buttons.");
 }

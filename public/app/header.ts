@@ -19,7 +19,7 @@ import { newQuickAgent, toggleQuickAgent } from '../chat/qagent.ts';
 import { agentRight, agentShort, pinOf } from '../base/agentmenu.ts';
 import { PROG, toggleQuick } from '../terminal/qterm.ts';
 import { I_WIN, showWindow, ueClick, ueMenu, ueTip, ueWinTip } from '../ue/ue.ts';
-import { dirIcon, extMenu, fileIcon, fileTint, pickExt } from '../base/filelook.ts';
+import { dirIcon, extLabel, extMenu, fileIcon, fileTint, pickExt } from '../base/filelook.ts';
 import { gem, NAME } from '../base/kinds.ts';
 import { activeGroup, eds, newFile, newInTab, newOfType, showEditor, shows } from './tabs.ts';
 import { page } from '../base/page.ts';
@@ -38,11 +38,11 @@ const label = (el: HTMLElement, text: string) => (el.innerHTML = `${gem('timer')
 $('#tree-fold').addEventListener('click', () => foldAll(!$('#tree-fold').dataset.unfold));
 const OVER_IC = '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="2.5" width="12" height="11" rx="1.5"/><path d="M6.5 2.5v11"/><path d="M2.5 4h3.5v8.5h-3.5z" fill="currentColor" fill-opacity=".4" stroke="none"/></svg>';
 const explorerOpts = () => {
-  const follow = topRow(pref('side:follow'), `data-sidefollow title="Open or closed the same in every tab&#10;Opening or closing the explorer once does the same in every tab, layout and project. Unticked, each one keeps it open or closed on its own."`, ICONS.explorer, 'open or closed the same in every tab');
+  const fw = PREFS['side:follow'], follow = topRow(pref('side:follow'), `data-sidefollow title="${esc(`${fw.label}\n${pref('side:follow') ? fw.on : fw.off}`)}"`, ICONS.explorer, esc(fw.label));
   const where = MODES[mode()]?.label || mode();
   const over = atLaunch() || atWs() ? '' : topRow(isOff('side:over', mode()), `data-sideover title="Opens over the ${esc(where)}&#10;The explorer opens on top of the ${esc(where)} and takes no space; Esc, its icon or a click outside closes it. Unticked, it is a column beside the ${esc(where)}. Each part of the app keeps its own choice."`, OVER_IC, `opens over the ${esc(where)}`);
   const hidden = S.hidden ? `Opens Settings at the files and folders this project hides from the explorer. It hides ${S.hidden.toLocaleString()}.` : 'Opens Settings at the files and folders this project hides from the explorer.';
-  return { opts: follow + over, pick: ['extensions', extMenu()] as [string, string], other: extColors() + `<button class="mi" data-hidelist title="${esc(hidden)}"><i class="tb-ic">${ICONS.unlist}</i><span class="mi-n">the project's hide list</span>${chip('›')}</button>` };
+  return { opts: follow + over, pick: [extLabel(), extMenu()] as [string, string], other: extColors() + `<button class="mi" data-hidelist title="${esc(hidden)}"><i class="tb-ic">${ICONS.unlist}</i><span class="mi-n">the project's hide list</span>${chip('›')}</button>` };
 };
 const explorerMenu = (x: number, y: number) => {
   hideMenu(x, y, 'explorer', { place: 'explorer', remake: explorerOpts, onPick: (b) => {

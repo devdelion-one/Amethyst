@@ -929,6 +929,7 @@ const APP_ROUTES: Routes = {
     }
     if (browser != null) {
       const b = String(browser).trim();
+      if (b && !(await live.browserFound(b))) throw new HttpError(400, `Windows can't find a program named ${b}. Type its full path, such as C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe.`);
       if (b) HOME_ROOT.meta.browser = b; else delete HOME_ROOT.meta.browser;
       live.setBrowser(() => b || 'msedge');
       await HOME_ROOT.saveMeta();

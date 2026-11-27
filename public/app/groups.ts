@@ -664,6 +664,10 @@ main.addEventListener('dblclick', (e: Pointed) => {
 });
 roving(main, '.tab', { across: true, group: '.tabs', pick: true, on: { Delete: (r) => closeTabAsking([r.dataset.tab!]) } });
 let tabFly = '';
+function tabDoneItem(item: (k: string, ic: string, label: string, tip: string, key?: string) => string) {
+  const e = PREFS['tab:done'], cs = e.choices as [string, string, string][], now = cs.find(([v]) => v === pref('tab:done')) || cs[0], next = cs.find((c) => c !== now)!;
+  return item('tdone', ICONS.check, `${e.label}: ${now[1].toLowerCase()}`, `${now[2]}\nClick for ${next[1].toLowerCase()}. Also in Settings, Agents and chat, Providers and tools.`, now[0] === 'tint' ? 'on' : 'off');
+}
 function tabMenu(e: Pointed, el: HTMLElement, again = false) {
   const g = groupById(el.closest<HTMLElement>('.grp')?.dataset.g as string);
   const t = g?.tabs.find((x) => x.id === el.dataset.tab);
@@ -676,7 +680,7 @@ function tabMenu(e: Pointed, el: HTMLElement, again = false) {
     item('row', ICON.row, 'split right', 'Moves this tab into a new group on the right (with one tab, splits the group).', show(bound('split'))) +
     item('col', ICON.col, 'split down', 'Moves this tab into a new group below (with one tab, splits the group).') +
     (t.path ? gap + item('reveal', ICONS.explorer, 'show in the explorer', 'Shows the file in the explorer.', 'double-click') + item('copy', ICONS.copy, 'copy path', "Copies the file's full path.") : '') +
-    (isChatTab(t.type) ? gap + item('tdone', ICONS.check, 'tint the tab when done', pref('tab:done') === 'tint' ? 'On: the whole tab turns green when its agent finishes, red while it asks you something. Click to tint only its icon. Also in Settings, Agents.' : 'Off: only the icon turns green or red. Click to tint the whole tab. Also in Settings, Agents.', pref('tab:done') === 'tint' ? 'on' : 'off') : '') +
+    (isChatTab(t.type) ? gap + tabDoneItem(item) : '') +
     gap +
     item('close', ICON.x, 'close', 'Closes this tab.', [show(bound('closeTab')), 'del', 'middle click']) +
     (g!.tabs.length > 1 ? item('others', ICON.others, 'close the others', 'Closes every other tab in the group.') : '') +

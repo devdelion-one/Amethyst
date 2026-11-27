@@ -90,7 +90,7 @@ export function pinHtml() {
   if (chatsOn().length < 2) return '';
   const same = pinSame(), mixed = differs();
   return `<div class="pn-box" data-pinbox>` +
-    `<div class="pn-head"><span class="pn-ico">${ringSvg(true)}</span><div class="pn-words"><span class="pn-name">Pinned agent</span><span class="pn-state">${esc(stateLine())}</span><span class="pn-desc">The agent a click on + opens without asking. You can also pin one in the list a + shows, with the ring on its right.</span></div></div>` +
+    `<div class="pn-head"><span class="pn-ico">${ringSvg(true)}</span><div class="pn-words"><span class="pn-name">Pinned agent</span><span class="pn-state">${esc(stateLine())}</span><span class="pn-desc">The agent a click on + opens without asking. Untick the same pinned agent in every place to pin a different one in each place.</span></div></div>` +
     seg(mixed ? null : pinOf('top'), (k) => `data-pin-all="${esc(k)}"`, false, '') +
     `<label class="pn-same"><input type="checkbox" data-pin-same${same ? ' checked' : ''}><span>The same pinned agent in every place</span><small>${same ? 'Untick it to pin a different one in each place.' : 'Each place below has its own.'}</small></label>` +
     `<div class="pn-tiles">${PIN_PLACES.map((p) => tile(p, same)).join('')}</div></div>`;

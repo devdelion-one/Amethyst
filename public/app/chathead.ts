@@ -2,7 +2,7 @@ import { icon } from '../base/icon.ts';
 import { barMenu, chip, ICONS, rowIcons, topRow } from '../base/controls.ts';
 import { agentPin, api, isPinned, S } from '../base/model.ts';
 import { page } from '../base/page.ts';
-import { BTN_OF, pillAt, pref, setPref } from '../base/prefs.ts';
+import { BTN_OF, pillAt, pref, PREFS, setPref } from '../base/prefs.ts';
 import { esc, showErr, store } from '../base/util.ts';
 import { busyNow, gem } from '../base/kinds.ts';
 import { tell } from '../base/notify.ts';
@@ -54,7 +54,7 @@ function headActs(el: HTMLElement, spot = false) {
   const who = hd.querySelector<HTMLElement>('.dk-id[data-chat]')?.dataset.chat, a = who ? agents.all.get(who) : null;
   const ren = a ? (spot ? renameItem(a).replace('rename…', 'rename the chat…') : renameItem(a)) : '';
   const close = x ? `<button class="mi" data-head-x${x.title ? ` title="${esc(x.title)}"` : ''}><i class="tb-ic">${ICONS.x}</i><span class="mi-n">${chat ? (spot ? 'close the chat…' : 'close…') : 'close'}</span></button>` : '';
-  const ask = a?.kind === 'chat' ? `<div class="sep"></div>` + cacheOpt(a) + topRow(!!pref('clear:ask'), `data-clear-ask title="Clear asks first&#10;Clearing the chat asks first; enter clears. Unticked, it clears at once, and ctrl z brings it back."`, icon('clear'), 'clear asks first') : '';
+  const ask = a?.kind === 'chat' ? `<div class="sep"></div>` + cacheOpt(a) + topRow(!!pref('clear:ask'), `data-clear-ask title="${esc(`${PREFS['clear:ask'].label}\n${pref('clear:ask') ? PREFS['clear:ask'].on : PREFS['clear:ask'].off}`)}"`, icon('clear'), PREFS['clear:ask'].label) : '';
   return { html: `${ren}${more.map(row).join('')}${close}`, ask, chat, x, more, hd, a };
 }
 const PLACE_KEYS = ['deck:spotBtn', 'deck:benchBtn', 'deck:setBtn', 'deck:orchBtn', 'deck:tabBtn', 'deck:pinBtn', 'deck:closeBtn', 'orch:closeBtn', 'orch:folderBtn', 'orch:termBtn'];

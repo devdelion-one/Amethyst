@@ -104,7 +104,7 @@ export function agentMenu(x: number, y: number, pick: (program: string) => unkno
       popMenu(
         e.clientX,
         e.clientY,
-        menuHead(gem('ai'), label) + bands({ actions: `<button class="mi" data-off="${esc(k)}" title="${esc(`Turn off\nNo new ${short(label)} chats in any menu, tile or picker; the chats you have stay. Settings, agents, brings it back.`)}"><i class="tb-ic">${ICONS.unlist}</i><span class="mi-n">turn off</span></button>` }),
+        menuHead(gem('ai'), label) + bands({ actions: `<button class="mi" data-off="${esc(k)}" title="${esc(`Turn off\nNo new ${short(label)} chats in any menu, tile or picker. The chats you have stay. Settings, Agents and chat, Agents you use, brings it back.`)}"><i class="tb-ic">${ICONS.unlist}</i><span class="mi-n">turn off</span></button>` }),
         (oo) => {
           if (!oo.dataset.off) return;
           setOff('agents:off', oo.dataset.off, true);

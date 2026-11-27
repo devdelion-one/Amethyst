@@ -107,7 +107,6 @@ const atsIn = (rows: Row[], place: string) => rows.filter((r) => !r.choice).flat
 const termBig = () => bigPic(`<div class="hr-pair"><figure><figcaption><b>Terminals mode</b></figcaption>${pic(mark(termPic(), atsIn(termRows(), 'terms'), sel), 'terms', ' hr-lpic')}</figure></div>`, 'Three terminals as Terminals mode lists them. Click the code, the line under a title, or the long title to change them.', false, true);
 
 export const LIST_LEAD = 'The list of chats in Orchestration, and of terminals in Terminals mode. Click a switch, or a thing in a picture, to hide or show it.';
-export const LIST_MOVED = "The chat list's look, order and what shows in it are in Show and hide, Agents list.";
 export function listHtml() {
   looks = {};
   return box('clist', 'Chat list', chatRows().map(rowHtml).join(''), 'The list of chats in Orchestration. Each chat is a row under Live or All. A chat at work or waiting for you is a card.') +

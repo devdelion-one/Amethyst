@@ -74,7 +74,7 @@ export function createRewind({ tab, name, busy, restart, rewound, put, focus, fr
     if (tab().type === 'codex') return refuse(over, { title: `${name()} chats can't go back` });
     if (busy()) return refuse(over, { title: `${name()} is working`, line: 'Stop it first, then go back' });
     const id = tab().chat;
-    const plan = pref('rewind:files') ? await api('POST', '/api/agent/rewind', { id, messageId: box.before || null }).catch((e) => ({ none: e.message })) : { none: 'restore points are off (settings → agents)' };
+    const plan = pref('rewind:files') ? await api('POST', '/api/agent/rewind', { id, messageId: box.before || null }).catch((e) => ({ none: e.message })) : { none: 'Bring files back when you go back in a chat is off, in Settings, Agents and chat, Providers and tools.' };
     const copied = (tab().type === 'antigravity' || tab().type === 'cursor' || tab().type === 'copilot' || tab().type === 'grok') && !!box.before, short = name().replace(/ Agent$/, '');
     const base = `The chat goes on from before it, with the message in the text box to change and send.${copied ? ` ${name()} can't cut its own chat, so it goes on as a new ${name()} chat that is given the messages before this one.` : ''}`;
     const items: RewindItem[] = plan.items || [];

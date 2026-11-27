@@ -3,9 +3,19 @@ import { isOff, keyed, PLACES, pref, PREFS, setAt, setOff, setPref } from '../ba
 import { esc, setSave } from '../base/util.ts';
 
 export type At = { place: string; key: string; id?: string; on?: () => boolean; tip?: () => string; set?: (v: boolean) => void; def?: boolean; fix?: boolean; why?: string };
-export type Pick = { get: () => string; set: (v: string) => void; def: string; choices: () => [string, string, string][]; reset: string };
+export type Choice = [string, string, string, string?];
+export type Pick = { get: () => string; set: (v: string) => void; def: string; choices: () => Choice[]; reset: string };
 export type Own = { label: string; desc?: string; find?: string };
-export type Row = { id: string; key: string; at: At[]; name?: string; linked?: boolean; choice?: boolean; blocked?: () => string; pick?: Pick; prep?: string; tail?: string; note?: () => string; here?: (a: At) => string; keep?: boolean; adv?: boolean; own?: Own; state?: () => string; alt?: () => string; ctl?: () => string; sw?: 'onoff' | 'none'; plain?: boolean; reset?: () => void; changed?: () => boolean; noReset?: boolean; noPic?: boolean };
+export type Btn = { label: string; tip?: string; run: (el: HTMLElement) => void };
+export type Told = { title: string; line?: string };
+export type Item = {
+  id: string; name: string; sub?: string; look?: string;
+  on?: boolean; set?: (v: boolean) => void; lock?: string;
+  pick?: { get: () => string; set: (v: string) => void; choices: () => Choice[] };
+  field?: { get: () => string; set: (v: string) => Told | void; label?: string; ph?: string };
+  btn?: Btn; remove?: Btn; grip?: boolean;
+};
+export type Row = { id: string; key: string; at: At[]; name?: string; linked?: boolean; choice?: boolean; blocked?: () => string; pick?: Pick; prep?: string; tail?: string; note?: () => string; here?: (a: At) => string; keep?: boolean; adv?: boolean; own?: Own; state?: () => string; alt?: () => string; ctl?: () => string; sw?: 'onoff' | 'none'; plain?: boolean; reset?: () => void; changed?: () => boolean; noReset?: boolean; noPic?: boolean; wide?: boolean; value?: () => string; btn?: Btn; list?: () => Item[]; add?: Btn; move?: (id: string, to: number) => void };
 export type Kit = { rsBtn: (tok: string, on: boolean) => string; redraw: () => void };
 export type StdKit = Kit & { fold: (key: string, rows: string) => { cls: string; more: string } };
 export type Part = {
@@ -161,18 +171,39 @@ export const resetItem = (tok: string) => {
   setOff(k, id, PREFS[k].def.includes(id));
 };
 
-const findOf = (r: Row, w: ReturnType<typeof wordsOf>) => r.own ? [w.desc, r.own.find].filter(Boolean).join(' ') : [w.desc, ...(r.pick ? r.pick.choices().flat() : [w.on, w.off, w.blocked?.[1], w.offWhen?.[1], ...choicesOf(r.at[0].key).flat()])].filter(Boolean).join(' ');
-const pickSeg = (r: Row, p: Pick) => `<span class="seg hr-seg">${p.choices().map(([v, label, t]) => `<button class="chip${p.get() === v ? ' on' : ''}" data-hr-pk="${esc(`${r.id}|${v}`)}" aria-pressed="${p.get() === v}" title="${esc(`${label}
-${t}`)}">${esc(label)}</button>`).join('')}</span>`;
+const wordsOfChoices = (cs: Choice[]) => cs.flatMap(([, label, t]) => [label, t]);
+const findOf = (r: Row, w: ReturnType<typeof wordsOf>) => [r.own ? [w.desc, r.own.find] : [w.desc, ...(r.pick ? wordsOfChoices(r.pick.choices()) : [w.on, w.off, w.blocked?.[1], w.offWhen?.[1], ...choicesOf(r.at[0].key).flat()])], ...(r.list?.() || []).map((it) => `${it.name} ${it.sub || ''}`)].flat().filter(Boolean).join(' ');
+const chipsOf = (cs: Choice[], cur: string, attr: (v: string) => string) => `<span class="seg hr-seg">${cs.map(([v, label, t, ic]) => `<button class="chip${cur === v ? ' on' : ''}" ${attr(v)} aria-pressed="${cur === v}" title="${esc(`${label}
+${t}`)}">${ic ? `<span class="hr-cic" aria-hidden="true">${ic}</span>` : ''}${esc(label)}</button>`).join('')}</span>`;
+const pickSeg = (r: Row, p: Pick) => chipsOf(p.choices(), p.get(), (v) => `data-hr-pk="${esc(`${r.id}|${v}`)}"`);
+const btnHtml = (b: Btn, attr: string, cls = 'chip') => `<button class="${cls}" ${attr}${b.tip ? ` title="${esc(b.tip)}"` : ''}>${esc(b.label)}</button>`;
+const drafts: Record<string, string> = {};
+const fieldNow = (tok: string, now: string) => (document.activeElement?.matches(`[data-hr-lin="${CSS.escape(tok)}"]`) && drafts[tok] != null ? drafts[tok] : now);
+function itemHtml(r: Row, it: Item) {
+  const tok = esc(`${r.id}|${it.id}`), raw = `${r.id}|${it.id}`;
+  const pick = it.pick ? chipsOf(it.pick.choices(), it.pick.get(), (v) => `data-hr-lpk="${tok}" data-v="${esc(v)}"`) : '';
+  const field = it.field ? `<input class="hr-in" data-hr-lin="${tok}" value="${esc(fieldNow(raw, it.field.get()))}" aria-label="${esc(it.field.label || it.name)}"${it.field.ph ? ` placeholder="${esc(it.field.ph)}"` : ''}>` : '';
+  const btn = it.btn ? btnHtml(it.btn, `data-hr-lb="${tok}"`) : '';
+  const sw = it.set ? `<button class="set-sw${it.on ? ' on' : ''}" role="switch" aria-checked="${!!it.on}" data-hr-lsw="${tok}" aria-label="${esc(it.name)}"${it.lock ? ` aria-disabled="true" title="${esc(it.lock)}"` : ''}><span class="sw-o">Off</span><span class="sw-i">On</span></button>` : '';
+  const rm = it.remove ? `<button class="hr-lx" data-hr-lx="${tok}" title="${esc(it.remove.tip || it.remove.label)}" aria-label="${esc(it.remove.label)}">×</button>` : '';
+  return `<div class="hr-li${it.set && !it.on ? ' off' : ''}" data-hr-li="${tok}"${it.grip && r.move ? ' draggable="true"' : ''}>` +
+    (it.grip && r.move ? '<span class="hr-grip" title="Drag to move it" aria-hidden="true">⠿</span>' : '') +
+    (it.look ? `<span class="hr-lic" aria-hidden="true">${it.look}</span>` : '') +
+    `<span class="hr-ln">${esc(it.name)}${it.sub ? `<span class="hr-lsub">${esc(it.sub)}</span>` : ''}</span>` +
+    `<span class="hr-lc">${pick}${field}${btn}${sw}${rm}</span></div>`;
+}
+const listHtml = (r: Row) => (r.list || r.add ? `<div class="hr-list" data-hr-list="${esc(r.id)}">${(r.list?.() || []).map((it) => itemHtml(r, it)).join('')}${r.add ? btnHtml(r.add, `data-hr-add="${esc(r.id)}"`, 'chip hr-ladd') : ''}</div>` : '');
 const allSeg = (r: Row) => segOf(same(r) ? pref(r.at[0].key) : null, (v) => `data-hr-chall="${esc(`${r.id}|${v}`)}"`, (t) => `${t}${r.at.length > 1 ? '\nSets both lists.' : ''}`, r.at[0].key);
 export function rowHtml(r: Row) {
   const w = wordsAt(r.at[0], r), on = r.choice ? r.at : r.pick ? (r.pick.get() === 'hid' ? [] : r.at) : r.at.filter(isOn), off = r.choice || r.pick ? [] : r.at.filter((a) => !isOn(a));
   const many = !r.linked && r.at.filter((a) => !fixed(a)).length > 1;
   const [no, yes] = r.sw === 'onoff' ? ['Off', 'On'] : ['Hidden', 'Shown'];
   const sw = r.pick ? pickSeg(r, r.pick) : r.choice ? allSeg(r) : r.sw === 'none' || r.at.every(fixed) ? '' : `<button class="set-sw${off.length ? (on.length ? ' mix' : '') : ' on'}" role="switch" aria-checked="${off.length ? (on.length ? 'mixed' : 'false') : 'true'}" data-hr-sw="${esc(r.id)}" aria-label="${esc(w.label)}"${many ? ' title="Every place&#10;Turns it on or off in every place at once."' : ''}><span class="sw-o">${no}</span><span class="sw-i">${yes}</span></button>`;
-  return `<div class="set-row hr-row${r.choice || r.pick ? ' hr-ch' : ''}${selectedRow === r.id ? ' active' : ''}${on.length || r.plain ? '' : ' hid'}${r.adv ? ' set-adv' : ''}${lit === r.id ? ' lit' : ''}" data-row="${esc(r.id)}" data-hr="${esc(r.id)}" data-hr-keys="${esc([...new Set(r.at.map((a) => a.key))].join(' '))}" data-find="${esc(findOf(r, w))}">` +
+  const val = r.value ? `<span class="set-at hr-val" title="${esc(r.value())}">${esc(r.value())}</span>` : '';
+  const btn = r.btn ? btnHtml(r.btn, `data-hr-btn="${esc(r.id)}"`) : '';
+  return `<div class="set-row hr-row${r.choice || r.pick ? ' hr-ch' : ''}${r.wide || r.value ? ' hr-wide' : ''}${r.list || r.add ? ' hr-haslist' : ''}${selectedRow === r.id ? ' active' : ''}${on.length || r.plain ? '' : ' hid'}${r.adv ? ' set-adv' : ''}${lit === r.id ? ' lit' : ''}" data-row="${esc(r.id)}" data-hr="${esc(r.id)}" data-hr-keys="${esc([...new Set(r.at.map((a) => a.key))].join(' '))}" data-find="${esc(findOf(r, w))}">` +
     `<button class="sr-t hr-fold" data-hr-fold="${esc(r.id)}"><span class="lbl">${esc(w.label)}</span>${r.alt ? `<span class="hr-st"><span class="hr-state">${stateOf(r)}</span><span class="hr-state hr-alt" aria-hidden="true">${esc(r.alt()) + noteOf(r)}</span></span>` : `<span class="hr-state">${stateOf(r)}</span>`}</button>` +
-    `${r.noReset ? '<span class="sr-rs-no"></span>' : kit!.rsBtn(resetTok(r), changed(r))}<span class="set-opts">${r.ctl?.() || ''}${sw}</span></div>`;
+    `${r.noReset || (!r.reset && !r.pick && !r.at.some((a) => a.set || PREFS[a.key])) ? '<span class="sr-rs-no"></span>' : kit!.rsBtn(resetTok(r), changed(r))}<span class="set-opts">${r.ctl?.() || ''}${val}${btn}${sw}</span>${listHtml(r)}</div>`;
 }
 export function railHtml(root: ParentNode): string {
   const rows = [...root.querySelectorAll<HTMLElement>('.hr-row:not(.set-miss)')];
@@ -206,9 +237,109 @@ const rowById = (id: string) => allRows().find((r) => r.id === id);
 const rowOfAt = (tok: string) => allRows().find((r) => r.at.some((a) => tokOf(a) === tok));
 const say = (r: Row, v: boolean, many: boolean) => setSave(`${wordsAt(r.at[0], r).label}: ${r.sw === 'onoff' ? (v ? 'on' : 'off') : v ? 'shown' : 'hidden'}${many ? ' everywhere' : ''}`);
 const pickSay = (r: Row, v: string, where: string) => setSave(`${wordsAt(r.at[0], r).label}: ${(r.pick ? r.pick.choices() : choicesOf(r.at[0].key)).find(([c]) => c === v)?.[1] || v}${where}`);
-const pickTo = (r: Row, v: string) => (r.pick!.set(v), pickSay(r, v, ''), true);
+const pickTo = (r: Row, v: string) => (r.pick!.set(v), pickSay(r, v, ''), kit?.redraw(), true);
+const splitTok = (tok: string) => {
+  const i = tok.indexOf('|');
+  return [tok.slice(0, i), tok.slice(i + 1)];
+};
+const itemOf = (tok: string) => {
+  const [id, item] = splitTok(tok), r = rowById(id);
+  return { r, it: r?.list?.().find((x) => x.id === item) };
+};
+const rowLabel = (r: Row) => wordsAt(r.at[0], r).label;
+function listClick(t: Element): boolean {
+  const add = t.closest<HTMLElement>('[data-hr-add]');
+  if (add) {
+    const r = rowById(add.dataset.hrAdd!);
+    if (r?.add) (selectedRow = r.id, r.add.run(add), kit?.redraw());
+    return true;
+  }
+  const rb = t.closest<HTMLElement>('[data-hr-btn]');
+  if (rb) {
+    const r = rowById(rb.dataset.hrBtn!);
+    if (r?.btn) (selectedRow = r.id, r.btn.run(rb), kit?.redraw());
+    return true;
+  }
+  const c = t.closest<HTMLElement>('[data-hr-lsw], [data-hr-lpk], [data-hr-lb], [data-hr-lx]');
+  if (!c) return !!t.closest('.hr-li, [data-hr-lin]');
+  const d = c.dataset, { r, it } = itemOf(d.hrLsw || d.hrLpk || d.hrLb || d.hrLx || '');
+  if (!r || !it) return true;
+  selectedRow = r.id;
+  if (d.hrLsw != null) {
+    if (it.lock) return tell(c, { title: "This one can't be turned off", line: it.lock, ms: 2500 }), true;
+    it.set?.(!it.on);
+    setSave(`${rowLabel(r)}: ${it.name} ${it.on ? 'off' : 'on'}`);
+  } else if (d.hrLpk != null && it.pick) {
+    it.pick.set(d.v!);
+    setSave(`${rowLabel(r)}: ${it.name}, ${it.pick.choices().find(([v]) => v === d.v)?.[1] || d.v}`);
+  } else if (d.hrLb != null) it.btn?.run(c);
+  else it.remove?.run(c);
+  kit?.redraw();
+  return true;
+}
+function fieldSet(f: HTMLInputElement) {
+  const tok = f.dataset.hrLin!, { r, it } = itemOf(tok);
+  if (!r || !it?.field || f.value === it.field.get()) return;
+  drafts[tok] = f.value;
+  const bad = it.field.set(f.value);
+  if (bad) return tell(f, { title: bad.title, line: bad.line, ms: 4000 });
+  delete drafts[tok];
+  setSave(`${rowLabel(r)}: ${it.name}, ${it.field.get()}`);
+  kit?.redraw();
+}
+let dragging = '';
+const liOf = (e: Event) => (e.target as Element).closest?.<HTMLElement>('#settings .hr-li[data-hr-li]');
+document.addEventListener('input', (e: Event) => {
+  const f = e.target as HTMLInputElement;
+  if (f.matches?.('[data-hr-lin]')) drafts[f.dataset.hrLin!] = f.value;
+});
+document.addEventListener('change', (e: Event) => {
+  const f = e.target as HTMLInputElement;
+  if (f.matches?.('[data-hr-lin]')) fieldSet(f);
+});
+document.addEventListener('keydown', (e: KeyboardEvent) => {
+  const f = e.target as HTMLInputElement;
+  if (e.key !== 'Enter' || !f.matches?.('[data-hr-lin]')) return;
+  e.preventDefault();
+  fieldSet(f);
+});
+document.addEventListener('focusin', (e: FocusEvent) => {
+  const f = e.target as Element;
+  for (const k of Object.keys(drafts)) if (!f.matches?.(`[data-hr-lin="${CSS.escape(k)}"]`)) delete drafts[k];
+});
+document.addEventListener('dragstart', (e: DragEvent) => {
+  const li = liOf(e);
+  if (!li) return;
+  dragging = li.dataset.hrLi!;
+  e.dataTransfer?.setData('text/plain', '');
+});
+document.addEventListener('dragover', (e: DragEvent) => {
+  const li = liOf(e);
+  if (!li || !dragging || splitTok(li.dataset.hrLi!)[0] !== splitTok(dragging)[0]) return;
+  e.preventDefault();
+  li.parentElement!.querySelectorAll('.hr-li.drop').forEach((x) => x.classList.remove('drop'));
+  li.classList.add('drop');
+});
+document.addEventListener('drop', (e: DragEvent) => {
+  const li = liOf(e), from = dragging;
+  dragging = '';
+  if (!li || !from) return;
+  const [id, item] = splitTok(from), r = rowById(id);
+  if (!r?.move || splitTok(li.dataset.hrLi!)[0] !== id) return;
+  e.preventDefault();
+  const to = [...li.parentElement!.querySelectorAll('.hr-li')].indexOf(li);
+  selectedRow = id;
+  r.move(item, to);
+  setSave(`${rowLabel(r)}: order changed`);
+  kit?.redraw();
+});
+document.addEventListener('dragend', () => {
+  dragging = '';
+  document.querySelectorAll('#settings .hr-li.drop').forEach((x) => x.classList.remove('drop'));
+});
 export function stdClick(t: Element): boolean {
   if (t.closest('.rail-pic-ro')) return true;
+  if (t.closest('.hr-list, [data-hr-btn]')) return listClick(t);
   const pl = t.closest<HTMLElement>('[data-hr-place]');
   if (pl) {
     const r = rowOfAt(pl.dataset.hrPlace!), a = r?.at.find((x) => tokOf(x) === pl.dataset.hrPlace) || atOfTok(pl.dataset.hrPlace!);
@@ -316,7 +447,18 @@ export function drawnLeft(cell: Element, it: Element): number {
   }
   return left;
 }
+const NAME_MIN = 200;
+function fitRows(root: ParentNode) {
+  const rows = [...root.querySelectorAll<HTMLElement>('.hr-row:not(.hr-wide):has(> .set-opts > .hr-seg)')].filter((r) => r.getClientRects().length);
+  for (const r of rows) r.classList.remove('hr-fit');
+  const tight = rows.filter((r) => {
+    const seg = r.querySelector(':scope > .set-opts > .hr-seg')!, chip = seg.querySelector('.chip'), fold = r.querySelector(':scope > .hr-fold');
+    return (fold && fold.getBoundingClientRect().width < NAME_MIN) || (!!chip && seg.getBoundingClientRect().height > chip.getBoundingClientRect().height * 1.5 + 4);
+  });
+  for (const r of tight) r.classList.add('hr-fit');
+}
 export function fitLooks(root: ParentNode) {
+  fitRows(root);
   const cells = [...root.querySelectorAll<HTMLElement>('.hr-look')].map((cell) => ({ cell, it: cell.firstElementChild as HTMLElement | null })).filter((c) => c.it && c.cell.getClientRects().length);
   for (const { it } of cells) it!.style.transform = '';
   const plans = cells.map(({ cell, it }) => {

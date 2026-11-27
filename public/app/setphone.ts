@@ -2,6 +2,7 @@ import { tell } from '../base/notify.ts';
 import { page } from '../base/page.ts';
 import { qrSvg } from '../base/qr.ts';
 import { ago, esc } from '../base/util.ts';
+import { rowHtml } from './setstd.ts';
 import type { At, Row } from './setstd.ts';
 
 type Phone = { id: string; name: string; paired: number; seen: number };
@@ -9,7 +10,8 @@ type State = { on: boolean; listening: boolean; port: number; alerts: boolean; a
 
 const ON = 'Your paired phones can see and control your chats over this Wi-Fi.', OFF = 'Only this PC can see your chats.';
 const ALERTS_ON = 'While its page is open, your phone shows a strip and chimes when any chat needs you.', ALERTS_OFF = 'Your phone shows which chats need you only in its list.';
-const DESC = "For your home Wi-Fi: the connection isn't encrypted. Windows asks once whether Amethyst may use the network: allow private networks only.";
+const DESC = "For your home Wi-Fi: the connection isn't encrypted. Windows asks once whether Amethyst may use the network. Allow private networks only.";
+const FORGET = 'They have to pair again. Nothing on this PC is deleted.';
 
 let st: State | null = null, asked = false, timer = 0;
 const at = (key: string, o: Partial<At> = {}): At => ({ key, place: 'g-none', on: () => true, ...o });
@@ -57,15 +59,27 @@ const seen = (ms: number) => {
   return m < 1 ? 'just now' : m < 60 ? `${m} minute${m > 1 ? 's' : ''} ago` : m < 24 * 60 ? `${Math.floor(m / 60)} hour${m >= 120 ? 's' : ''} ago` : ago(ms);
 };
 
-function pairHtml(s: State) {
-  const code = s.code
-    ? `<div class="sp-pair"><div class="sp-qr">${qrSvg(s.code.url, 4)}</div><div class="sp-info"><b>Pair a phone</b><code class="sp-addr">${esc(s.code.url.replace(/\/#pair=.*/, ''))}</code><span class="sp-exp">The code works once, for 5 minutes.</span></div></div>`
-    : `<button class="chip" data-remote-pair>pair a phone</button>`;
-  const phones = s.phones.length
-    ? `<div class="sp-phones"><span class="sp-hd">Paired phones</span>${s.phones.map((p) => `<div class="sp-phone"><span class="sp-who"><b>${esc(p.name)}</b><span>Last seen ${seen(p.seen)}</span></span><button class="chip" data-remote-forget="${esc(p.id)}">forget</button></div>`).join('')}<button class="chip sp-all" data-remote-forget="">forget all phones</button></div>`
-    : '';
-  return `<div class="sp-body">${code}${phones}</div>`;
-}
+const codeHtml = (s: State) => (s.code
+  ? `<div class="sp-body"><div class="sp-pair"><div class="sp-qr">${qrSvg(s.code.url, 4)}</div><div class="sp-info"><b>Pair a phone</b><code class="sp-addr">${esc(s.code.url.replace(/\/#pair=.*/, ''))}</code><span class="sp-exp">The code works once, for 5 minutes.</span></div></div></div>`
+  : '');
+const paired = (k: number) => (!k ? 'No phone is paired yet.' : k === 1 ? '1 phone is paired.' : `${k} phones are paired.`);
+const pairRow = (s: State): Row => ({
+  id: 'g:rpair', key: 'g:rpair', sw: 'none', plain: true, noPic: true, noReset: true,
+  own: { label: 'Pair a phone', desc: "Scan the code with your phone's camera while it is on the same Wi-Fi.", find: 'pair a phone code QR' },
+  at: [at('g:rpair')],
+  state: () => (s.code ? 'A pairing code is shown. It works once, for 5 minutes.' : paired(s.phones.length)),
+  note: () => "Scan the code with your phone's camera while it is on the same Wi-Fi.",
+  btn: { label: s.code ? 'new code' : 'pair a phone', tip: 'Pair a phone\nShows a code to scan. It works once, for 5 minutes.', run: (el) => void act('/api/remote/code', {}, el) },
+});
+const phonesRow = (s: State): Row => ({
+  id: 'g:rphones', key: 'g:rphones', sw: 'none', plain: true, noPic: true, noReset: true,
+  own: { label: 'Paired phones', desc: 'A phone you forget has to pair again. Nothing on this PC is deleted.', find: 'forget all phones' },
+  at: [at('g:rphones')],
+  state: () => `${paired(s.phones.length)} Each one shows its name and when it was last seen.`,
+  note: () => 'A phone you forget has to pair again. Nothing on this PC is deleted.',
+  list: () => s.phones.map((p) => ({ id: p.id, name: p.name, sub: `Last seen ${seen(p.seen)}`, remove: { label: `Forget ${p.name}`, tip: `Forget ${p.name}\nIt has to pair again. Nothing on this PC is deleted.`, run: (el: HTMLElement) => void act('/api/remote/forget', { id: p.id }, el) } })),
+  add: { label: 'Forget all phones', tip: `Forget all phones\n${FORGET}`, run: (el) => void act('/api/remote/forget', { id: '' }, el) },
+});
 
 export function phoneRows(): Row[] {
   const s = now();
@@ -89,16 +103,10 @@ export function phoneRows(): Row[] {
       state: () => (st?.alerts ? ALERTS_ON : ALERTS_OFF), alt: () => (st?.alerts ? ALERTS_OFF : ALERTS_ON),
       reset: () => void act('/api/remote/alerts', { on: true }), changed: () => !st?.alerts,
     },
+    pairRow(s),
   );
+  if (s.phones.length) rows.push(phonesRow(s));
   return rows;
 }
 
-export const phoneMore = (): string => (st?.on ? pairHtml(st) : '');
-
-export function phoneClick(t: Element): boolean {
-  const pair = t.closest('[data-remote-pair]');
-  if (pair) return void act('/api/remote/code', {}, pair), true;
-  const f = t.closest<HTMLElement>('[data-remote-forget]');
-  if (f) return void act('/api/remote/forget', { id: f.dataset.remoteForget || '' }, f), true;
-  return false;
-}
+export const phoneHtml = (): string => phoneRows().map((r) => rowHtml(r) + (r.id === 'g:rpair' && st ? codeHtml(st) : '')).join('');

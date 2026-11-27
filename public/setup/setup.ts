@@ -111,7 +111,7 @@ function account(i: any) {
   const a = U.agent === 'claude' && U.key && !i?.error ? i?.account : null;
   if (!a) return '<div class="su-acct"></div>';
   const what = a.share === 'own' ? 'It has its own CLAUDE.md, settings, rules, skills and memory.' : a.share === 'all' ? "It uses the main account's CLAUDE.md, settings, rules, skills and memory." : 'Added accounts share its setup, unless set to their own.';
-  const tip = `${a.name}\nThe Claude account in use. ${what}\n\nChange it in Settings, Agents, or in the usage window's account menu.`;
+  const tip = `${a.name}\nThe Claude account in use. ${what}\n\nChange it in Settings, Agents and chat, Providers and tools, or in the usage window's account menu.`;
   return `<div class="su-acct" title="${esc(tip)}" data-tip-set="agents"><b>${esc(a.name)}</b><span class="su-dir">${esc(a.dir)}</span><span class="su-mode">${esc(SHARE_WORDS[a.share] || '')}</span></div>`;
 }
 function draw() {

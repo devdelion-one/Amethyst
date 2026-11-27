@@ -8,7 +8,7 @@ import { pref } from '../base/prefs.ts';
 import { esc, setSave } from '../base/util.ts';
 import { resetSteps, setStepsText, stepsChanged, stepsShown, stepsText } from './header.ts';
 import { dockPic, forgetHtml } from './setdock.ts';
-import { phoneClick, phoneMore, phoneRows } from './setphone.ts';
+import { phoneHtml, phoneRows } from './setphone.ts';
 import { addPart, box, mark, pic, rowHtml } from './setstd.ts';
 import type { At, Row } from './setstd.ts';
 
@@ -103,7 +103,7 @@ const welcomeRows = (): Row[] => [
 ];
 const forgetRowsOf = (): Row[] => [listRow(), colorRow()];
 
-function winBar() {
+export function winBar() {
   const real = document.getElementById('winbar');
   if (!real) return '';
   const bar = real.cloneNode(true) as HTMLElement;
@@ -145,11 +145,10 @@ export function genHtml() {
     box('gforget', "Don't forget's reminders", rows(forgetRowsOf())) +
     box('gtimer', 'Timer', rows([timerRow()])) +
     box('gwelcome', 'Welcome page and tutorial', rows(welcomeRows())) +
-    box('gphone', 'Phone remote control', rows(phoneRows()) + phoneMore());
+    box('gphone', 'Phone remote control', phoneHtml(), 'A page your phone opens over your home Wi-Fi after you pair it here.');
 }
 
 export function genClick(t: Element): boolean {
-  if (phoneClick(t)) return true;
   const b = t.closest<HTMLElement>('[data-welcome-open], [data-tour-open]');
   if (!b) return false;
   if (b.matches('[data-welcome-open]')) openWelcome();

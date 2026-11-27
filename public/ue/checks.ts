@@ -99,6 +99,7 @@ async function load(key: string, pid: string, wid: string) {
     known.set(key, { unreal: false, tables: null, failed: true });
   }
   checksChanged();
+  page.renderSettings?.();
 }
 
 function project() {

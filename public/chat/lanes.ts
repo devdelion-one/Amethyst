@@ -204,7 +204,7 @@ export function createLanes({ el, bar, form, log, flow, st, line, timeline, tool
     if (!l || (e.target as HTMLElement).closest('.sa-body, .sa-res')) return;
     e.preventDefault();
     if (sideOn()) return tell(l, { title: 'In Research a subagent opens beside its chat', line: 'A click shows it in a tab; a double-click keeps that tab', ms: 2500 });
-    if (!subsChat()) return tell(l, { title: 'Advanced subagents mode is off in the chat window', line: 'Settings → agents turns it on', ms: 2500 });
+    if (!subsChat()) return tell(l, { title: 'Subagents get their own window and list rows is off', line: 'Turn it on in Settings, Agents and chat, Providers and tools.', ms: 2500 });
     setPref('subagents:open', pref('subagents:open') === 'win' ? 'here' : 'win');
     const ic = l.querySelector<HTMLElement>('.sa-ic')!;
     ic.classList.remove('flip');

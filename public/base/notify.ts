@@ -52,7 +52,7 @@ export function refuse(over: EventTarget | null | undefined, { title, line = '' 
   if (over && pref('tell:on')) return tell(over, { title, line, ms: 2500 });
   setSave(line ? `${title}: ${line}` : title, true);
 }
-export const offTell =(over: EventTarget | null | undefined, name: string) => tell(over, { title: `${name} is turned off`, line: 'turn it on in settings → agents → agents in use', ms: 2500 });
+export const offTell =(over: EventTarget | null | undefined, name: string) => tell(over, { title: `${name} is turned off`, line: 'Turn it on in Settings, Agents and chat, Providers and tools, Agents you can start.', ms: 2500 });
 
 export interface Limit {
   agent: string;

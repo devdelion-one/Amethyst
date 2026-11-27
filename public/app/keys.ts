@@ -1,6 +1,6 @@
 import { setCtx } from './actions.ts';
 import { bound, comboOf, defaultOf, dropOld, firstKeys, howOf, is, oldKeys, onTwice, onWrite, resetAll, setBound, setMine, show } from '../base/binds.ts';
-import { CAPTURE_NOTE, fnOf, keyText, pressKey, pressTwice } from '../base/keycap.ts';
+import { CAPTURE_NOTE, fnOf, keyText, keyWords, labelFor, pressKey, pressTwice } from '../base/keycap.ts';
 import { closeEditor, flushNow, listOf } from '../editor/editor.ts';
 import { closeDrawer, toggleGit, toggleIndex } from './header.ts';
 import { openWindow } from './groups.ts';
@@ -58,84 +58,90 @@ const search = () => {
 function del() {
   if (S.open?.path && !S.open.scratch) $('#ed-trash').click();
 }
-function bk(ids: string | string[], what: string, run?: () => unknown): Key {
+function bk(ids: string | string[], run?: () => unknown, what?: string): Key {
   ids = [ids].flat();
-  return [ids.map(keyText).filter(Boolean).join(' ') || '—', what, run, ids];
+  return [ids.map(keyText).filter(Boolean).join(' ') || '—', what || labelFor(ids.at(-1)!), run, ids];
 }
 const NEW_KEYS = { class: 'ueNewClass', module: 'ueNewModule', plugin: 'ueNewPlugin' };
-const palKeys = () => [bk('files', 'go to a file or chat: by its name or a word in it'), bk('commands', 'every command by its name')];
+export const FIXED_KEYS: [string, string, string][] = [
+  ['tab', 'Move onto the explorer, the list or a tab bar', ''],
+  ['↑ ↓', 'Previous or next row', ''],
+  ['→ ←', 'Unfold or fold a folder, or go into it or up to its parent', 'On a tab bar the same keys show the tab before or after.'],
+  ['home end', 'First or last row', ''],
+  ['enter', 'Open the row', ''],
+  ['f2', 'Rename the file or folder', ''],
+  ['del', 'Archive the row or close the tab', 'It asks first. Tick the box there to delete it for good instead.'],
+  ['shift f10', 'Open its right-click menu', ''],
+];
+export const ESC_KEY: [string, string, string] = ['esc', 'Go one step back', ''];
+const fixedRow = ([k, what]: [string, string, string]): Key => [k, what];
+const palKeys = () => [bk('files'), bk('commands')];
 
 function sheet(): any[][] {
-  const win = bk('newWindowKey', 'a new window of the app', () => openWindow());
-  const sett = bk('settings', 'settings: theme, fonts, code colors', () => openSettings());
-  const foot = bk('bottomBarKey', 'the bottom bar: hide / show', () => toggleBottomBar());
-  const open = bk('openFile', 'open a file from anywhere', pickFiles);
-  if (atLaunch()) return [['workspaces', [['enter', 'go into the last one opened', openLast], bk('newWorkspace', 'make a workspace', newWorkspace), open, sett, foot, win, palKeys()[1]]]];
+  const win = bk('newWindowKey', () => openWindow());
+  const sett = bk('settings', () => openSettings());
+  const foot = bk('bottomBarKey', () => toggleBottomBar());
+  const open = bk('openFile', pickFiles);
+  if (atLaunch()) return [['workspaces', [['enter', 'Go into the last one opened', openLast], bk('newWorkspace', newWorkspace), open, sett, foot, win, palKeys()[1]]]];
   const [modes, deck] = topGroups();
-  if (S.wsEditor) return [modes, ['files', [open, bk('closeTab', 'close the tab', closeActive), bk('reopen', 'bring the closed tab back', reopen), bk('split', 'split: a new group on the right', () => split()), bk('up', 'the projects of this workspace', () => showWsEditor(false)), sett, win, ['esc', 'one step back'], palKeys()[1]]]];
-  if (atWs()) return [modes, deck, ['projects', [bk('up', 'all your workspaces', goUp), open, sett, foot, win, ['esc', 'one step back'], palKeys()[1]]]];
+  if (S.wsEditor) return [modes, ['files', [open, bk('closeTab', closeActive), bk('reopen', reopen), bk('split', () => split()), bk('up', () => showWsEditor(false)), sett, win, fixedRow(ESC_KEY), palKeys()[1]]]];
+  if (atWs()) return [modes, deck, ['projects', [bk('up', goUp, 'Up to all your workspaces'), open, sett, foot, win, fixedRow(ESC_KEY), palKeys()[1]]]];
   return editorGroups();
 }
 function topGroups(all = false): any[][] {
   const modes = ['modes', [
-    bk(['fn:editor', 'modeEditor'], atWs() ? 'the projects' : 'the editor: the explorer and your tabs; again: the next layout', toEditor),
-    ...(atWs() ? [] : [bk(['fn:orch', 'modeOrch'], 'orchestration: one chat at a time; Tab: the next chat, top to bottom', () => setMode('orch'))]),
-    bk(['fn:term', 'modeTerm'], 'terminals: every terminal at once', () => setMode('term')),
-    ...(atWs() ? [] : [bk('newLayout', 'a new editor layout (in the first free cell of the rail)', () => newView('editor')), bk('newSetTerm', 'a new terminals set', () => newView('term'))]),
-    ...(atWs() ? [] : [bk('closeSet', 'close the set or layout on screen (the first: clear it), asked first', closeHere)]),
-    bk('projPrev', 'the project before'),
-    bk('projNext', 'the project after (the buttons at the bottom)'),
+    bk(['fn:editor', 'modeEditor'], toEditor, atWs() ? 'Open the projects' : ''),
+    ...(atWs() ? [] : [bk(['fn:orch', 'modeOrch'], () => setMode('orch'))]),
+    bk(['fn:term', 'modeTerm'], () => setMode('term')),
+    ...(atWs() ? [] : [bk('newLayout', () => newView('editor')), bk('newSetTerm', () => newView('term'))]),
+    ...(atWs() ? [] : [bk('closeSet', closeHere)]),
+    bk('projPrev'),
+    bk('projNext'),
   ]];
   const deck = ['in agents and terminals', [
-    bk('next', 'the next one that needs you, in the next empty window'),
-    bk('cellNext', 'the next cell'),
-    bk('cellPrev', 'the cell before'),
-    bk('newCell', 'a new empty cell in the terminal set on screen'),
-    bk('benchKey', 'bench the selected terminal (keeps running under Benched), or move an editor chat tab to orchestration'),
-    bk('orchKey', "move an editor chat tab to orchestration: it keeps running in orchestration's list"),
-    bk('windowKey', 'the next chat, top to bottom (shift: the one before); a chat with a question lands on it'),
-    bk('boxKey', 'a chat: between its question and its text box (ctrl ctrl: press ctrl twice)'),
-    bk('modeKey', "in a chat's text box: step the mode (shift: back)"),
-    bk('modelNextKey', "in a chat's text box: the next model"),
-    bk('modelPrevKey', "in a chat's text box: the model before"),
-    bk('railKey', 'the terminals list: hide / show'),
-    ...[['claude', 'Claude'], ['codex', 'Codex'], ['antigravity', 'Antigravity'], ['cursor', 'Cursor'], ['copilot', 'Copilot'], ['grok', 'Grok']].filter(([a]) => all || chatOn(a)).flatMap(([a, name]) => [1, 2, 3, 4, 5].map((n) => bk(`model.${a}.${n}`, `a ${name} chat: the model of row ${n} in settings`))),
-    bk('quoteKey', 'a chat: add the text selected in a reply to your message'),
-    bk('noteKey', 'a chat: its note, show / hide'),
-    bk('clearKey', 'a chat: clear it (asks first)'),
-    bk('find', 'a chat: find in its box or in the whole chat (again: the other); settings: find a setting'),
-    bk('newAgentKey', "a new chat like the dashboard's new agent button"), bk('newChatN', `orchestration and the editor: a new chat (${CHATS.map(([k, name], i) => [k, `${i + 1} ${name}`]).filter(([k]) => chatOn(k)).map(([, t]) => t).join(', ')})`),
+    bk('next'),
+    bk('cellNext'),
+    bk('cellPrev'),
+    bk('newCell'),
+    bk('benchKey'),
+    bk('orchKey'),
+    bk('windowKey'),
+    bk('boxKey'),
+    bk('modeKey'),
+    bk('modelNextKey'),
+    bk('modelPrevKey'),
+    bk('micKey'),
+    bk('railKey'),
+    ...[['claude', 'Claude'], ['codex', 'Codex'], ['antigravity', 'Antigravity'], ['cursor', 'Cursor'], ['copilot', 'Copilot'], ['grok', 'Grok']].filter(([a]) => all || chatOn(a)).flatMap(([a]) => [1, 2, 3, 4, 5].map((n) => bk(`model.${a}.${n}`))),
+    bk('quoteKey'),
+    bk('noteKey'),
+    bk('clearKey'),
+    bk('find'),
+    bk('newAgentKey'), bk('newChatN'),
   ]];
   return [modes, deck];
 }
 function editorGroups(all = false): any[][] {
-  const win = bk('newWindowKey', 'a new window of the app', () => openWindow());
-  const foot = bk('bottomBarKey', 'the bottom bar: hide / show', () => toggleBottomBar());
-  const sett = bk('settings', 'settings: theme, fonts, code colors', () => openSettings());
-  const open = bk('openFile', 'open a file from anywhere', pickFiles);
+  const win = bk('newWindowKey', () => openWindow());
+  const foot = bk('bottomBarKey', () => toggleBottomBar());
+  const sett = bk('settings', () => openSettings());
+  const open = bk('openFile', pickFiles);
   return [
     ...topGroups(all),
-    ['write', [bk('scratch', 'scratch pad, from anywhere', () => padOut('scratch')), bk('sketch', 'sketch board, from anywhere', () => padOut('sketch')), bk('inboxKey', 'the inbox window: every file in it', () => toggleInbox()), bk('newForget', "new don't forget, from anywhere")]],
-    ['quick terminals', [bk('quickAgent', "the project's Quick Agent: open its window (a browser: show / hide)", () => toggleQuickAgent()), bk('quickTerm', "the project's quick terminal: show / hide", () => toggleQuick('term')), ...(all || PROG.pwsh ? [bk('quickPwsh', "the project's quick PowerShell: show / hide", () => toggleQuick('pwsh'))] : []), ...(all || pref('ue:on') ? [bk(UEKEY, 'Unreal: build the project (while building: the build window)', ueKey), bk(UEWINKEY, 'Unreal: the build window, show / hide', toggleUe)] : []), ...(['class', 'module', 'plugin'] as const).filter((k) => all || canCreate(k)).map((k) => bk(NEW_KEYS[k], `Unreal: new ${k}…`, () => openCreate(k)))]],
-    ['organize', [bk('up', 'up: the projects of this workspace', goUp)]],
-    ['tabs', [bk('split', 'split: a new group on the right', () => split()), bk('closeTab', 'close the tab', closeActive), bk('headerSwitch', 'C and C++: open the other half (Foo.h ↔ Foo.cpp)', openCounterpart), bk('reopen', 'bring the closed tab back', reopen), bk('refreshBrowser', 'refresh the browser tab', () => browserInView()?.reload()), bk('tabN', 'tab 1 to 9 of the group'), bk('tabPrev', 'the tab before'), bk('tabNext', 'the tab after'), bk('grpPrev', 'the group before'), bk('grpNext', 'the group after')]],
-    ['explorer, list and tabs', [['tab', 'onto the explorer, the list or a tab strip'], ['↑ ↓', 'the row before / after'], ['→ ←', 'unfold / fold a folder, or into it / up to its parent'], ['← →', 'on a tab strip: show the tab before / after'], ['home end', 'the first / last'], ['enter', 'open the row'], ['f2', 'a file or folder: rename it'], ['del', 'a row: archive it, once asked (tick it: delete for good); a tab: close it'], ['shift f10', 'its right-click menu']]],
-    ['more', [...palKeys(), open, bk('search', 'search', search), bk('explorerKey', 'the explorer: show / hide', () => toggleIndex()), bk('gitKey', 'source control: show / hide', () => toggleGit()), bk('pinsKey', 'the Pinned list: show / hide', pinsKey), foot, bk('dashKey', 'the dashboard: hide / show', () => toggleDash()), sett, win, bk('winEvery', 'keep this window when you switch projects, on / off', toggleEvery), bk('undo', 'undo the last thing you did (first it takes you there)', undo), bk('redo', 'redo (also ctrl y)', redo), bk('archive', 'archive what is open', del), bk('save', 'save now', flushNow), bk('sheet', 'this sheet'), ['esc', 'one step back']]],
+    ['write', [bk('scratch', () => padOut('scratch')), bk('sketch', () => padOut('sketch')), bk('inboxKey', () => toggleInbox()), bk('newForget')]],
+    ['quick terminals', [bk('quickAgent', () => toggleQuickAgent()), bk('quickTerm', () => toggleQuick('term')), ...(all || PROG.pwsh ? [bk('quickPwsh', () => toggleQuick('pwsh'))] : []), ...(all || pref('ue:on') ? [bk(UEKEY, ueKey), bk(UEWINKEY, toggleUe)] : []), ...(['class', 'module', 'plugin'] as const).filter((k) => all || canCreate(k)).map((k) => bk(NEW_KEYS[k], () => openCreate(k)))]],
+    ['organize', [bk('up', goUp)]],
+    ['tabs', [bk('split', () => split()), bk('closeTab', closeActive), bk('headerSwitch', openCounterpart), bk('reopen', reopen), bk('refreshBrowser', () => browserInView()?.reload()), bk('tabN'), bk('tabPrev'), bk('tabNext'), bk('grpPrev'), bk('grpNext')]],
+    ['explorer, list and tabs', FIXED_KEYS.map(fixedRow)],
+    ['more', [...palKeys(), open, bk('search', search), bk('explorerKey', () => toggleIndex()), bk('gitKey', () => toggleGit()), bk('pinsKey', pinsKey), foot, bk('dashKey', () => toggleDash()), sett, win, bk('winEvery', toggleEvery), bk('undo', undo), bk('redo', redo), bk('archive', del), bk('save', flushNow), bk('sheet'), fixedRow(ESC_KEY)]],
   ];
-}
-const SUBS: [string, string, string[]][] = [['modes', 'Modes', ['modes']], ['agents', 'Agents and terminals', ['in agents and terminals']], ['write', 'Write and quick', ['write', 'quick terminals']], ['tabs', 'Tabs', ['tabs', 'explorer, list and tabs']], ['more', 'More', ['organize', 'more']]];
-const CARD: Record<string, string> = { 'quick terminals': 'quick terminals and Unreal', 'explorer, list and tabs': 'in the explorer, the list and tab strips (fixed)' };
-export function keyGroups(): { id: string; name: string; cards: [string, Key[]][] }[] {
-  const byName = new Map(editorGroups(true).map(([g, rows]) => [g, rows.filter((r: Key) => !r[3]?.some((id) => id.startsWith('model.')))]));
-  const rows = (gs: string[]) => gs.map((g, i) => [CARD[g] || (i ? g : ''), byName.get(g) || []] as [string, Key[]]);
-  return SUBS.map(([id, name, gs]) => ({ id, name, cards: id === 'more' ? [['', [...(byName.get('organize') || []), ...(byName.get('more') || [])]]] : rows(gs) }));
 }
 const kbds = (k: string) => k.split(' ').map((x) => `<kbd>${esc(x)}</kbd>`).join('');
 export function keyButton(id: string) {
-  const t = keyText(id);
-  return `<button class="kb${capturing === id ? ' on' : ''}" data-bind="${id}" title="Key: ${esc(t ? t.replace(/^./, (c) => c.toUpperCase()) : 'none')}&#10;Click, then press a new key." data-tip-keys="=esc:keep it;=backspace:clear it">${capturing === id ? 'press a key…' : kbds(t || 'none')}</button>`;
+  const t = keyWords(id);
+  return `<button class="kb${capturing === id ? ' on' : ''}" data-bind="${id}" title="${esc(`${labelFor(id)}\n${t ? `Set to ${t}.` : 'No key is set.'} Click, then press a new key.`)}" data-tip-keys="=esc:keep it;=backspace:clear it">${capturing === id ? 'press a key…' : kbds(keyText(id) || 'none')}</button>`;
 }
-export const fixedKeys = (k: string) => `<span class="kb fixed" title="${esc(k.replace(/^./, (c) => c.toUpperCase()))}&#10;A fixed key; it can't change.">${kbds(k)}</span>`;
+export const fixedKeys = (k: string) => `<span class="kb fixed" title="${esc(k.replace(/^./, (c) => c.toUpperCase()))}&#10;Always this key. It can't be changed.">${kbds(k)}</span>`;
 const MOUSE = [
   ['click', `open it: in the explorer or the list a file opens in a tab, in the mind in the small panel; a project goes inside`],
   ['tabs', 'drag a tab (or a file from the explorer) onto a group to open it there, onto a group\'s edge to split; drag the gap between groups to resize; right-click a tab for more'],

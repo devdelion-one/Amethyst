@@ -3,7 +3,7 @@ import { notify } from '../base/notify.ts';
 import { page } from '../base/page.ts';
 import { pref } from '../base/prefs.ts';
 import { agents } from '../base/stream.ts';
-import { $, esc, sinceShort, store } from '../base/util.ts';
+import { $, esc, store } from '../base/util.ts';
 import { WIN } from '../base/windows.ts';
 import { licenseNow, openLicense } from './license.ts';
 import { openSettings } from './modes.ts';
@@ -32,21 +32,21 @@ const UPDATE = window.amethyst?.desktop ? window.amethyst.update : null;
 let up: UpState | null = null;
 const MB = 1024 * 1024;
 const A = (v: string | undefined) => `Amethyst ${esc(v || '')}`;
-const news = (s: UpState, v: string | undefined, cls = '') => `<a${cls ? ` class="${cls}"` : ''} href="${esc(s.notes! + v!)}" target="_blank">what’s new</a>`;
+const news = (s: UpState, v: string | undefined, cls = '') => `<a${cls ? ` class="${cls}"` : ''} href="${esc(s.notes! + v!)}" target="_blank">What’s new</a>`;
 const starting = (s: UpState) => s.status === 'downloading' && !s.total;
 const pct = (s: UpState) => Math.round(s.percent || 0);
 
 export const SAY = {
   line: ({
-    dev: () => 'Running from the code',
-    idle: (s) => (s.checked ? 'You have the latest version' : 'Not checked yet'),
-    checking: () => 'Checking for updates…',
-    available: (s) => `${A(s.next)} is available${s.license ? ' · new license' : ''} · ${news(s, s.next)}`,
-    downloading: (s) => (starting(s) ? `Downloading ${A(s.next)}` : `Downloading ${A(s.next)} · ${pct(s)}%`),
-    ready: (s) => `${A(s.next)} is downloaded`,
-    failed: (s) => (s.stage === 'download' ? `${A(s.next)} didn’t download` : 'Couldn’t check for updates'),
+    dev: () => 'This Amethyst runs from the code.',
+    idle: (s) => (s.checked ? 'You have the latest version.' : 'Amethyst has not looked for updates yet.'),
+    checking: () => 'Looking for updates…',
+    available: (s) => `${A(s.next)} is available.${s.license ? ' It comes with a new license.' : ''} ${news(s, s.next)}`,
+    downloading: (s) => `${A(s.next)} is downloading.`,
+    ready: (s) => `${A(s.next)} is downloaded. Restart to install it.`,
+    failed: (s) => (s.stage === 'download' ? `${A(s.next)} didn’t download.` : 'Amethyst couldn’t look for updates.'),
   }) as Record<string, Say>,
-  button: { idle: ['check', 'check'], checking: ['check', 'check'], available: ['download', 'Update'], downloading: ['cancel', 'cancel'], ready: ['install', 'Restart'], failed: ['retry', 'try again'] } as Record<string, string[]>,
+  button: { idle: ['check', 'Check'], checking: ['check', 'Check'], available: ['download', 'Update'], downloading: ['cancel', 'Cancel'], ready: ['install', 'Restart'], failed: ['retry', 'Try again'] } as Record<string, string[]>,
   icon: ({
     available: (s) => (s.license ? `Update\n${A(s.next)} comes with a new license. Click to read it; it downloads after you agree.` : `Update\n${A(s.next)} is ready to download. Click to update.`),
     downloading: (s) => (starting(s) ? `Update: downloading\n${A(s.next)} is starting to download. Click to see it in Settings.` : `Update: downloading\n${A(s.next)}, ${pct(s)}% so far. Click to see it in Settings.`),
@@ -62,64 +62,51 @@ export const SAY = {
   updated: (v: string) => `Amethyst is updated to ${esc(v)}`,
 };
 
+const secs = (n: number) => (n < 90 ? `${n} second${n === 1 ? '' : 's'}` : `${Math.round(n / 60)} minutes`);
 function under(s: UpState) {
   if (s.status === 'failed') return s.error!;
-  if (s.status === 'ready') return s.total ? `${Math.round(s.total / MB)} MB downloaded` : '';
+  if (s.status === 'ready') return s.total ? `${Math.round(s.total / MB)} MB downloaded.` : '';
   if (s.status !== 'downloading') return '';
-  if (!s.total) return 'connecting…';
+  if (!s.total) return 'Connecting…';
   const left = s.speed ? Math.ceil((s.total - s.done!) / s.speed) : 0;
-  return `${Math.round(s.done! / MB)} of ${Math.round(s.total / MB)} MB · ${(s.speed! / MB).toFixed(1)} MB/s${left ? ` · ${left < 90 ? `${left} s` : `${Math.round(left / 60)} min`} left` : ''}`;
+  return `${Math.round(s.done! / MB)} of ${Math.round(s.total / MB)} MB so far, at ${(s.speed! / MB).toFixed(1)} MB a second${left ? `, about ${secs(left)} left` : ''}.`;
 }
 const barP = (s: UpState) => (s.status === 'downloading' ? s.percent || 0 : s.status === 'ready' ? 100 : 0);
-const checkedText = (s: UpState) => (s.checked ? `checked ${sinceShort(s.checked)}` : '');
 const card = () => $<HTMLElement | null>('#settings .up-card');
 const cardShown = () => shows('settings') && !!card();
 
 export const hasUpdate = () => !!UPDATE;
 export const seenUpdate = () => UPDATE?.seen();
 
-type Toggle = (on: unknown, attrs: string, tip?: string) => string;
-export function updateGroup({ group, row, chip, tg, rows = '', tail = '' }: { group: (title: string, rows: string) => string; row: (label: string, opts: string, o?: { desc?: string }) => string; chip: (on: unknown, attrs: string, inner: string) => string; tg: Toggle; rows?: string; tail?: string }) {
+const BLANK: UpState = { status: 'idle', version: '', look: true, auto: false, checked: 0 };
+export const upNow = () => up || BLANK;
+export const setUp = (o: { look?: boolean; auto?: boolean }) => void UPDATE?.set({ look: o.look ?? upNow().look, auto: o.auto ?? upNow().auto });
+export function updateCard() {
   dropToast();
-  const s: UpState = up || { status: 'idle', version: '', look: true, auto: false, checked: 0 };
+  const s = upNow();
   const [act, label] = SAY.button[s.status] || [];
-  const off = s.status === 'dev' ? 'disabled' : '';
-  return group(
-    'amethyst',
-    `<div class="up-card">` +
-      `<img class="up-gem" src="/amethyst.svg" alt="">` +
-      `<div class="up-name">Amethyst <b>${esc(s.version)}</b><span class="up-cr">© 2026 Amethyst</span></div>` +
-      `<div class="up-line">${SAY.line[s.status]?.(s) || ''}</div>` +
-      `<div class="up-do">${act ? `<button class="up-btn${act === 'download' || act === 'install' ? ' on' : ''}" data-update="${act}"${s.status === 'checking' ? ' disabled' : ''}>${label}</button>` : ''}</div>` +
-      `<div class="up-bar${starting(s) ? ' wait' : ''}" style="--p:${barP(s)}"></div>` +
-      `<div class="up-under${s.status === 'failed' ? ' err' : ''}" title="${esc(under(s))}" data-tip-cut>${esc(under(s))}</div>` +
-      `</div>` +
-      row('check for updates',
-        (s.status === 'ready' ? `<button class="up-link up-again" data-update="check" title="Look for a newer version than ${A(s.next)}.\nIf there is one, it downloads in its place."${s.looking ? ' disabled' : ''}>${s.looking ? 'checking…' : 'check'}</button>` : '') +
-        `<span class="up-checked">${esc(checkedText(s))}</span>` + tg(s.look, `data-up-look="${s.look ? '' : '1'}" aria-label="check for updates" ${off}`),
-        { desc: 'when the app opens, at 12:00 and on entering settings; off: only when you click check' }) +
-      row('download', `<span class="seg">${chip(!s.auto, `data-up-auto="" ${off}`, 'on click') + chip(s.auto, `data-up-auto="1" ${off}`, 'by itself')}</span>`,
-        { desc: 'an update downloads when you click, or by itself; restarting is always your click' }) +
-      rows + tail,
-  );
+  return `<div class="up-card">` +
+    `<img class="up-gem" src="/amethyst.svg" alt="">` +
+    `<div class="up-name">Amethyst <b>${esc(s.version)}</b><span class="up-cr">© 2026 Amethyst</span></div>` +
+    `<div class="up-line">${SAY.line[s.status]?.(s) || ''}</div>` +
+    `<div class="up-do">${act ? `<button class="up-btn${act === 'download' || act === 'install' ? ' on' : ''}" data-update="${act}"${s.status === 'checking' ? ' disabled' : ''}>${label}</button>` : ''}</div>` +
+    `<div class="up-bar${starting(s) ? ' wait' : ''}" style="--p:${barP(s)}"></div>` +
+    `<div class="up-under${s.status === 'failed' ? ' err' : ''}" title="${esc(under(s))}" data-tip-cut>${esc(under(s))}</div>` +
+    `</div>`;
 }
 
 function paintCard() {
   const c = card();
   if (!c) return;
   c.querySelector<HTMLElement>('.up-bar')?.style.setProperty('--p', barP(up!) as unknown as string);
-  const line = c.querySelector('.up-line'), u = c.querySelector<HTMLElement>('.up-under'), checked = $('#settings .up-checked');
-  if (line && up!.status === 'downloading') line.innerHTML = SAY.line.downloading(up!);
+  const u = c.querySelector<HTMLElement>('.up-under');
   if (u) u.textContent = u.title = under(up!);
-  if (checked) checked.textContent = checkedText(up!);
 }
 
 export function updateClick(d: DOMStringMap) {
   if (!UPDATE || !up) return false;
   if (d.update === 'download' || d.update === 'retry') return getUpdate(), true;
   if (d.update) return d.update === 'install' ? restartToUpdate() : UPDATE[({ check: 'check', cancel: 'cancel' } as Record<string, 'check' | 'cancel'>)[d.update]](), true;
-  if ('upLook' in d) return UPDATE.set({ look: !!d.upLook, auto: up.auto }), true;
-  if ('upAuto' in d) return UPDATE.set({ look: up.look, auto: !!d.upAuto }), true;
   return false;
 }
 

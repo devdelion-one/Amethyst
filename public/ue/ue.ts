@@ -8,7 +8,7 @@ import { every } from '../base/life.ts';
 import { api, projectOf, S } from '../base/model.ts';
 import { notify, tell } from '../base/notify.ts';
 import { page } from '../base/page.ts';
-import { isOff, onPref, pref, setPref } from '../base/prefs.ts';
+import { isOff, onPref, pref, PREFS, setPref } from '../base/prefs.ts';
 import { UE_CONFIGS } from './configs.ts';
 import { follow } from '../base/stream.ts';
 import { setTheme } from '../base/theme.ts';
@@ -486,10 +486,10 @@ Builds ${x.name} as ${label(x, c)}.`)}"`, I_CFG, esc(label(x, c)));
   groups.push(mi('data-ueact="window"', I_WIN, 'show the build window', 'The build’s output, problems and logs.', keyChip(UEWINKEY)) + (i?.engine ? mi('data-ueact="editor"', I_EXT, 'open the editor', 'Opens the project in the Unreal Editor.', '', !i.path) : ''));
   const ce = !!pref('ue:clickeditor');
   const ref = copyHook.ref(), bigId = ref === 'btn:ue' || ref.startsWith('btn:ue~') ? ref : 'btn:ue';
-  const opts = topRow(isBig(bigId), 'data-ueopt="big" title="Bigger button&#10;Shows which build, its timer and result, with an open-the-editor part: 4 cells wide in the dashboard, 4 tall on the rail. Applies to this button only."', UE_ICON, 'bigger button') +
-    topRow(!ce, 'data-ueopt="click" data-v="0" title="A click builds&#10;A click, or the build key, builds the configuration ticked below."', I_PLAY, 'a click builds') +
-    topRow(ce, 'data-ueopt="click" data-v="1" title="A click builds, then opens the editor&#10;A click, or the build key, builds the Editor target and opens Unreal Editor when it succeeds. With the editor open, a click does what it does today."', I_EXT, 'a click builds, then opens the editor') +
-    topRow(!!pref('ue:edlog'), 'data-ueopt="edlog" title="Show the logs when the editor opens&#10;Opening Unreal Editor from Amethyst opens the build window on the editor’s log."', I_WIN, 'show the logs when the editor opens');
+  const opt = (k: string, on: boolean, attrs: string, ic: string, more = '') => topRow(on, `${attrs} title="${esc(`${PREFS[k].label}\n${PREFS[k].on}${more}`)}"`, ic, esc(PREFS[k].label));
+  const opts = opt('ue:big', isBig(bigId), 'data-ueopt="big"', UE_ICON, ' Applies to this button only.') +
+    opt('ue:clickeditor', ce, `data-ueopt="click" data-v="${ce ? 0 : 1}"`, I_EXT) +
+    opt('ue:edlog', !!pref('ue:edlog'), 'data-ueopt="edlog"', I_WIN);
   topBarMenu(e.clientX, e.clientY, { tray: 'ue', head: menuHead(UE_ICON, 'Unreal build'), acts: groups.join('<div class="sep"></div>'), opts, pick: cfgs ? ['configuration', cfgs] : undefined, onPick: (b) => {
     const d = b.dataset;
     if (d.ueopt === 'big') return setBig(bigId, !isBig(bigId));

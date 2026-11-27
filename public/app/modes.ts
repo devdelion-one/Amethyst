@@ -474,7 +474,7 @@ async function handOff(btn: HTMLElement, text: string, to: any, how: MoveHow, pr
     return how.draft ? `put in ${code}'s box` : `sent to ${code}`;
   }
   const on = chatsOn();
-  if (!on.length) return void tell(btn, { title: 'No chat agent is turned on', line: 'turn one on in settings → agents → agents in use', ms: 2500 }), null;
+  if (!on.length) return void tell(btn, { title: 'No chat agent is turned on', line: 'Turn one on in Settings, Agents and chat, Providers and tools, Agents you can start.', ms: 2500 }), null;
   if (!program) program = pinOf('text');
   if (!program && on.length > 1) {
     const r = btn.getBoundingClientRect();

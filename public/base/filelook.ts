@@ -1,5 +1,5 @@
 import { page } from './page.ts';
-import { onPref, pref, setPref } from './prefs.ts';
+import { onPref, pref, PREFS, setPref } from './prefs.ts';
 import { col } from './theme.ts';
 import { esc, setSave, store } from './util.ts';
 
@@ -55,22 +55,24 @@ const BOARD = 'M-.615 -.769L.692 -.769L.385 .308L-.923 .308ZM-.385 -.308L.923 -.
 export const dirIcon = (open: boolean): string => svg(open ? DIR_O : DIR_C).replace('class="ol"', `class="ol ${open ? 'open' : 'shut'}"`);
 export const fileIcon = (board = false): string => (board ? svg(BOARD, '-1.25 -1.25 2.5 2.5') : svg(FILE));
 
-const EXT_MODES: [string, string, string, string][] = [['plain', 'plain', 'var(--text)', 'The extension looks like the rest of the name.'], ['dim', 'dimmed', 'var(--text-faint)', 'The extension is fainter than the name.'], ['color', 'colored', 'var(--c-cyan, #59c2ff)', 'Each extension in its own color, set in Settings. One without a color is dimmed.']];
+const EXT_INK: Record<string, string> = { plain: 'var(--text)', dim: 'var(--text-faint)', color: 'var(--c-cyan, #59c2ff)' };
+const extModes = () => PREFS['explorer:ext'].choices as [string, string, string][];
+export const extLabel = (): string => PREFS['explorer:ext'].label;
 export const extMenu = (): string => {
   const now = pref('explorer:ext');
-  return EXT_MODES.map(([v, word, c, tip]) => `<button class="mi pick chk tb-row${now === v ? ' on' : ''}" data-fext="${v}" title="${tip}"><i class="tb-ic"><b class="tb-tx" style="font-size:9px;letter-spacing:-.02em;color:${c}">.md</b></i><span class="nm">${word}</span></button>`).join('');
+  return extModes().map(([v, word, tip]) => `<button class="mi pick chk tb-row${now === v ? ' on' : ''}" data-fext="${v}" title="${esc(`${word}\n${tip}`)}"><i class="tb-ic"><b class="tb-tx" style="font-size:9px;letter-spacing:-.02em;color:${EXT_INK[v]}">.md</b></i><span class="nm">${esc(word)}</span></button>`).join('');
 };
 export function pickExt(b: HTMLElement): boolean {
   const v = b.dataset.fext;
   if (v) {
     setPref('explorer:ext', v);
-    setSave(`file extensions: ${EXT_MODES.find(([k]) => k === v)![1]}`);
+    setSave(`${extLabel()}: ${extModes().find(([k]) => k === v)![1]}`);
     return true;
   }
   if (!('fextcol' in b.dataset)) return false;
   store.set('settings:tab', 'files');
   page.openSettings?.();
-  setTimeout(() => document.querySelector('[data-ec-box]')?.scrollIntoView({ block: 'center' }), 100);
+  setTimeout(() => document.querySelector('[data-hr="f:extcol"]')?.scrollIntoView({ block: 'center' }), 100);
   return true;
 }
 

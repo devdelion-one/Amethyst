@@ -189,18 +189,23 @@ const regValue = (key: string) =>
     }),
   );
 
-async function browserExe() {
-  const b = browserCmd();
+async function exeOf(b: string) {
   if (path.isAbsolute(b)) return b;
   const name = b.replace(/\.exe$/i, '');
   if (!exes.has(name)) {
     const key = `SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\${name}.exe`;
     const exe = /^[\w.-]+$/.test(name) && ((await regValue('HKLM\\' + key)) || (await regValue('HKCU\\' + key)));
-    if (!exe) throw new HttpError(400, `no browser named ${b} on this PC: give its full path in settings`);
+    if (!exe) return null;
     exes.set(name, exe);
   }
   return exes.get(name)!;
 }
+async function browserExe() {
+  const b = browserCmd(), exe = await exeOf(b);
+  if (!exe) throw new HttpError(400, `no browser named ${b} on this PC: give its full path in settings`);
+  return exe;
+}
+const browserFound = async (b: string) => process.platform !== 'win32' || (path.isAbsolute(b) ? fs.existsSync(b) : !!(await exeOf(b)));
 
 async function openDefault(full: string) {
   const st = await onDisk(full);
@@ -304,4 +309,4 @@ const setSeen = (fn: (id?: string) => void) => {
   onSeen = fn;
 };
 export type { Live };
-export { set, drop, get, all, stream, follow, ROUTES, lastLine, within, network, setBrowser, setSeen };
+export { set, drop, get, all, stream, follow, ROUTES, lastLine, within, network, setBrowser, browserFound, setSeen };
