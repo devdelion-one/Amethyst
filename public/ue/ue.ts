@@ -436,7 +436,7 @@ function paintButton() {
   const cf = !i ? '…' : why === 'none' || why === 'os' ? 'not Unreal' : why && why !== 'no-targets' ? 'set up' : why ? 'no C++' : guarded() ? 'Restart' : lcOn() ? 'Live' : label(t, config, true);
   const stHtml = live(r) ? `<i class="ue-ring"></i><span class="ue-tm">${clock(Date.now() - r!.started)}</span>` : cls === 'ok' ? '✓' : cls === 'fail' ? `✕ ${countOf('error')}` : cls === 'stop' ? '✕' : cls === 'warn' ? '!' : '';
   const ed = `<span class="ue-ed" title="${esc(edTip())}">${I_EXT}${st.ed.open ? '<i class="ue-edot"></i>' : ''}</span>`;
-  const html = `${UE_ICON}<span class="ue-cf">${esc(cf)}</span><span class="ue-st">${stHtml}</span>${ed}`;
+  const html = `${UE_ICON}<span class="ue-cf">${cfHtml(cf)}</span><span class="ue-st">${stHtml}</span>${ed}`;
   if (b.dataset.html !== html) {
     b.innerHTML = html;
     b.dataset.html = html;
@@ -447,6 +447,10 @@ function paintButton() {
   if (b.matches(':hover')) b.title = buttonTip();
 }
 export const ueTip = () => buttonTip();
+const cfHtml = (cf: string) => {
+  const m = cf.match(/^(.+?)( (?:Editor|Client|Server|Program))$/);
+  return m ? `${esc(m[1])}<span class="ue-ty">${esc(m[2])}</span>` : esc(cf);
+};
 function edTip() {
   if (st.ed.open) return 'Open the editor\nUnreal Editor is open: this brings it up.';
   const t = st.info?.targets?.find((x) => x.type === 'Editor');

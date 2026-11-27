@@ -129,6 +129,7 @@ body.resizing-y, body.resizing-y * { cursor: row-resize !important; user-select:
 :is(#switch, #dash) #btn-ue .ue-st { position: absolute; right: 0; bottom: 0; width: auto; font-size: var(--fs-mark); line-height: 1; }
 :is(#switch, #dash) #btn-ue .ue-ring { width: 8px; height: 8px; border-width: 1.5px; }
 #btn-ue .ue-ed { display: none; }
+:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])) .ue-ty { display: none; }
 :is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])) { display: flex; align-items: center; gap: 4px; padding: 0; border: 1px solid var(--line); background: var(--raised); color: var(--text); font-size: var(--fs-xs); font-weight: 500; overflow: hidden; }
 :is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])):hover { border-color: var(--text-dim); background: var(--raised); }
 :is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])).ue-run { border-color: color-mix(in srgb, var(--accent) 60%, var(--line)); }
