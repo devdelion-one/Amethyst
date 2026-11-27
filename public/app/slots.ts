@@ -1,4 +1,5 @@
 import { atWs, levelKey } from '../base/model.ts';
+import { dropBig, moveBig } from '../base/controls.ts';
 import { onSize } from '../base/measure.ts';
 import { onOutside } from '../base/lift.ts';
 import { $, amKey, store } from '../base/util.ts';
@@ -59,9 +60,11 @@ export function dropCopy(ref: string) {
     from[base] = from[c];
     delete other[base];
     delete from[c];
+    moveBig(c, base);
   } else {
     delete R[ref];
     delete D[ref];
+    dropBig(ref);
   }
   save(R);
   saveDash(D);
@@ -115,8 +118,9 @@ export function bottomBtns() {
 const endOf = (ref: string) => (isPin(ref) ? 'b' : RAIL.find((x) => x[0] === baseOf(ref))?.[2] || 't');
 
 const spans: Record<string, [number, number]> = {};
-export const setSpan = (ref: string, n: number, rail = 1) => (n <= 1 && rail <= 1 ? delete spans[baseOf(ref)] : (spans[baseOf(ref)] = [n, rail]));
-const spanOf = (ref: string, x = false) => spans[baseOf(ref)]?.[x ? 0 : 1] || 1;
+export const setSpan = (ref: string, n: number, rail = 1) => (n <= 1 && rail <= 1 ? delete spans[ref] : (spans[ref] = [n, rail]));
+export const clearSpans = () => { for (const k of Object.keys(spans)) delete spans[k]; };
+const spanOf = (ref: string, x = false) => spans[ref]?.[x ? 0 : 1] || 1;
 const local = (s: number) => (s < 0 ? -s - 1 : s);
 const spotOf = (e: string, i: number) => (e === 'b' ? -i - 1 : i);
 const cellKeys = (r: string, s: number, x = false) => Array.from({ length: spanOf(r, x) }, (_, k) => (s < 0 ? 'b' : 't') + (local(s) + k));
@@ -556,20 +560,59 @@ function surfAt(x: number, y: number) {
   if (!shownEl(a)) return DASH_S;
   return dist(d.getBoundingClientRect(), x, y) < dist($('#activity').getBoundingClientRect(), x, y) ? DASH_S : RAIL_S;
 }
-function drag(e: PointerEvent, src: HTMLElement, done: (sf: Surf, cell: number) => void) {
+function drag(e: PointerEvent, src: HTMLElement, ref: string, done: (sf: Surf, cell: number) => void) {
   const btn = src.querySelector<HTMLElement>(':scope > :is(button, a)') || src;
+  const startSide: Side = src.closest('#dash') ? 'dash' : 'rail';
   const x0 = e.clientX, y0 = e.clientY, at = btn.getBoundingClientRect(), dx = x0 - at.left, dy = y0 - at.top;
-  let ghost: HTMLElement | null = null, hot: [Surf, number] | null = null;
+  let ghost: HTMLElement | null = null, hot: [Surf, number] | null = null, spanMark: HTMLElement | null = null;
+  const syncGhost = (sf: Surf) => {
+    if (!ghost) return { w: at.width, h: at.height };
+    const sp = spanOf(ref, sf.x);
+    ghost.dataset.surf = sf.side;
+    if (sp > 1) {
+      ghost.dataset.span = String(sp);
+      ghost.style.setProperty('--span', String(sp));
+    } else {
+      delete ghost.dataset.span;
+      ghost.style.removeProperty('--span');
+    }
+    const w = sf.x ? sp * PITCH - 4 : 28, h = sf.x ? 28 : sp * PITCH - 4;
+    ghost.style.width = w + 'px';
+    ghost.style.height = h + 'px';
+    return { w, h };
+  };
   const cellOf = (ev: { clientX: number; clientY: number }): [Surf, number] | null => {
     const sf = surfAt(ev.clientX, ev.clientY), n = sf.x ? sf.n() : cells;
-    const c = nearest(sf, sf.x ? ev.clientX - dx + at.width / 2 : ev.clientY - dy + at.height / 2);
+    const same = sf.side === startSide;
+    const pos = sf.x ? (same ? ev.clientX - dx + at.width / 2 : ev.clientX) : (same ? ev.clientY - dy + at.height / 2 : ev.clientY);
+    const c = nearest(sf, pos);
     return c == null ? null : [sf, Math.min(n - 1, Math.max(0, c))];
   };
   const light = (h: [Surf, number] | null) => {
     if (h?.[0] === hot?.[0] && h?.[1] === hot?.[1]) return;
     for (const s of SURFS) s.el().querySelectorAll('.sl-box.hot').forEach((x) => x.classList.remove('hot'));
+    spanMark?.remove();
+    spanMark = null;
     hot = h;
-    if (h) h[0].el().querySelector(`:scope > .sl-box[data-i="${h[1]}"]`)?.classList.add('hot');
+    if (!h) return;
+    const [sf, c] = h, n = sf.x ? sf.n() : cells, slot = target(sf, ref, c);
+    const cs = absCells(ref, slot, n, sf.x).filter((k) => k >= 0 && k < n);
+    for (const k of cs) sf.el().querySelector(`:scope > .sl-box[data-i="${k}"]`)?.classList.add('hot');
+    if (cs.length > 1) {
+      const boxes = cs.map((k) => sf.el().querySelector<HTMLElement>(`:scope > .sl-box[data-i="${k}"]`)).filter(Boolean) as HTMLElement[];
+      if (boxes.length > 1) {
+        const sr = sf.el().getBoundingClientRect();
+        const rects = boxes.map((b) => b.getBoundingClientRect());
+        const l = Math.min(...rects.map((r) => r.left)) - sr.left;
+        const t = Math.min(...rects.map((r) => r.top)) - sr.top;
+        const r = Math.max(...rects.map((x) => x.right)) - sr.left;
+        const b = Math.max(...rects.map((x) => x.bottom)) - sr.top;
+        spanMark = document.createElement('i');
+        spanMark.className = 'sl-span-hot';
+        spanMark.style.cssText = `left:${l}px;top:${t}px;width:${r - l}px;height:${b - t}px`;
+        sf.el().append(spanMark);
+      }
+    }
   };
   const move = (ev: PointerEvent) => {
     if (!ghost) {
@@ -580,15 +623,17 @@ function drag(e: PointerEvent, src: HTMLElement, done: (sf: Surf, cell: number) 
       ghost = document.createElement('div');
       ghost.className = src.className + ' sl-ghost';
       ghost.dataset.kind = src.dataset.kind || '';
-      ghost.style.cssText = `width:${at.width}px;height:${at.height}px`;
       ghost.append(copy);
       document.body.append(ghost);
       src.classList.add('lift');
       for (const s of SURFS) s.el().classList.add('dragging');
     }
-    ghost.style.left = ev.clientX - dx + 'px';
-    ghost.style.top = ev.clientY - dy + 'px';
-    light(cellOf(ev));
+    const h = cellOf(ev), sf = h ? h[0] : surf(startSide);
+    const { w, h: gh } = syncGhost(sf);
+    const same = sf.side === startSide;
+    ghost.style.left = (same ? ev.clientX - dx : ev.clientX - w / 2) + 'px';
+    ghost.style.top = (same ? ev.clientY - dy : ev.clientY - gh / 2) + 'px';
+    light(h);
   };
   const stop = () => {
     removeEventListener('pointermove', move);
@@ -634,7 +679,7 @@ export function slotDrag(drop: (ref: string, slot: number, side: Side) => void) 
     const nav = (e.target as Element).closest<HTMLElement>('.sv'), b = (e.target as Element).closest<HTMLElement>('button, a');
     if (!nav || nav.parentElement !== sf.el() || !b || e.button !== 0 || isPin(nav.dataset.ref!) || nav.dataset.ref === 'btn:fold') return;
     const ref = nav.dataset.ref!;
-    drag(e, nav, (t, c) => drop(ref, target(t, ref, c), t.side));
+    drag(e, nav, ref, (t, c) => drop(ref, target(t, ref, c), t.side));
   });
 }
 

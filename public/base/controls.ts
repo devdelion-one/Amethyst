@@ -87,12 +87,12 @@ function toSetColors() {
   });
 }
 export const trayName = (hex: string): string => tray().find((c) => c.hex === hex)?.name || hex;
-export type ColorPick = { k: string; label: string; tip: string; chip: string; now: string; title?: string; attr: string; cls: string; dfltCls: string; dfltTip: string; dfltStyle: string; style: (hex: string) => string; icon: string; name?: (c: Swatch) => string; foot?: string; line?: boolean; ic?: string; grid?: string };
+export type ColorPick = { k: string; label: string; tip: string; chip: string; now: string; title?: string; attr: string; cls: string; dfltCls: string; dfltTip: string; dfltStyle: string; style: (hex: string) => string; icon: string; name?: (c: Swatch) => string; pre?: string; foot?: string; line?: boolean; ic?: string; grid?: string };
 const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 export function colorRow(o: ColorPick, own: string | null | undefined, fly: string): string {
   const cell = (cls: string, on: boolean, v: string, tip: string, style: string) => `<button class="${cls}${on ? ' on' : ''}" data-${o.attr}="${esc(v)}" aria-label="${esc(tip)}"${style ? ` style="${esc(style)}"` : ''}>${o.icon}</button>`;
   const grid = o.grid ?? cell(`${o.dfltCls} dft`, !own, '', o.dfltTip, o.dfltStyle) + tray().map((c) => cell(o.cls, c.hex === own, c.hex, o.name ? o.name(c) : c.name, o.style(c.hex))).join('') + trayAdd();
-  const open = fly === o.k, pop = `<div class="pk-fly"><div class="mh pk-h"><span class="mh-n">${esc(o.label)}</span></div><div class="pk-grid">${grid}</div>${o.foot || ''}</div>`;
+  const open = fly === o.k, pop = `<div class="pk-fly"><div class="mh pk-h"><span class="mh-n">${esc(o.label)}</span></div>${o.pre || ''}<div class="pk-grid">${grid}</div>${o.foot || ''}</div>`;
   const tip = `${cap(o.label)}&#10;${esc(cap(o.tip))}${/[.!?]$/.test(o.tip) ? '' : '.'}`;
   return `<div class="pk-row"><button class="mi pk pk-line${open ? ' open' : ''}" data-fly="${o.k}" title="${tip}"><i class="tb-ic">${o.ic ?? ICONS.drop}</i><span class="mi-n">${esc(o.label)}</span><span class="pk-cur" title="${esc(o.now)}">${o.chip}</span><span class="pk-ar">›</span></button>${open ? pop : ''}</div>`;
 }
@@ -102,7 +102,45 @@ export function setSwatches(icon: string, own: string | null | undefined, mark: 
   return colorRow({ k: 'col', label: 'color', tip: "the icon's color", chip: `<i class="pk-ic sw-ic"${tint(base)}>${icon}</i>`, now: own ? trayName(own) : 'by place', attr: 'sc', cls: 'sw-ic', dfltCls: 'sw-ic', dfltTip: 'By place: the color its place gives. The default.', dfltStyle: place ? `--ly-c:${place}` : '', style: (h) => `--ly-c:${col(h)}`, icon, foot: cfg }, own, fly) +
     colorRow({ k: 'mk', label: 'mark', tip: 'a bookmark on the button', ic: ICONS.mark2, chip: mark ? `<i class="pk-ic sw-mk mk" style="--mk:${col(mark)}">${icon}</i>` : '<i class="pk-ic"><i class="pk-none"></i></i>', now: mark ? trayName(mark) : 'none', attr: 'smk', cls: 'sw-mk mk', dfltCls: 'sw-mk', dfltTip: 'None: no bookmark. The default.', dfltStyle: '', style: (h) => `--mk:${col(h)}`, icon, name: (c) => `${c.name} mark` }, mark, fly);
 }
-export const flyFocus = () => ($('#colormenu .pk-fly .pk-grid .on') || $('#colormenu .pk-fly .pk-grid button')) as HTMLElement | null;
+export const flyFocus = () => ($('#colormenu .pk-fly .on') || $('#colormenu .pk-fly button')) as HTMLElement | null;
+
+const bigMap = (): Record<string, boolean> => {
+  const m = pref('slot:big');
+  return m && typeof m === 'object' ? m : {};
+};
+export function isBig(id: string): boolean {
+  const m = bigMap();
+  if (id in m) return !!m[id];
+  if (id === 'list:newchat' || id === 'btn:newchat' || id.startsWith('btn:newchat~')) return !!pref('newbtn:big');
+  if (id === 'btn:ue' || id.startsWith('btn:ue~')) return !!pref('ue:big');
+  return false;
+}
+export function setBig(id: string, on: boolean) {
+  setPref('slot:big', { ...bigMap(), [id]: on });
+}
+export function dropBig(id: string) {
+  const m = bigMap();
+  if (!(id in m)) return;
+  const next = { ...m };
+  delete next[id];
+  setPref('slot:big', next);
+}
+export function moveBig(from: string, to: string) {
+  const m = bigMap();
+  if (!(from in m) && !(to in m)) return;
+  const next = { ...m };
+  if (from in m) next[to] = m[from];
+  else delete next[to];
+  delete next[from];
+  setPref('slot:big', next);
+}
+function clearBigFamily(match: (k: string) => boolean) {
+  const m = bigMap(), keys = Object.keys(m).filter(match);
+  if (!keys.length) return;
+  const next = { ...m };
+  for (const k of keys) delete next[k];
+  setPref('slot:big', next);
+}
 
 const NB_HEX = /^#[0-9a-f]{6}$/i;
 export function newBtnColor(): string {
@@ -121,7 +159,7 @@ export function setNewBtnColor(v: string) {
 export function paintNewBtn() {
   const root = document.documentElement, c = newBtnColor();
   const mode = !c ? 'default' : c === 'clear' ? 'clear' : c === 'accent' ? 'accent' : 'custom';
-  root.classList.toggle('newbtn-big', !!pref('newbtn:big'));
+  root.classList.toggle('newbtn-big', isBig('btn:newchat'));
   root.classList.toggle('accent-newbtn', mode === 'accent');
   root.dataset.newbtnColor = mode;
   if (mode === 'custom') root.style.setProperty('--nb-c', col(c));
@@ -129,17 +167,20 @@ export function paintNewBtn() {
 }
 export function newBtnColorRow(fly = ''): string {
   const cur = newBtnColor(), isHex = NB_HEX.test(cur), star = gem('ai');
+  const mode = (cls: string, on: boolean, v: string, label: string, tip: string) =>
+    `<button class="nb-mode ${cls}${on ? ' on' : ''}" data-nbc="${esc(v)}" title="${esc(`${label}\n${tip}`)}" aria-label="${esc(label)}">${star}<span>${esc(label)}</span></button>`;
+  const pre = `<div class="nb-modes">${
+    mode('nb-dft', !cur, '', 'Default', 'Amethyst violet star on a neutral button.') +
+    mode('nb-clr', cur === 'clear', 'clear', 'Grey', 'Subtle grey star with no fill or border.') +
+    mode('nb-acc', cur === 'accent', 'accent', 'Accent', 'Follows your current theme accent color.')
+  }</div><div class="sep"></div>`;
   const cell = (cls: string, on: boolean, v: string, tip: string, style = '') => `<button class="sw-ic nb-sw ${cls}${on ? ' on' : ''}" data-nbc="${esc(v)}" aria-label="${esc(tip)}"${style ? ` style="${esc(style)}"` : ''}>${star}</button>`;
-  const grid = cell('nb-dft', !cur, '', 'Default')
-    + cell('nb-clr', cur === 'clear', 'clear', 'Grey or clear')
-    + cell('nb-acc', cur === 'accent', 'accent', 'Accent')
-    + tray().map((c) => cell('nb-hex', cur === c.hex.toLowerCase(), c.hex.toLowerCase(), c.name, `--nb-c:${col(c.hex)}`)).join('')
-    + trayAdd();
+  const grid = tray().map((c) => cell('nb-hex', cur === c.hex.toLowerCase(), c.hex.toLowerCase(), c.name, `--nb-c:${col(c.hex)}`)).join('') + trayAdd();
   const chipCls = !cur ? 'nb-dft' : cur === 'clear' ? 'nb-clr' : cur === 'accent' ? 'nb-acc' : 'nb-hex';
   const chipStyle = isHex ? ` style="--nb-c:${esc(col(cur))}"` : '';
-  const now = !cur ? 'default' : cur === 'clear' ? 'clear' : cur === 'accent' ? 'accent' : trayName(cur);
+  const now = !cur ? 'default' : cur === 'clear' ? 'grey' : cur === 'accent' ? 'accent' : trayName(cur);
   const foot = `<div class="sep"></div><label class="mi nb-pick" title="Any color&#10;Pick any custom color for the new agent button."><i class="tb-ic">${ICONS.drop}</i><span class="mi-n">any color…</span><input type="color" data-nbc-pick value="${esc(isHex ? cur : '#888888')}"></label>`;
-  return colorRow({ k: 'nbc', label: 'color', tip: "the new agent button's color", chip: `<i class="pk-ic sw-ic nb-sw ${chipCls}"${chipStyle}>${star}</i>`, now, attr: 'nbc', cls: 'sw-ic nb-sw', dfltCls: 'sw-ic nb-sw nb-dft', dfltTip: 'Default', dfltStyle: '', style: (h) => `--nb-c:${col(h)}`, icon: star, grid, foot }, cur, fly);
+  return colorRow({ k: 'nbc', label: 'color', tip: "the new agent button's color", chip: `<i class="pk-ic sw-ic nb-sw ${chipCls}"${chipStyle}>${star}</i>`, now, attr: 'nbc', cls: 'sw-ic nb-sw', dfltCls: 'sw-ic nb-sw nb-dft', dfltTip: 'Default', dfltStyle: '', style: (h) => `--nb-c:${col(h)}`, icon: star, pre, grid, foot }, cur, fly);
 }
 
 export const ICONS: Record<string, string> = {
@@ -799,7 +840,7 @@ type TopRow = { k: string; id: string; label: string; sel: string; icon: () => s
 type TopPre = { rows: (grip?: boolean) => string; pick: (b: HTMLElement) => boolean; move: [string, (keys: string[]) => unknown] };
 export type TopRowRef = { k: string; id: string; sel: string };
 type TopOpts = { tray?: string; head?: string; acts?: string; opts?: string; buttons?: string; pick?: [string, string]; onPick?: (b: HTMLElement) => unknown; onShow?: (r: { k?: string; id?: string; sel?: string; pin?: string }) => unknown; count?: (r: TopRowRef) => number | null; onPut?: (r: TopRowRef) => unknown };
-export const copyHook = { row: (): string => '', pick: (_b: HTMLElement): boolean => false };
+export const copyHook = { row: (): string => '', pick: (_b: HTMLElement): boolean => false, ref: (): string => '', count: (_r: TopRowRef): number | null => null, put: (_r: TopRowRef): unknown => undefined };
 export const useCopyHook = (h: typeof copyHook) => Object.assign(copyHook, h);
 const shownBtn = (sel: string) => () => !atWs() && !document.querySelector(sel)?.hasAttribute('hidden');
 const rowIc = (k: string) => () => ROW_IC[k]?.() || '';
@@ -848,14 +889,18 @@ export const topRow = (on: boolean, attrs: string, icon: string, label: string, 
 export function topBarMenu(x: number, y: number, o: TopOpts = {}) {
   const row = (r: TopRow, g: (typeof TOPBAR)[number]) => {
     const say = r.why?.() || r.tip || (r.id ? PREFS[r.k].tips?.[r.id] : PREFS[r.k].desc) || r.d || '';
-    const n = o.tray ? null : o.count?.(r) ?? null;
-    if (n != null) {
-      const tip = `${cap(r.label)}
-${n ? `Puts one more here. ${n} on the rail and dashboard now.` : 'Puts it here.'} Right-click one to remove it.`;
-      return { html: `<button class="mi tb-put${n ? '' : ' none'}" data-tk="${r.k}" data-ti="${r.id}" data-put title="${esc(tip)}"><i class="tb-ic">${r.icon()}</i><span class="mi-n">${esc(r.label)}</span><span class="tb-here">put here</span><span class="tb-n">${n}</span></button>`, grip: false };
-    }
-    const html = topRow(rowOn(r) || !!r.fixed, `data-tk="${r.k}" data-ti="${r.id}"${say ? ` title="${esc(cap(r.label))}&#10;${esc(say)}"` : ''}`, r.icon(), esc(r.label), '', r.fixed);
-    return { html: useRow(r.k, r.id, r.sel, esc(r.label), html, !!g.move), grip: !!g.move };
+    const countFn = o.count || copyHook.count;
+    const n = o.tray ? null : countFn(r);
+    const on = rowOn(r) || !!r.fixed;
+    const badge = n != null && n >= 2 ? `<span class="tb-n" title="${n} copies on screen">×${n}</span>` : '';
+    const html = topRow(on, `data-tk="${r.k}" data-ti="${r.id}"${say ? ` title="${esc(cap(r.label))}&#10;${esc(say)}"` : ''}`, r.icon(), esc(r.label), badge, r.fixed);
+    const putLabel = o.onPut ? '+ here' : '+ copy';
+    const putTip = o.onPut ? `Add another copy\nPuts one more ${r.label} here. Right-click any copy to remove it.` : `Add another copy\nPuts one more ${r.label} on the rail. Right-click any copy to remove it.`;
+    const putBtn = n != null && n >= 1 ? `<button class="tb-open sub" data-tk="${r.k}" data-ti="${r.id}" data-put title="${esc(putTip)}">${putLabel}</button>` : '';
+    const open = r.sel && pref('barmenu:open') ? openBtn(r.k, r.id, r.sel, esc(r.label)) : '';
+    const acts = putBtn || open ? `<span class="tb-acts">${putBtn}${open}</span>` : '';
+    if (acts) return { html: actRow(r.id ? `${r.k}:${r.id}` : r.k, html, acts, !!g.move), grip: !!g.move };
+    return { html: g.move ? gripRow(r.id ? `${r.k}:${r.id}` : r.k, html) : html, grip: !!g.move };
   };
   const rowsOf = (g: (typeof TOPBAR)[number]) => gripRuns(g.g, live(g.rows).map((r) => row(r, g)));
   const flat = (g: (typeof TOPBAR)[number]) => live(g.rows).map((r) => row(r, { ...g, move: undefined }).html).join('');
@@ -866,17 +911,17 @@ ${n ? `Puts one more here. ${n} on the rail and dashboard now.` : 'Puts it here.
       return inner ? subLabel(name) + inner : '';
     };
     const tools = TOPBAR.map((g) => g.g).filter((g) => g !== 'strip' && g !== 'modes');
-    html = (o.head || menuHead(ICONS.strip, 'rail')) + bands({ actions: copyHook.row() + ((o.acts ?? railActs.rows()) || ''), options: dashRow() + railRow(), buttons: band('panels', ['strip']) + band('modes', ['modes']) + band('tools', tools) });
+    html = (o.head || menuHead(ICONS.strip, 'rail & dashboard')) + bands({ actions: copyHook.row() + ((o.acts ?? railActs.rows()) || ''), options: dashRow() + railRow(), buttons: band('panels', ['strip']) + band('modes', ['modes']) + band('tools', tools) });
   } else {
     const g = TOPBAR.find((t) => t.g === o.tray)!;
-    html = (o.head || menuHead(g.icon?.() || '', g.name)) + bands({ actions: copyHook.row() + (o.acts || '') + (g.acts?.() || ''), options: o.opts, buttons: (o.buttons || '') + rowsOf(g), pick: o.pick, other: `<button class="mi tb-all" data-tball><i class="tb-ic">${ICONS.strip}</i><span class="mi-n">all rail buttons</span><span class="kc">›</span></button>` });
+    html = (o.head || menuHead(g.icon?.() || '', g.name)) + bands({ actions: copyHook.row() + (o.acts || '') + (g.acts?.() || ''), options: o.opts, buttons: (o.buttons || '') + rowsOf(g), pick: o.pick, other: `<button class="mi tb-all" data-tball><i class="tb-ic">${ICONS.strip}</i><span class="mi-n">all rail &amp; dashboard buttons</span><span class="kc">›</span></button>` });
   }
   popMenu(x, y, html, (b) => {
     const d = b.dataset;
     if (copyHook.pick(b)) return;
     if (d.tk) {
       const r = TOPBAR.flatMap((t) => t.rows).find((t) => t.k === d.tk && t.id === d.ti)!;
-      if ('put' in d) return o.onPut?.(r);
+      if ('put' in d) return (o.onPut || copyHook.put)(r);
       const wasOn = rowOn(r);
       if (!wasOn) o.onShow?.(r);
       return r.id ? setOff(r.k, r.id, wasOn) : setPref(r.k, !saved(r.k));
@@ -1158,7 +1203,12 @@ onPref('accentNewBtn', () => {
   paintNewBtn();
 });
 onPref('newbtn:color', paintNewBtn);
-onPref('newbtn:big', paintNewBtn);
+onPref('newbtn:big', () => {
+  clearBigFamily((k) => k === 'list:newchat' || k === 'btn:newchat' || k.startsWith('btn:newchat~'));
+  paintNewBtn();
+});
+onPref('ue:big', () => clearBigFamily((k) => k === 'btn:ue' || k.startsWith('btn:ue~')));
+onPref('slot:big', paintNewBtn);
 onPref('accentTurnLines', accents);
 export const placeClass = (key: string, place: string) => `off-${key.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${place}`;
 const PLACED = Object.keys(PREFS).filter((k) => PREFS[k].places);

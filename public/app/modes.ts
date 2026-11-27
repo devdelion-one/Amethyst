@@ -2,9 +2,9 @@ import { filesChanged, setMark, togglePin } from './actions.ts';
 import { markMenu } from '../base/agentrow.ts';
 import { agentMenu, launchAgent, pinOf } from '../base/agentmenu.ts';
 import type { TopRowRef } from '../base/controls.ts';
-import { ask, barMenu, flyFocus, ICONS, keepMenu, keyChip, menuHead, modeOrder, popMenu, railActions, setSwatches, sortable, sorting, topBarMenu, topRow } from '../base/controls.ts';
+import { ask, barMenu, flyFocus, ICONS, isBig, keepMenu, keyChip, menuHead, modeOrder, popMenu, railActions, setSwatches, sortable, sorting, topBarMenu, topRow } from '../base/controls.ts';
 import { addSet, agentLine, createDeck, dropSet, markSet, moveAway, moveSet, moveSetChats, nextColor, orderHex, putInSet, restoreSet, setAgents, setAway, setColor, setInfo, setInfos, setOf, setOn, sets, setsMenu, setTurn, shareDeck, showSet, takeHere, toOrch } from '../decks/deck.ts';
-import { aim, bottomBtns, btnShown, dragging, freeAt, freeNear, inDash, isCopy, moveRef, orderAt, paintSlots, pinDropIn, placeAt, placeBoth, railSel, setSpan, slotDrag, topBtns, watchFold, watchSlots, withCopies } from './slots.ts';
+import { aim, baseOf, bottomBtns, btnShown, clearSpans, dragging, freeAt, freeNear, inDash, isCopy, moveRef, orderAt, paintSlots, pinDropIn, placeAt, placeBoth, railSel, setSpan, slotDrag, topBtns, watchFold, watchSlots, withCopies } from './slots.ts';
 import type { Side, SlotView, Spot } from './slots.ts';
 import { drawDash, showDash } from './topdash.ts';
 import type { MoveHow } from '../decks/deck.ts';
@@ -269,9 +269,13 @@ export function paintSwitch() {
   }
   const order = modeOrder();
   views.sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind));
-  setSpan('btn:newchat', pref('newbtn:big') ? 4 : 1);
-  setSpan('btn:ue', pref('ue:big') ? 4 : 1, pref('ue:big') ? 4 : 1);
   const all = withCopies([...topBtns(), ...views, ...bottomBtns()]);
+  clearSpans();
+  for (const v of all) {
+    const b = baseOf(v.ref);
+    if (b === 'btn:newchat' && isBig(v.ref)) setSpan(v.ref, 4, 1);
+    else if (b === 'btn:ue' && isBig(v.ref)) setSpan(v.ref, 4, 4);
+  }
   lastAll = all;
   showDash(all.some((v) => v.shown && inDash(v.ref)));
   const { at, first, fresh, rail, dash, dashAt } = placeBoth(all);
@@ -703,6 +707,7 @@ onPref('modesHidden', () => {
 });
 onPref('newbtn:big', redrawSwitch);
 onPref('ue:big', redrawSwitch);
+onPref('slot:big', redrawSwitch);
 for (const q of SURFS) $(q).addEventListener('click', (e: MouseEvent) => {
   const b = (e.target as Element).closest<HTMLElement>('[data-mode],[data-ed],[data-ed-add],[data-set],[data-set-add]');
   if (!b) return;

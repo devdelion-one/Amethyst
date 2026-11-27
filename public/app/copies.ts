@@ -60,6 +60,9 @@ useCopyHook({
     target = '';
     return true;
   },
+  ref: () => target,
+  count,
+  put: (r) => put(r, null),
 });
 
 const COPY_ATTR = 'data-copy';

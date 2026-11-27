@@ -1,6 +1,7 @@
 import { newBtnHtml } from './chatlist.ts';
 import { ncInner } from './header.ts';
 import { agentMenu, agentShort, newHint, PIN_PLACES, pinOf, pinSame, ringSvg, setPin, setPinSame } from '../base/agentmenu.ts';
+import { isBig } from '../base/controls.ts';
 import { gem } from '../base/kinds.ts';
 import { chatsOn, pref } from '../base/prefs.ts';
 import { selBarHtml } from '../base/quote.ts';
@@ -65,7 +66,7 @@ function real(id: string, cls: string, inner?: string) {
   return quiet(c.outerHTML);
 }
 const pics: Record<string, () => string> = {
-  top: () => `<span class="tray pn-tray">${real('btn-newchat', 'pn-nc', ncInner())}</span>`,
+  top: () => `<span class="tray pn-tray">${real('btn-newchat', `pn-nc${isBig('btn:newchat') ? ' big' : ''}`, ncInner())}</span>`,
   list: () => `<span class="oc-gh pn-lh">${quiet(newBtnHtml())}</span>`,
   agents: () => `<span class="dk-hint pn-hint">${quiet(newHint('chat'))}</span>`,
   text: () => `<span class="pn-col"><span class="pn-edsel">${real('ed-chat', '')}</span><span class="pn-seltxt">some selected text</span></span>`,

@@ -1,5 +1,5 @@
 import { bound, is, show } from '../base/binds.ts';
-import { ask, barMenu, dragWindow, fwHead, ICONS, keepMenu, keyChip, menuHead, MENU_IC, popMenu, rowIcons, sizeBar, TOPBAR, topBarMenu, topRow, winX } from '../base/controls.ts';
+import { ask, barMenu, copyHook, dragWindow, fwHead, ICONS, isBig, keepMenu, keyChip, menuHead, MENU_IC, popMenu, rowIcons, setBig, sizeBar, TOPBAR, topBarMenu, topRow, winX } from '../base/controls.ts';
 import { onFileSaved } from '../base/checkers.ts';
 import { createFind } from '../base/find.ts';
 import { tail } from '../base/tail.ts';
@@ -485,13 +485,14 @@ Builds ${x.name} as ${label(x, c)}.`)}"`, I_CFG, esc(label(x, c)));
   if (ok && pref('debug:on')) groups.push(mi('data-ueact="debug"', ICONS.bug, 'debug the editor', st.ed.open ? 'Attaches the debugger to the open editor.' : 'Starts the editor under the debugger.'));
   groups.push(mi('data-ueact="window"', I_WIN, 'show the build window', 'The build’s output, problems and logs.', keyChip(UEWINKEY)) + (i?.engine ? mi('data-ueact="editor"', I_EXT, 'open the editor', 'Opens the project in the Unreal Editor.', '', !i.path) : ''));
   const ce = !!pref('ue:clickeditor');
-  const opts = topRow(!!pref('ue:big'), 'data-ueopt="big" title="Bigger button&#10;Shows which build, its timer and result, with an open-the-editor part: 4 cells wide in the dashboard, 4 tall on the rail."', UE_ICON, 'bigger button') +
+  const ref = copyHook.ref(), bigId = ref === 'btn:ue' || ref.startsWith('btn:ue~') ? ref : 'btn:ue';
+  const opts = topRow(isBig(bigId), 'data-ueopt="big" title="Bigger button&#10;Shows which build, its timer and result, with an open-the-editor part: 4 cells wide in the dashboard, 4 tall on the rail. Applies to this button only."', UE_ICON, 'bigger button') +
     topRow(!ce, 'data-ueopt="click" data-v="0" title="A click builds&#10;A click, or the build key, builds the configuration ticked below."', I_PLAY, 'a click builds') +
     topRow(ce, 'data-ueopt="click" data-v="1" title="A click builds, then opens the editor&#10;A click, or the build key, builds the Editor target and opens Unreal Editor when it succeeds. With the editor open, a click does what it does today."', I_EXT, 'a click builds, then opens the editor') +
     topRow(!!pref('ue:edlog'), 'data-ueopt="edlog" title="Show the logs when the editor opens&#10;Opening Unreal Editor from Amethyst opens the build window on the editor’s log."', I_WIN, 'show the logs when the editor opens');
   topBarMenu(e.clientX, e.clientY, { tray: 'ue', head: menuHead(UE_ICON, 'Unreal build'), acts: groups.join('<div class="sep"></div>'), opts, pick: cfgs ? ['configuration', cfgs] : undefined, onPick: (b) => {
     const d = b.dataset;
-    if (d.ueopt === 'big') return setPref('ue:big', !pref('ue:big'));
+    if (d.ueopt === 'big') return setBig(bigId, !isBig(bigId));
     if (d.ueopt === 'click') return setPref('ue:clickeditor', d.v === '1');
     if (d.ueopt === 'edlog') return setPref('ue:edlog', !pref('ue:edlog'));
     if (d.uecfg) {

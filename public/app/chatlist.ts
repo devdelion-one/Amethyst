@@ -3,7 +3,7 @@ import { agentMenu, agentShort, pinOf } from '../base/agentmenu.ts';
 import { agentName, amElse, amKey, esc, store, track } from '../base/util.ts';
 import { busyNow, gem, workGem } from '../base/kinds.ts';
 import { crystalOf } from '../base/codes.ts';
-import { barMenu, ICONS, miRow, rowIcons, sortable, topRow } from '../base/controls.ts';
+import { barMenu, ICONS, isBig, miRow, rowIcons, sortable, topRow } from '../base/controls.ts';
 import { toolSign, TOOL_IC } from '../base/tools.ts';
 import { markSign, noteFirst, NOTE_IC, took, whenSpan } from '../base/agentrow.ts';
 import type { Row } from '../base/agentrow.ts';
@@ -130,7 +130,7 @@ export function ocRow(a: Agent, c: RowCtx): Row {
 }
 
 export function newBtnHtml() {
-  const big = !!pref('newbtn:big'), on = chatsOn(), k = pinOf('list'), one = on.length === 1 ? on[0][0] : k;
+  const big = isBig('list:newchat'), on = chatsOn(), k = pinOf('list'), one = on.length === 1 ? on[0][0] : k;
   const text = one ? `+ ${agentShort(one)}` : '+ Agent';
   const aria = one ? `a new ${agentName(one)} chat` : 'a new agent chat';
   return `<button class="oc-new${big ? ' big' : ''}" data-oc-new aria-label="${esc(aria)}" title="New chat&#10;Starts a new chat with an agent.&#10;&#10;Right-click to pick another agent, pin one, or change its size and color.">${gem('ai')}${big ? `<span class="oc-new-l">${esc(text)}</span>` : ''}</button>`;
@@ -186,7 +186,7 @@ export function listMenu(list: string, sel: string, menu: string, more: MenuMore
   });
 }
 
-export const listPrefs = (list: string) => ['folders', 'newBtn', 'look', 'sort', 'code', 'tools', 'wt', 'answer', 'subs'].map((x) => listKey(list, x)).concat(['list:eyeOrder', 'subagents:on', 'marks:on', 'marks:names', 'newbtn:big', 'agent:pin', 'agents:off']);
+export const listPrefs = (list: string) => ['folders', 'newBtn', 'look', 'sort', 'code', 'tools', 'wt', 'answer', 'subs'].map((x) => listKey(list, x)).concat(['list:eyeOrder', 'subagents:on', 'marks:on', 'marks:names', 'newbtn:big', 'slot:big', 'agent:pin', 'agents:off']);
 
 const sortKeyOf = (list: string) => (list === 'orch' ? 'orch' : 'decklist') + ':placed:' + levelKey() + amKey;
 const keyOf = (a: Agent) => a.session || a.id;
@@ -244,7 +244,7 @@ export function createChatList(o: ListOpts) {
     e.preventDefault();
     e.stopPropagation();
     const r = nb.getBoundingClientRect();
-    agentMenu(r.left, r.bottom + 6, (p) => o.newChat(nb, p), '', 'chat:', false, { place: 'list', newBtn: true });
+    agentMenu(r.left, r.bottom + 6, (p) => o.newChat(nb, p), '', 'chat:', false, { place: 'list', newBtn: true, bigId: 'list:newchat' });
   }, true);
   const fh = folderHost(el, { list, attr, agentOf: (id) => agents.all.get(id), repaint: () => void again(), sort: { on: () => pref(k('sort')) !== 'latest', put: place } });
   sortable(el, {

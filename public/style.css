@@ -129,31 +129,31 @@ body.resizing-y, body.resizing-y * { cursor: row-resize !important; user-select:
 :is(#switch, #dash) #btn-ue .ue-st { position: absolute; right: 0; bottom: 0; width: auto; font-size: var(--fs-mark); line-height: 1; }
 :is(#switch, #dash) #btn-ue .ue-ring { width: 8px; height: 8px; border-width: 1.5px; }
 #btn-ue .ue-ed { display: none; }
-:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])) .ue-ty { display: none; }
-:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])) { display: flex; align-items: center; gap: 4px; padding: 0; border: 1px solid var(--line); background: var(--raised); color: var(--text); font-size: var(--fs-xs); font-weight: 500; overflow: hidden; }
+:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), .sv.sl-ghost[data-span] > :is(#btn-ue, [data-copy="btn:ue"])) .ue-ty { display: none; }
+:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), .sv.sl-ghost[data-span] > :is(#btn-ue, [data-copy="btn:ue"])) { display: flex; align-items: center; gap: 4px; padding: 0; border: 1px solid var(--line); background: var(--raised); color: var(--text); font-size: var(--fs-xs); font-weight: 500; overflow: hidden; }
 :is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])):hover { border-color: var(--text-dim); background: var(--raised); }
-:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])).ue-run { border-color: color-mix(in srgb, var(--accent) 60%, var(--line)); }
-:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])) .ue-ic { flex: none; width: 14px; height: 14px; color: var(--text-dim); }
+:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), .sv.sl-ghost[data-span] > :is(#btn-ue, [data-copy="btn:ue"])).ue-run { border-color: color-mix(in srgb, var(--accent) 60%, var(--line)); }
+:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), .sv.sl-ghost[data-span] > :is(#btn-ue, [data-copy="btn:ue"])) .ue-ic { flex: none; width: 14px; height: 14px; color: var(--text-dim); }
 :is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])):is(.ue-run, :hover) .ue-ic { color: var(--accent); }
-:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])) .ue-cf { display: block; min-width: 0; overflow: hidden; white-space: nowrap; }
-:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])) .ue-st { position: static; display: flex; align-items: center; gap: 3px; font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
-:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])).ue-ok .ue-st { color: var(--ok); }
-:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])).ue-fail .ue-st { color: var(--danger); }
-:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])) .ue-tm { display: inline; color: var(--text); }
-:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])) .ue-ring { width: 9px; height: 9px; border-width: 1.5px; }
-:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])) .ue-ed { position: relative; display: grid; place-items: center; flex: none; color: var(--text-dim); }
+:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), .sv.sl-ghost[data-span] > :is(#btn-ue, [data-copy="btn:ue"])) .ue-cf { display: block; min-width: 0; overflow: hidden; white-space: nowrap; }
+:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), .sv.sl-ghost[data-span] > :is(#btn-ue, [data-copy="btn:ue"])) .ue-st { position: static; display: flex; align-items: center; gap: 3px; font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
+:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), .sv.sl-ghost[data-span] > :is(#btn-ue, [data-copy="btn:ue"])).ue-ok .ue-st { color: var(--ok); }
+:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), .sv.sl-ghost[data-span] > :is(#btn-ue, [data-copy="btn:ue"])).ue-fail .ue-st { color: var(--danger); }
+:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), .sv.sl-ghost[data-span] > :is(#btn-ue, [data-copy="btn:ue"])) .ue-tm { display: inline; color: var(--text); }
+:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), .sv.sl-ghost[data-span] > :is(#btn-ue, [data-copy="btn:ue"])) .ue-ring { width: 9px; height: 9px; border-width: 1.5px; }
+:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), .sv.sl-ghost[data-span] > :is(#btn-ue, [data-copy="btn:ue"])) .ue-ed { position: relative; display: grid; place-items: center; flex: none; color: var(--text-dim); }
 :is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])) .ue-ed:hover { background: var(--hover); color: var(--text-strong); }
-:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])) .ue-ed svg { width: 13px; height: 13px; }
-:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])) .ue-edot { position: absolute; top: 4px; right: 4px; width: 5px; height: 5px; border-radius: 50%; background: var(--ok); }
-#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]) { width: calc(var(--span, 1) * 32px - 4px); padding-left: 6px; }
-#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]) .ue-cf { flex: 1 1 auto; text-overflow: ellipsis; text-align: left; }
-#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]) .ue-st { flex: none; justify-content: flex-end; width: 38px; padding-right: 4px; }
-#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]) .ue-ed { align-self: stretch; width: 28px; border-left: 1px solid var(--line); }
-#switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]) { flex-direction: column; justify-content: flex-start; gap: 5px; width: 28px; height: calc(var(--span, 1) * 32px - 4px); min-height: 0; padding-top: 7px; font-size: var(--fs-2xs); }
-#switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]) .ue-ic { width: 15px; height: 15px; }
-#switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]) .ue-cf { flex: none; max-width: 26px; font-size: var(--fs-2xs); text-align: center; }
-#switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]) .ue-st { flex: none; flex-direction: column; justify-content: flex-start; gap: 4px; width: auto; height: 30px; font-size: var(--fs-2xs); }
-#switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]) .ue-ed { margin-top: auto; width: 100%; height: 28px; border-top: 1px solid var(--line); }
+:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), .sv.sl-ghost[data-span] > :is(#btn-ue, [data-copy="btn:ue"])) .ue-ed svg { width: 13px; height: 13px; }
+:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), .sv.sl-ghost[data-span] > :is(#btn-ue, [data-copy="btn:ue"])) .ue-edot { position: absolute; top: 4px; right: 4px; width: 5px; height: 5px; border-radius: 50%; background: var(--ok); }
+:is(#dash > .slots > .sv[data-span], .sv.sl-ghost[data-span][data-surf="dash"]) > :is(#btn-ue, [data-copy="btn:ue"]) { width: calc(var(--span, 1) * 32px - 4px); padding-left: 6px; }
+:is(#dash > .slots > .sv[data-span], .sv.sl-ghost[data-span][data-surf="dash"]) > :is(#btn-ue, [data-copy="btn:ue"]) .ue-cf { flex: 1 1 auto; text-overflow: ellipsis; text-align: left; }
+:is(#dash > .slots > .sv[data-span], .sv.sl-ghost[data-span][data-surf="dash"]) > :is(#btn-ue, [data-copy="btn:ue"]) .ue-st { flex: none; justify-content: flex-end; width: 38px; padding-right: 4px; }
+:is(#dash > .slots > .sv[data-span], .sv.sl-ghost[data-span][data-surf="dash"]) > :is(#btn-ue, [data-copy="btn:ue"]) .ue-ed { align-self: stretch; width: 28px; border-left: 1px solid var(--line); }
+:is(#switch > .sv[data-span], .sv.sl-ghost[data-span][data-surf="rail"]) > :is(#btn-ue, [data-copy="btn:ue"]) { flex-direction: column; justify-content: flex-start; gap: 5px; width: 28px; height: calc(var(--span, 1) * 32px - 4px); min-height: 0; padding-top: 7px; font-size: var(--fs-2xs); }
+:is(#switch > .sv[data-span], .sv.sl-ghost[data-span][data-surf="rail"]) > :is(#btn-ue, [data-copy="btn:ue"]) .ue-ic { width: 15px; height: 15px; }
+:is(#switch > .sv[data-span], .sv.sl-ghost[data-span][data-surf="rail"]) > :is(#btn-ue, [data-copy="btn:ue"]) .ue-cf { flex: none; max-width: 26px; font-size: var(--fs-2xs); text-align: center; }
+:is(#switch > .sv[data-span], .sv.sl-ghost[data-span][data-surf="rail"]) > :is(#btn-ue, [data-copy="btn:ue"]) .ue-st { flex: none; flex-direction: column; justify-content: flex-start; gap: 4px; width: auto; height: 30px; font-size: var(--fs-2xs); }
+:is(#switch > .sv[data-span], .sv.sl-ghost[data-span][data-surf="rail"]) > :is(#btn-ue, [data-copy="btn:ue"]) .ue-ed { margin-top: auto; width: 100%; height: 28px; border-top: 1px solid var(--line); }
 :is(#switch, #dash) #btn-more { border-color: transparent; background: none; color: var(--text-dim); }
 :is(#switch, #dash) #btn-more:hover { border-color: transparent; background: var(--hover); color: var(--text-strong); }
 :is(#switch, #dash) #btn-more .ic { width: 17px; height: 17px; stroke-width: 1.35; }
@@ -1371,9 +1371,20 @@ body.fg-toast { margin: 0; overflow: hidden; background: var(--raised); user-sel
 .sl-box { position: absolute; left: calc((var(--act-w) - 26px) / 2); width: 26px; height: 26px; border: 1px dashed color-mix(in srgb, var(--text-faint) 85%, transparent); border-radius: var(--r-sm); opacity: 0; pointer-events: none; transition: opacity var(--t-fast); }
 :is(#switch, #dash > .slots).dragging .sl-box { opacity: 1; }
 :is(#switch, #dash) .sl-box.hot { border: 1px solid var(--text-dim); background: color-mix(in srgb, var(--text) 12%, transparent); }
+.sl-span-hot { position: absolute; z-index: 1; border: 1.5px solid var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); border-radius: var(--r-sm); pointer-events: none; }
 .sv.sl-ghost { position: fixed; z-index: 1000; display: grid; place-items: center; pointer-events: none; margin: 0; padding: 0; border-radius: var(--r-sm); outline: none; background: none; box-shadow: none; }
 .sv.sl-ghost > :is(button, a) { position: relative; display: grid; place-items: center; width: 100%; height: 100%; min-height: 0; margin: 0; padding: 0; border-radius: var(--r-sm); outline: none; text-decoration: none; box-shadow: var(--float); }
 .sv.sl-ghost > :is(button, a):not(.ly, [data-mode]) { border-color: transparent; background: var(--chrome); color: var(--text-strong); }
+.sv.sl-ghost[data-span] > :is(#btn-newchat, [data-copy="btn:newchat"]) { display: flex; align-items: center; justify-content: center; gap: 5px; padding: 0 8px; border: 1px solid color-mix(in srgb, var(--text) 14%, transparent); background: color-mix(in srgb, var(--text) 8%, var(--chrome)); color: var(--text-strong); font-size: var(--fs-sm); font-weight: 600; }
+.sv.sl-ghost[data-span] > :is(#btn-newchat, [data-copy="btn:newchat"]) .nc-l { display: inline; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sv.sl-ghost > :is(#btn-newchat, [data-copy="btn:newchat"]) .gem { color: var(--c-violet); }
+.sv.sl-ghost > :is(#btn-newchat, [data-copy="btn:newchat"]) .gem .b { fill: var(--text-strong); }
+:root[data-newbtn-color="clear"] .sv.sl-ghost > :is(#btn-newchat, [data-copy="btn:newchat"]) { border-color: transparent; background: var(--chrome); color: var(--text-dim); }
+:root[data-newbtn-color="clear"] .sv.sl-ghost > :is(#btn-newchat, [data-copy="btn:newchat"]) .gem { color: var(--text-dim); }
+:root[data-newbtn-color="accent"] .sv.sl-ghost > :is(#btn-newchat, [data-copy="btn:newchat"]) { border-color: color-mix(in srgb, var(--accent) 60%, transparent); background: color-mix(in srgb, var(--accent) 16%, var(--chrome)); }
+:root[data-newbtn-color="accent"] .sv.sl-ghost > :is(#btn-newchat, [data-copy="btn:newchat"]) .gem { color: var(--accent); }
+:root[data-newbtn-color="custom"] .sv.sl-ghost > :is(#btn-newchat, [data-copy="btn:newchat"]) { border-color: color-mix(in srgb, var(--nb-c) 65%, transparent); background: color-mix(in srgb, var(--nb-c) 18%, var(--chrome)); }
+:root[data-newbtn-color="custom"] .sv.sl-ghost > :is(#btn-newchat, [data-copy="btn:newchat"]) .gem { color: var(--nb-c); }
 .sv.sl-ghost .ic { width: 18px; height: 18px; stroke-width: 1.5; }
 .sets { display: flex; align-items: center; gap: 4px; border-radius: var(--r-lg); }
 .ly { justify-content: center; width: 28px; min-height: 28px; height: 28px; padding: 0; border: 1px solid color-mix(in srgb, var(--ly-c, var(--text-dim)) 55%, transparent); border-radius: var(--r-sm); background: color-mix(in srgb, var(--ly-c, var(--text-dim)) 10%, transparent); color: var(--ly-c, var(--text)); }
@@ -2304,13 +2315,7 @@ button:is(.sw-ic, .sw-pj):hover { background: none; }
 :is(#colormenu, .hr-cm) .mi .kc { flex: none; display: inline-flex; gap: 3px; margin-left: auto; padding-left: var(--s3); color: var(--text-dim); font-size: var(--fs-xs); font-weight: 400; }
 :is(#colormenu, .hr-cm) .mi .kc kbd { height: 14px; min-width: 14px; margin: 0; padding: 0 3px; border: 0; border-radius: var(--r-xs); background: color-mix(in srgb, var(--text) 11%, transparent); color: var(--text-dim); font-size: var(--fs-2xs); line-height: 14px; }
 #colormenu .mi.tb-row .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-#colormenu .mi.tb-put { padding-left: 26px; }
-#colormenu .mi.tb-put .mi-n { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-#colormenu .mi.tb-put .tb-here { flex: none; margin-left: auto; padding-left: var(--s3); color: var(--accent); font-size: var(--fs-xs); visibility: hidden; }
-#colormenu .mi.tb-put:is(:hover, :focus-visible) .tb-here { visibility: visible; }
-#colormenu .mi.tb-put .tb-n { flex: none; min-width: 16px; height: 14px; margin-left: var(--s2); padding: 0 3px; border-radius: var(--r-xs); background: color-mix(in srgb, var(--text) 11%, transparent); color: var(--text-dim); font-size: var(--fs-2xs); line-height: 14px; text-align: center; }
-#colormenu .mi.tb-put.none { color: var(--text-dim); }
-#colormenu .mi.tb-put.none .tb-n { background: none; color: var(--text-faint); }
+#colormenu .mi.tb-row .tb-n { flex: none; min-width: 16px; height: 14px; margin-left: auto; padding: 0 4px; border-radius: var(--r-xs); background: color-mix(in srgb, var(--text) 11%, transparent); color: var(--text-dim); font-size: var(--fs-2xs); line-height: 14px; text-align: center; }
 #colormenu .tb-ring { padding: 0; display: inline-grid; }
 #colormenu .pk-cur { flex: none; margin-left: auto; display: inline-grid; place-items: center; }
 #colormenu .pk-cur + .pk-ar { margin-left: 0; padding-left: var(--s2); }
@@ -2333,9 +2338,13 @@ button:is(.sw-ic, .sw-pj):hover { background: none; }
 #colormenu .tb-grip { flex: none; display: grid; place-items: center; width: 22px; align-self: stretch; color: var(--text-faint); font-size: var(--fs-sm); cursor: grab; }
 #colormenu .tb-grip:hover { color: var(--text-strong); }
 :is(#colormenu, .hr-cm) .tb-use { position: relative; }
+:is(#colormenu, .hr-cm) .tb-acts { flex: none; display: inline-flex; align-items: center; gap: var(--s1); margin-left: var(--s1); }
 :is(#colormenu, .hr-cm) .tb-open { flex: none; min-width: 48px; margin-left: var(--s1); text-align: center; visibility: hidden; height: 18px; min-height: 0; padding: 0 7px; border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); border-radius: var(--r-sm); background: var(--raised); color: var(--accent); font-size: var(--fs-xs); line-height: 16px; white-space: nowrap; cursor: pointer; }
-:is(#colormenu, .hr-cm) .tb-use:not(:has(> .tb-grip)) > .tb-open { margin-right: 22px; }
-:is(#colormenu, .hr-cm) .tb-use:is(:hover, :focus-within) > .tb-open { visibility: visible; }
+:is(#colormenu, .hr-cm) .tb-acts > .tb-open { margin-left: 0; }
+:is(#colormenu, .hr-cm) .tb-open.sub { border-color: var(--line); color: var(--text-dim); }
+:is(#colormenu, .hr-cm) .tb-open.sub:is(:hover, :focus-visible) { border-color: var(--text-dim); background: var(--chrome); color: var(--text-strong); }
+:is(#colormenu, .hr-cm) .tb-use:not(:has(> .tb-grip)) > :is(.tb-open, .tb-acts) { margin-right: 4px; }
+:is(#colormenu, .hr-cm) .tb-use:is(:hover, :focus-within) .tb-open { visibility: visible; }
 :is(#colormenu, .hr-cm) .tb-open:is(:hover, :focus-visible) { background: color-mix(in srgb, var(--accent) 18%, var(--raised)); color: var(--text-strong); outline: none; }
 .peek { outline: 1px dashed var(--accent) !important; outline-offset: -1px; }
 #colormenu .tb-all .d { font-size: var(--fs-sm); }
@@ -5461,9 +5470,10 @@ html.phone .ch-lv, html.phone .ch-tg, html.phone .ch-wt, html.phone .ch-mic { di
 
 #dash .sv[data-span] { width: calc(var(--span, 1) * 32px); }
 #dash .sv[data-span] > :is(#btn-newchat, [data-copy="btn:newchat"]) { display: flex; align-items: center; justify-content: center; gap: 5px; width: calc(var(--span, 1) * 32px - 4px); padding: 0 8px; font-size: var(--fs-sm); font-weight: 600; }
-:is(#btn-newchat, [data-copy="btn:newchat"], .pn-nc) .nc-l { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#switch .sv > :is(#btn-newchat, [data-copy="btn:newchat"]) .nc-l { display: none; }
-.newbtn-big .pn-nc { display: inline-flex; align-items: center; justify-content: center; gap: 5px; width: auto; padding: 0 9px 0 7px; font-size: var(--fs-sm); font-weight: 600; }
+:is(#btn-newchat, [data-copy="btn:newchat"]) .nc-l { display: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#dash .sv[data-span] > :is(#btn-newchat, [data-copy="btn:newchat"]) .nc-l { display: inline; }
+.pn-nc:not(.big) .nc-l { display: none; }
+.pn-nc.big { display: inline-flex; align-items: center; justify-content: center; gap: 5px; width: auto; padding: 0 9px 0 7px; font-size: var(--fs-sm); font-weight: 600; }
 .oc-gh > .oc-new.big { display: inline-flex; align-items: center; justify-content: center; gap: 4px; width: auto; padding: 0 8px; font: 600 var(--fs-xs)/1 var(--font); white-space: nowrap; }
 .oc-gh > .oc-new.big .oc-new-l { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
@@ -5471,8 +5481,8 @@ html.phone .ch-lv, html.phone .ch-tg, html.phone .ch-wt, html.phone .ch-mic { di
 :is(#app #btn-newchat, #app [data-copy="btn:newchat"], .pn-nc, .oc-gh > .oc-new):hover { border-color: transparent; background: color-mix(in srgb, var(--text) 10%, transparent); color: var(--text-strong); }
 :is(#app #btn-newchat, #app [data-copy="btn:newchat"], .pn-nc, .oc-gh > .oc-new) .gem { color: var(--c-violet); }
 :is(#app #btn-newchat, #app [data-copy="btn:newchat"], .pn-nc, .oc-gh > .oc-new) .gem .b { fill: var(--text-strong); }
-:root[data-newbtn-color="default"] :is(#app #dash .sv[data-span] > :is(#btn-newchat, [data-copy="btn:newchat"]), .newbtn-big .pn-nc, .oc-gh > .oc-new.big) { border-color: color-mix(in srgb, var(--text) 14%, transparent); background: color-mix(in srgb, var(--text) 8%, transparent); }
-:root[data-newbtn-color="default"] :is(#app #dash .sv[data-span] > :is(#btn-newchat, [data-copy="btn:newchat"]), .newbtn-big .pn-nc, .oc-gh > .oc-new.big):hover { border-color: color-mix(in srgb, var(--text) 24%, transparent); background: color-mix(in srgb, var(--text) 14%, transparent); }
+:root[data-newbtn-color="default"] :is(#app #dash .sv[data-span] > :is(#btn-newchat, [data-copy="btn:newchat"]), .pn-nc.big, .oc-gh > .oc-new.big) { border-color: color-mix(in srgb, var(--text) 14%, transparent); background: color-mix(in srgb, var(--text) 8%, transparent); }
+:root[data-newbtn-color="default"] :is(#app #dash .sv[data-span] > :is(#btn-newchat, [data-copy="btn:newchat"]), .pn-nc.big, .oc-gh > .oc-new.big):hover { border-color: color-mix(in srgb, var(--text) 24%, transparent); background: color-mix(in srgb, var(--text) 14%, transparent); }
 
 :root[data-newbtn-color="clear"] :is(#app #btn-newchat, #app [data-copy="btn:newchat"], .pn-nc, .oc-gh > .oc-new) { border-color: transparent; background: none; color: var(--text-dim); }
 :root[data-newbtn-color="clear"] :is(#app #btn-newchat, #app [data-copy="btn:newchat"], .pn-nc, .oc-gh > .oc-new):hover { border-color: transparent; background: color-mix(in srgb, var(--text) 10%, transparent); color: var(--text-strong); }
@@ -5491,6 +5501,16 @@ html.phone .ch-lv, html.phone .ch-tg, html.phone .ch-wt, html.phone .ch-mic { di
 :root[data-light][data-newbtn-color="custom"] :is(#app #btn-newchat, #app [data-copy="btn:newchat"], .pn-nc, .oc-gh > .oc-new) { border-color: var(--nb-c); background: color-mix(in srgb, var(--nb-c) 14%, var(--raised)); color: var(--text-strong); }
 :root[data-light][data-newbtn-color="custom"] :is(#app #btn-newchat, #app [data-copy="btn:newchat"], .pn-nc, .oc-gh > .oc-new):hover { background: color-mix(in srgb, var(--nb-c) 22%, var(--raised)); }
 
+#colormenu .nb-modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s1); padding: var(--s1) var(--s1) 2px; }
+#colormenu .nb-mode { display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 26px; min-height: 0; padding: 0 6px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--chrome); color: var(--text); font-size: var(--fs-xs); font-weight: 500; white-space: nowrap; }
+#colormenu .nb-mode:hover { background: var(--hover); color: var(--text-strong); }
+#colormenu .nb-mode.on { outline: 1.5px solid var(--text-strong); outline-offset: -1px; color: var(--text-strong); }
+#colormenu .nb-mode .gem { width: 13px; height: 13px; }
+#colormenu .nb-mode .gem .b { fill: var(--text-strong); }
+#colormenu .nb-mode.nb-dft .gem { color: var(--c-violet); }
+#colormenu .nb-mode.nb-clr .gem { color: var(--text-dim); }
+#colormenu .nb-mode.nb-acc { border-color: color-mix(in srgb, var(--accent) 60%, transparent); background: color-mix(in srgb, var(--accent) 16%, transparent); }
+#colormenu .nb-mode.nb-acc .gem { color: var(--accent); }
 #colormenu .nb-sw { border: 1px solid transparent; border-radius: var(--r-sm); }
 #colormenu .nb-sw .gem .b { fill: var(--text-strong); }
 #colormenu .nb-sw.nb-dft .gem { color: var(--c-violet); }

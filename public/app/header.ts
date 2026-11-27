@@ -2,7 +2,7 @@ import { newFolder, setSideOver, showSide, sideOver } from './actions.ts';
 import { togglePanel } from './pins.ts';
 import { bound, show } from '../base/binds.ts';
 import { toggleBottomBar } from '../base/bottombar.ts';
-import { actRow, ask, barMenu, buttonMenu, chip, menuButton, extColors, gripRow, hideMenu, ICONS, keepMenu, keyChip, moveMenu, paintNewBtn, popMenu, sortable, TOPBAR, topBarMenu, topBarRows, topRow } from '../base/controls.ts';
+import { actRow, ask, barMenu, buttonMenu, chip, copyHook, menuButton, extColors, gripRow, hideMenu, ICONS, keepMenu, keyChip, moveMenu, paintNewBtn, popMenu, sortable, TOPBAR, topBarMenu, topBarRows, topRow } from '../base/controls.ts';
 import { renderEditorMeta } from '../editor/editor.ts';
 import { floatMake, padOut, toggleInbox } from './float.ts';
 import { refreshGit, cloneProject } from '../git/git.ts';
@@ -374,11 +374,10 @@ qa.addEventListener('mouseover', () => {
   qa.dataset.tipKeys = 'quickAgent:show or hide';
 });
 qa.addEventListener('click', () => toggleQuickAgent());
-qa.addEventListener('contextmenu', (e: MouseEvent) => agentRight('quick', e, (k) => newQuickAgent(k), ['all rail buttons', () => topBarMenu(e.clientX, e.clientY, { tray: 'quick' })]));
+qa.addEventListener('contextmenu', (e: MouseEvent) => agentRight('quick', e, (k) => newQuickAgent(k), ['all rail & dashboard buttons', () => topBarMenu(e.clientX, e.clientY)]));
 
 const nc = $('#btn-newchat');
 export const ncInner = () => {
-  if (!pref('newbtn:big')) return gem('ai');
   const on = chatsOn(), k = pinOf('top'), one = on.length === 1 ? on[0][0] : k;
   return gem('ai') + `<span class="nc-l">${esc(one ? `+ ${agentShort(one)}` : '+ Agent')}</span>`;
 };
@@ -398,7 +397,7 @@ onPref('agents:off', ncPaint);
 onPref('agent:pin', ncPaint);
 onPref('newbtn:big', ncPaint);
 menuButton(nc, () => addAgent());
-nc.addEventListener('contextmenu', (e: MouseEvent) => agentRight('top', e, (k) => addAgent('chat', nc, k), ['all rail buttons', () => topBarMenu(e.clientX, e.clientY, { tray: 'agent' })], true));
+nc.addEventListener('contextmenu', (e: MouseEvent) => agentRight('top', e, (k) => addAgent('chat', nc, k), ['all rail & dashboard buttons', () => topBarMenu(e.clientX, e.clientY)], true, nc.closest('#dash') ? (copyHook.ref() || 'btn:newchat') : ''));
 
 const ib = $('#btn-inbox');
 ib.innerHTML = gem('inbox');
@@ -469,8 +468,8 @@ function makeMenu(x: number, y: number) {
   keepMenu(() => makeMenu(x, y));
   moveMenu('qk', (keys) => setQuickOrder(keys));
 }
-barMenu('#switch > .sv[data-g=make]', '', { open: (_el, e) => makeMenu(e.clientX, e.clientY) });
-for (const g of ['quick', 'agent', 'win', 'ue']) barMenu(`#switch > .sv[data-g=${g}]`, '', { open: (_el, e) => topBarMenu(e.clientX, e.clientY, { tray: g }) });
+barMenu(':is(#switch, #dash > .slots) > .sv[data-g=make]', '', { open: (_el, e) => makeMenu(e.clientX, e.clientY) });
+for (const g of ['quick', 'agent', 'win', 'ue']) barMenu(`:is(#switch, #dash > .slots) > .sv[data-g=${g}]`, '', { open: (_el, e) => topBarMenu(e.clientX, e.clientY, { tray: g }) });
 
 const STEPS = [5, 15, 30, 45, 60];
 const timerSteps = () => [0, ...store.get('timer:steps', STEPS)];

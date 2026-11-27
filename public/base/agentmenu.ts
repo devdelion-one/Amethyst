@@ -1,4 +1,4 @@
-import { arrowIntoSub, bands, chip, copyHook, flyFocus, ICONS, keepMenu, menuHead, newBtnColorRow, popMenu, setNewBtnColor, subMenu, topRow } from './controls.ts';
+import { arrowIntoSub, bands, chip, copyHook, flyFocus, ICONS, isBig, keepMenu, menuHead, newBtnColorRow, popMenu, setBig, setNewBtnColor, subMenu, topRow } from './controls.ts';
 import { bound, show } from './binds.ts';
 import { gem } from './kinds.ts';
 import { tell } from './notify.ts';
@@ -49,7 +49,7 @@ export const ringSvg = (on: boolean) => `<svg class="ic am-ring" viewBox="0 0 16
 export const newHint = (one: string) => `<p>Pick a ${esc(one)} on the right, or</p><button class="outline" data-dk-new>+ new</button>`;
 
 export type AgentMore = { label: string; icon: string; rows: () => string; pick: (b: HTMLButtonElement) => unknown; none?: string };
-export type AgentOpts = { place?: string; tail?: [string, () => unknown, string?]; more?: AgentMore | null; newBtn?: boolean };
+export type AgentOpts = { place?: string; tail?: [string, () => unknown, string?]; more?: AgentMore | null; newBtn?: boolean; bigId?: string };
 
 export function agentMenu(x: number, y: number, pick: (program: string) => unknown, head = '', pre = 'chat:', focus: boolean | string = false, o: AgentOpts = {}, fly = '') {
   const on = chatsOn(), place = o.place && on.length > 1 && pref('agent:pinRings') ? o.place : '', cur = place ? pinnedAt(place) : '';
@@ -67,14 +67,15 @@ export function agentMenu(x: number, y: number, pick: (program: string) => unkno
   const mo = o.more, more = mo ? `<div class="sep"></div><button class="mi" data-more${mo.none ? ` disabled title="${esc(mo.none)}"` : ' data-sub aria-haspopup="menu" aria-expanded="false"'}><i class="tb-ic">${mo.icon}</i><span class="mi-n">${esc(mo.label)}</span><span class="pk-ar">›</span></button>` : '';
   const tail = o.tail ? `<button class="mi" data-tail><i class="tb-ic">${o.tail[2] || ICONS.topBar}</i><span class="mi-n">${esc(o.tail[0])}</span>${chip('›')}</button>` : '';
   const nbActs = o.newBtn ? newBtnColorRow(fly) : '';
-  const nbOpts = o.newBtn ? topRow(!!pref('newbtn:big'), 'data-nb-big title="Bigger button&#10;Shows the label, like + Agent or + Claude, taking 4 cells in the dashboard and showing its label at the top of the chat list."', gem('ai'), 'bigger button') : '';
+  const bigId = o.newBtn ? (o.bigId ?? '') : '';
+  const nbOpts = bigId ? topRow(isBig(bigId), 'data-nb-big title="Bigger button&#10;Shows the label, like + Agent or + Claude, for this button only."', gem('ai'), 'bigger button') : '';
   popMenu(
     x,
     y,
     (head || menuHead(gem('ai'), o.newBtn ? 'new agent' : 'agents')) + bands({ actions: copyHook.row() + nbActs, options: nbOpts, pick: ['new chat', on.map(item).join('') + more], other: tail }),
     (b) => {
       if (copyHook.pick(b)) return;
-      if (b.dataset.nbBig != null) return setPref('newbtn:big', !pref('newbtn:big'));
+      if (b.dataset.nbBig != null && bigId) return setBig(bigId, !isBig(bigId));
       if (b.dataset.fly === 'nbc') {
         const next = fly === 'nbc' ? '' : 'nbc';
         agentMenu(x, y, pick, head, pre, false, o, next);
@@ -124,7 +125,7 @@ export function agentMenu(x: number, y: number, pick: (program: string) => unkno
           c.className = 'pk-ic sw-ic nb-sw nb-hex';
           c.style.setProperty('--nb-c', inp.value);
         }
-        $<HTMLElement>('#colormenu').querySelectorAll('.pk-grid .nb-sw.on').forEach((n) => n.classList.remove('on'));
+        $<HTMLElement>('#colormenu').querySelectorAll('.pk-fly .nb-sw.on, .pk-fly .nb-mode.on').forEach((n) => n.classList.remove('on'));
       };
       inp.addEventListener('input', apply);
       inp.addEventListener('change', apply);
@@ -143,11 +144,11 @@ export function launchAgent(place: string, x: number, y: number, start: (program
   return agentMenu(x, y, start, '', pre, false, { place, more });
 }
 
-export function agentRight(place: string, e: MouseEvent, start: (program: string) => unknown, tail?: [string, () => unknown, string?], newBtn = false): boolean {
+export function agentRight(place: string, e: MouseEvent, start: (program: string) => unknown, tail?: [string, () => unknown, string?], newBtn = false, bigId?: string): boolean {
   if (!newBtn && chatsOn().length < 2) return false;
   e.preventDefault();
   e.stopPropagation();
   const r = (e.currentTarget as HTMLElement | null)?.getBoundingClientRect?.();
-  agentMenu(r?.width ? r.left : e.clientX, r?.width ? r.bottom + 6 : e.clientY, start, '', 'chat:', e.button !== 2, { place, tail, newBtn });
+  agentMenu(r?.width ? r.left : e.clientX, r?.width ? r.bottom + 6 : e.clientY, start, '', 'chat:', e.button !== 2, { place, tail, newBtn, bigId });
   return true;
 }
