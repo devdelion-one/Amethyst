@@ -114,9 +114,9 @@ export function bottomBtns() {
 }
 const endOf = (ref: string) => (isPin(ref) ? 'b' : RAIL.find((x) => x[0] === baseOf(ref))?.[2] || 't');
 
-const spans: Record<string, number> = {};
-export const setSpan = (ref: string, n: number) => (n <= 1 ? delete spans[baseOf(ref)] : (spans[baseOf(ref)] = n));
-const spanOf = (ref: string, x = false) => (x ? spans[baseOf(ref)] || 1 : 1);
+const spans: Record<string, [number, number]> = {};
+export const setSpan = (ref: string, n: number, rail = 1) => (n <= 1 && rail <= 1 ? delete spans[baseOf(ref)] : (spans[baseOf(ref)] = [n, rail]));
+const spanOf = (ref: string, x = false) => spans[baseOf(ref)]?.[x ? 0 : 1] || 1;
 const local = (s: number) => (s < 0 ? -s - 1 : s);
 const spotOf = (e: string, i: number) => (e === 'b' ? -i - 1 : i);
 const cellKeys = (r: string, s: number, x = false) => Array.from({ length: spanOf(r, x) }, (_, k) => (s < 0 ? 'b' : 't') + (local(s) + k));

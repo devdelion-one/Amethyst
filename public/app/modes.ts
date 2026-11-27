@@ -270,6 +270,7 @@ export function paintSwitch() {
   const order = modeOrder();
   views.sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind));
   setSpan('btn:newchat', pref('newbtn:big') ? 4 : 1);
+  setSpan('btn:ue', pref('ue:big') ? 4 : 1, pref('ue:big') ? 4 : 1);
   const all = withCopies([...topBtns(), ...views, ...bottomBtns()]);
   lastAll = all;
   showDash(all.some((v) => v.shown && inDash(v.ref)));
@@ -701,6 +702,7 @@ onPref('modesHidden', () => {
   paintSwitch();
 });
 onPref('newbtn:big', redrawSwitch);
+onPref('ue:big', redrawSwitch);
 for (const q of SURFS) $(q).addEventListener('click', (e: MouseEvent) => {
   const b = (e.target as Element).closest<HTMLElement>('[data-mode],[data-ed],[data-ed-add],[data-set],[data-set-add]');
   if (!b) return;

@@ -2,11 +2,13 @@ import { bound, is, show } from '../base/binds.ts';
 import { ask, barMenu, dragWindow, fwHead, ICONS, keepMenu, keyChip, menuHead, MENU_IC, popMenu, rowIcons, sizeBar, TOPBAR, topBarMenu, topRow, winX } from '../base/controls.ts';
 import { onFileSaved } from '../base/checkers.ts';
 import { createFind } from '../base/find.ts';
+import { tail } from '../base/tail.ts';
+import type { Tail } from '../base/tail.ts';
 import { every } from '../base/life.ts';
 import { api, projectOf, S } from '../base/model.ts';
 import { notify, tell } from '../base/notify.ts';
 import { page } from '../base/page.ts';
-import { isOff, onPref, pref } from '../base/prefs.ts';
+import { isOff, onPref, pref, setPref } from '../base/prefs.ts';
 import { UE_CONFIGS } from './configs.ts';
 import { follow } from '../base/stream.ts';
 import { setTheme } from '../base/theme.ts';
@@ -55,7 +57,7 @@ type Row = { n: number; at: number; t: string; c: string; v: string; x: string }
 type UeEvent = { type: string; run: Run; lines: string[]; skipped: number; problems: Problem[]; id: number; p: Problem; rows: Row[]; reset: boolean; path: string } & Ed;
 type Note = { title: string; text?: string; btns?: string[][] };
 type Foot = { cls: string; mark: string; word: string; time: string; what: string; tip: string; counts: boolean };
-type Win = { el: HTMLElement; pj: HTMLElement; note: HTMLElement; foot: HTMLElement; lines: HTMLElement; skip: HTMLElement; out: HTMLElement; plist: HTMLElement; go: HTMLButtonElement; eng: HTMLButtonElement; cfgb: HTMLButtonElement; fr: { fit(): void } | null; logs: Record<string, any>; find?: ReturnType<typeof createFind> };
+type Win = { el: HTMLElement; pj: HTMLElement; note: HTMLElement; foot: HTMLElement; lines: HTMLElement; skip: HTMLElement; out: HTMLElement; plist: HTMLElement; go: HTMLButtonElement; eng: HTMLButtonElement; cfgb: HTMLButtonElement; fr: { fit(): void } | null; logs: Record<string, any>; find?: ReturnType<typeof createFind>; tail?: Tail; etail?: Tail };
 
 const NO_ED: Ed = { open: false, linked: false, playing: false, guard: [] };
 const st: { key: string; where: Where | null; choice: any; info: Info | null; err: string; run: Run | null; lines: string[]; first: number; problems: Problem[]; stop: (() => void) | null; ed: Ed; elog: Row[]; elogPath: string } = { key: '', where: null, choice: {} as any, info: null, err: '', run: null, lines: [], first: 0, problems: [], stop: null, ed: NO_ED, elog: [], elogPath: '' };
@@ -235,7 +237,11 @@ function onEvent(e: UeEvent) {
     st.elog.push(...(e.rows || []));
     const extra = st.elog.length - ELOG_KEEP;
     if (extra > 0) st.elog.splice(0, extra);
-    return e.reset || extra > 0 ? drawElog() : addElog(e.rows || []);
+    if (e.reset || extra > 0) {
+      drawElog();
+      return e.reset && W?.etail?.follow();
+    }
+    return addElog(e.rows || []);
   }
   setBuildProblems(st.run?.id || 0, st.problems);
   paint();
@@ -304,12 +310,23 @@ async function openEditor() {
   try {
     const r = await call('POST', '/api/ue/editor', { ...where(), plain: !pref('ue:link') });
     if (r.why === 'unconfirmed') return (await load(), showWindow());
+    if (!r.why) edLog();
     setSave(r.open ? `Unreal Editor is open on ${st.info?.name} already` : r.why ? whyLine() || r.why : `opening Unreal Editor on ${st.info?.name}…`, !!r.why);
   } catch (e) {
     showErr(e);
   }
 }
 const NOT_LINKED: Record<string, string> = { unlinked: "Amethyst can't reach this Unreal Editor: it wasn't opened from Amethyst", closed: 'Unreal Editor is not open: open it from Amethyst first (the editor button)' };
+function edLog() {
+  if (!pref('ue:edlog')) return;
+  if (POP) return setTab('editor');
+  showWindow('editor');
+}
+async function buildEditor() {
+  if (st.ed.open) return openEditor();
+  return restartBuild();
+}
+const clickOpens = () => !!pref('ue:clickeditor') && !st.ed.open;
 async function liveCoding(anyway = false) {
   if (!anyway && !(await ask({ title: 'Hot Reload', text: 'Are you sure you want to do Hot Reload?', choices: [{ label: 'Hot Reload', value: true, main: true }] }))) return;
   try {
@@ -363,11 +380,13 @@ async function openHere(abs: string, line: number) {
   if (line) (await import('../app/tabs.ts')).goLineOf(abs, line);
 }
 
-export function ueClick() {
+export function ueClick(e?: Event) {
   if (!pref('ue:on') || !S.pid) return;
   if (live(st.run)) return showWindow('out');
   if (!st.info || st.info.why) return showWindow();
+  if ((e?.target as Element | null)?.closest?.('.ue-ed')) return buildEditor();
   if (st.run?.state === 'failed' && !winShown()) return showWindow('problems');
+  if (clickOpens()) return buildEditor();
   if (winShown()) showWindow('out');
   act('build');
 }
@@ -380,6 +399,7 @@ export function ueKey() {
   if (!pref('ue:on') || !S.pid) return;
   if (live(st.run)) return showWindow('out');
   if (!st.info || st.info.why) return showWindow();
+  if (clickOpens()) return buildEditor();
   act('build');
 }
 
@@ -399,6 +419,7 @@ function buttonTip() {
   const { t, config } = cfg();
   if (guarded()) return `Live Coding is off\n${st.ed.guard[0].path} changed outside a function body. Click to see it and restart the editor.`;
   if (lcOn()) return `Live Coding: ${i.name}\nPatches the open editor.`;
+  if (clickOpens()) return `Build ${i.name}, then open the editor\nBuilds the Editor target, then opens Unreal Editor when it succeeds.\n\nRight-click for the other builds and options.`;
   return `Build ${i.name}\nBuilds the ${label(t, config)} target.\n\nRight-click for the other builds and options.`;
 }
 
@@ -414,7 +435,8 @@ function paintButton() {
   b.className = b.className.replace(/\bue-\w+\b/g, '').trim() + (cls ? ` ue-${cls}` : '');
   const cf = !i ? '…' : why === 'none' || why === 'os' ? 'not Unreal' : why && why !== 'no-targets' ? 'set up' : why ? 'no C++' : guarded() ? 'Restart' : lcOn() ? 'Live' : label(t, config, true);
   const stHtml = live(r) ? `<i class="ue-ring"></i><span class="ue-tm">${clock(Date.now() - r!.started)}</span>` : cls === 'ok' ? '✓' : cls === 'fail' ? `✕ ${countOf('error')}` : cls === 'stop' ? '✕' : cls === 'warn' ? '!' : '';
-  const html = `${UE_ICON}<span class="ue-cf">${esc(cf)}</span><span class="ue-st">${stHtml}</span>`;
+  const ed = `<span class="ue-ed" title="${esc(edTip())}">${I_EXT}${st.ed.open ? '<i class="ue-edot"></i>' : ''}</span>`;
+  const html = `${UE_ICON}<span class="ue-cf">${esc(cf)}</span><span class="ue-st">${stHtml}</span>${ed}`;
   if (b.dataset.html !== html) {
     b.innerHTML = html;
     b.dataset.html = html;
@@ -425,6 +447,11 @@ function paintButton() {
   if (b.matches(':hover')) b.title = buttonTip();
 }
 export const ueTip = () => buttonTip();
+function edTip() {
+  if (st.ed.open) return 'Open the editor\nUnreal Editor is open: this brings it up.';
+  const t = st.info?.targets?.find((x) => x.type === 'Editor');
+  return `Build, then open the editor\nBuilds ${t?.name || 'the Editor target'} and opens Unreal Editor when it succeeds.`;
+}
 
 const I_CLEAN = '<svg class="ic" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 6h12M8 6V4.5h4V6M6 6l.7 9.5h6.6L14 6"/></svg>';
 const ACT_ROWS: Record<string, [string, string, string]> = {
@@ -453,8 +480,16 @@ Builds ${x.name} as ${label(x, c)}.`)}"`, I_CFG, esc(label(x, c)));
   if (ok && create && pref('ue:new')) groups.push(mi('data-uenew="class"', ICONS.ueClass, 'new class…', `Adds a C++ class to ${i.name}.`, keyChip('ueNewClass')) + mi('data-uenew="module"', ICONS.ueModule, 'new module…', 'Adds a C++ module.', keyChip('ueNewModule')) + mi('data-uenew="plugin"', ICONS.uePlugin, 'new plugin…', 'Adds a plugin.', keyChip('ueNewPlugin')));
   if (ok && pref('debug:on')) groups.push(mi('data-ueact="debug"', ICONS.bug, 'debug the editor', st.ed.open ? 'Attaches the debugger to the open editor.' : 'Starts the editor under the debugger.'));
   groups.push(mi('data-ueact="window"', I_WIN, 'show the build window', 'The build’s output, problems and logs.', keyChip(UEWINKEY)) + (i?.engine ? mi('data-ueact="editor"', I_EXT, 'open the editor', 'Opens the project in the Unreal Editor.', '', !i.path) : ''));
-  topBarMenu(e.clientX, e.clientY, { tray: 'ue', head: menuHead(UE_ICON, 'Unreal build'), acts: groups.join('<div class="sep"></div>'), pick: cfgs ? ['configuration', cfgs] : undefined, onPick: (b) => {
+  const ce = !!pref('ue:clickeditor');
+  const opts = topRow(!!pref('ue:big'), 'data-ueopt="big" title="Bigger button&#10;Shows which build, its timer and result, with an open-the-editor part: 4 cells wide in the dashboard, 4 tall on the rail."', UE_ICON, 'bigger button') +
+    topRow(!ce, 'data-ueopt="click" data-v="0" title="A click builds&#10;A click, or the build key, builds the configuration ticked below."', I_PLAY, 'a click builds') +
+    topRow(ce, 'data-ueopt="click" data-v="1" title="A click builds, then opens the editor&#10;A click, or the build key, builds the Editor target and opens Unreal Editor when it succeeds. With the editor open, a click does what it does today."', I_EXT, 'a click builds, then opens the editor') +
+    topRow(!!pref('ue:edlog'), 'data-ueopt="edlog" title="Show the logs when the editor opens&#10;Opening Unreal Editor from Amethyst opens the build window on the editor’s log."', I_WIN, 'show the logs when the editor opens');
+  topBarMenu(e.clientX, e.clientY, { tray: 'ue', head: menuHead(UE_ICON, 'Unreal build'), acts: groups.join('<div class="sep"></div>'), opts, pick: cfgs ? ['configuration', cfgs] : undefined, onPick: (b) => {
     const d = b.dataset;
+    if (d.ueopt === 'big') return setPref('ue:big', !pref('ue:big'));
+    if (d.ueopt === 'click') return setPref('ue:clickeditor', d.v === '1');
+    if (d.ueopt === 'edlog') return setPref('ue:edlog', !pref('ue:edlog'));
     if (d.uecfg) {
       const [target, c] = d.uecfg.split('|');
       return choose({ target, config: c });
@@ -474,6 +509,7 @@ Builds ${x.name} as ${label(x, c)}.`)}"`, I_CFG, esc(label(x, c)));
 
 function ended(r: Run) {
   if (POP || WIN !== 1 || r.state === 'cancelled') return;
+  if (r.action === 'restart' && r.state === 'ok') edLog();
   const name = esc(st.info?.name || 'the project'), e = countOf('error');
   if (r.action === 'livecoding' && r.state === 'ok' && r.hint === 'restart') {
     const n = notify(`<b>${name}</b>: Live Coding took a header change. Restart the editor before you trust it.`, { ms: 12000 });
@@ -570,7 +606,8 @@ function makeWin() {
   onPref('ue:off', paintOff);
   el.addEventListener('click', onClick);
   const ep = el.querySelector<HTMLElement>('[data-pane="editor"]')!;
-  ep.addEventListener('scroll', () => ep.clientHeight && (elogStick = elogBottom(ep)), { passive: true });
+  W.tail = tail(W.out);
+  W.etail = tail(ep);
   el.addEventListener('keydown', (e) => {
     if (!is(e, 'find')) return;
     e.preventDefault();
@@ -725,10 +762,9 @@ function markLine(p: Problem) {
   }
   el.replaceChildren(...parts, p.text);
 }
-const atBottom = () => W!.out.scrollHeight - W!.out.scrollTop - W!.out.clientHeight < 40;
 function drawLines(lines: string[], from: number) {
   if (!W) return;
-  const stick = atBottom(), f = document.createDocumentFragment();
+  const f = document.createDocumentFragment();
   lines.forEach((t, k) => f.append(lineEl(t, from + k)));
   W.lines.append(f);
   const extra = W.lines.children.length - 50000;
@@ -737,7 +773,7 @@ function drawLines(lines: string[], from: number) {
     st.lines.splice(0, extra);
     st.first += extra;
   }
-  if (stick) W.out.scrollTop = W.out.scrollHeight;
+  W.tail?.kick();
 }
 function drawAll() {
   if (!W) return;
@@ -746,7 +782,7 @@ function drawAll() {
   W.skip.textContent = st.first ? `(${st.first} earlier lines not shown)` : '';
   drawLines(st.lines, st.first);
   for (const p of st.problems) markLine(p);
-  W.out.scrollTop = W.out.scrollHeight;
+  W.tail?.follow();
   drawProblems();
 }
 
@@ -822,9 +858,6 @@ function rowEl(r: Row) {
   return d;
 }
 const elogPane = () => W?.el.querySelector<HTMLElement>('[data-pane="editor"]') || null;
-const elogBottom = (p: HTMLElement) => p.scrollHeight - p.scrollTop - p.clientHeight < 40;
-let elogStick = true;
-const elogFollow = (p: HTMLElement) => elogStick && (p.scrollTop = p.scrollHeight);
 function paintElogBar() {
   const pane = elogPane();
   if (!pane) return;
@@ -852,7 +885,7 @@ function drawElog() {
   skip.hidden = list.length <= ELOG_SHOW;
   skip.textContent = `(${list.length - ELOG_SHOW} earlier lines not shown: open as a file tab to read them)`;
   paintElogBar();
-  elogFollow(pane);
+  W?.etail?.kick();
 }
 function addElog(rows: Row[]) {
   const pane = elogPane();
@@ -864,7 +897,7 @@ function addElog(rows: Row[]) {
   box.append(f);
   for (let k = box.children.length - ELOG_SHOW; k > 0; k--) box.firstElementChild!.remove();
   paintElogBar();
-  elogFollow(pane);
+  W?.etail?.kick();
 }
 async function refreshElog() {
   try {
@@ -904,8 +937,7 @@ function paintTabs() {
   if (k === 'ubt') readLog(k);
   if (k === 'editor') {
     paintElogBar();
-    const pane = elogPane();
-    if (pane) elogFollow(pane);
+    W.etail?.kick();
   }
 }
 

@@ -128,6 +128,31 @@ body.resizing-y, body.resizing-y * { cursor: row-resize !important; user-select:
 :is(#switch, #dash) #btn-ue .ue-ic { width: 17px; height: 17px; }
 :is(#switch, #dash) #btn-ue .ue-st { position: absolute; right: 0; bottom: 0; width: auto; font-size: var(--fs-mark); line-height: 1; }
 :is(#switch, #dash) #btn-ue .ue-ring { width: 8px; height: 8px; border-width: 1.5px; }
+#btn-ue .ue-ed { display: none; }
+:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])) { display: flex; align-items: center; gap: 4px; padding: 0; border: 1px solid var(--line); background: var(--raised); color: var(--text); font-size: var(--fs-xs); font-weight: 500; overflow: hidden; }
+:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])):hover { border-color: var(--text-dim); background: var(--raised); }
+:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])).ue-run { border-color: color-mix(in srgb, var(--accent) 60%, var(--line)); }
+:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])) .ue-ic { flex: none; width: 14px; height: 14px; color: var(--text-dim); }
+:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])):is(.ue-run, :hover) .ue-ic { color: var(--accent); }
+:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])) .ue-cf { display: block; min-width: 0; overflow: hidden; white-space: nowrap; }
+:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])) .ue-st { position: static; display: flex; align-items: center; gap: 3px; font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
+:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])).ue-ok .ue-st { color: var(--ok); }
+:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])).ue-fail .ue-st { color: var(--danger); }
+:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])) .ue-tm { display: inline; color: var(--text); }
+:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])) .ue-ring { width: 9px; height: 9px; border-width: 1.5px; }
+:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])) .ue-ed { position: relative; display: grid; place-items: center; flex: none; color: var(--text-dim); }
+:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])) .ue-ed:hover { background: var(--hover); color: var(--text-strong); }
+:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])) .ue-ed svg { width: 13px; height: 13px; }
+:is(#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]), #switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"])) .ue-edot { position: absolute; top: 4px; right: 4px; width: 5px; height: 5px; border-radius: 50%; background: var(--ok); }
+#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]) { width: calc(var(--span, 1) * 32px - 4px); padding-left: 6px; }
+#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]) .ue-cf { flex: 1 1 auto; text-overflow: ellipsis; text-align: left; }
+#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]) .ue-st { flex: none; justify-content: flex-end; width: 38px; padding-right: 4px; }
+#dash > .slots > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]) .ue-ed { align-self: stretch; width: 28px; border-left: 1px solid var(--line); }
+#switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]) { flex-direction: column; justify-content: flex-start; gap: 5px; width: 28px; height: calc(var(--span, 1) * 32px - 4px); min-height: 0; padding-top: 7px; font-size: var(--fs-2xs); }
+#switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]) .ue-ic { width: 15px; height: 15px; }
+#switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]) .ue-cf { flex: none; max-width: 26px; font-size: var(--fs-2xs); text-align: center; }
+#switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]) .ue-st { flex: none; flex-direction: column; justify-content: flex-start; gap: 4px; width: auto; height: 30px; font-size: var(--fs-2xs); }
+#switch > .sv[data-span] > :is(#btn-ue, [data-copy="btn:ue"]) .ue-ed { margin-top: auto; width: 100%; height: 28px; border-top: 1px solid var(--line); }
 :is(#switch, #dash) #btn-more { border-color: transparent; background: none; color: var(--text-dim); }
 :is(#switch, #dash) #btn-more:hover { border-color: transparent; background: var(--hover); color: var(--text-strong); }
 :is(#switch, #dash) #btn-more .ic { width: 17px; height: 17px; stroke-width: 1.35; }
@@ -5474,3 +5499,7 @@ html.phone .ch-lv, html.phone .ch-tg, html.phone .ch-wt, html.phone .ch-mic { di
 #colormenu .nb-sw.nb-hex .gem { color: var(--nb-c); }
 #colormenu .nb-pick { position: relative; cursor: pointer; }
 #colormenu .nb-pick > input[type="color"] { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+.tl-wrap { position: sticky; bottom: 0; z-index: 3; height: 0; display: flex; justify-content: flex-end; pointer-events: none; }
+.tl-jump { position: relative; bottom: 34px; right: 10px; min-height: 24px; padding: 0 9px; border: 0; border-radius: var(--r-pill); background: var(--raised); box-shadow: var(--float); color: var(--text-dim); font-size: var(--fs-xs); pointer-events: auto; }
+.tl-jump:hover { color: var(--text-strong); }
+.tl-jump[hidden] { display: none; }

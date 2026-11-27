@@ -362,7 +362,7 @@ uw.addEventListener('contextmenu', (e) => ueMenu(e));
 const ub = $<HTMLElement>('#btn-ue');
 ub.dataset.tipKeys = 'ueBuild:build';
 ub.addEventListener('mouseover', () => (ub.title = ueTip()));
-ub.addEventListener('click', () => ueClick());
+ub.addEventListener('click', (e) => ueClick(e));
 ub.addEventListener('contextmenu', (e) => ueMenu(e));
 
 const qa = $('#btn-qagent');
