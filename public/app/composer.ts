@@ -689,7 +689,7 @@ export function createComposer(form: HTMLElement, { agent: first, switches, comm
     }
     if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
       e.preventDefault();
-      sendText(is(e, 'fireGo'));
+      sendText();
     } else if (e.key === 'Home' && !e.altKey && !e.ctrlKey && !e.metaKey && !e.isComposing) {
       e.preventDefault();
       if (e.shiftKey) input.setSelectionRange(0, input.selectionDirection === 'backward' ? input.selectionEnd : input.selectionStart, 'backward');
