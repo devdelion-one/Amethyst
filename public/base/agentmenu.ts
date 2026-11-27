@@ -1,4 +1,4 @@
-import { arrowIntoSub, bands, chip, copyHook, ICONS, menuHead, popMenu, subMenu } from './controls.ts';
+import { arrowIntoSub, bands, chip, copyHook, flyFocus, ICONS, keepMenu, menuHead, newBtnColorRow, popMenu, setNewBtnColor, subMenu, topRow } from './controls.ts';
 import { bound, show } from './binds.ts';
 import { gem } from './kinds.ts';
 import { tell } from './notify.ts';
@@ -49,9 +49,9 @@ export const ringSvg = (on: boolean) => `<svg class="ic am-ring" viewBox="0 0 16
 export const newHint = (one: string) => `<p>Pick a ${esc(one)} on the right, or</p><button class="outline" data-dk-new>+ new</button>`;
 
 export type AgentMore = { label: string; icon: string; rows: () => string; pick: (b: HTMLButtonElement) => unknown; none?: string };
-export type AgentOpts = { place?: string; tail?: [string, () => unknown, string?]; more?: AgentMore | null };
+export type AgentOpts = { place?: string; tail?: [string, () => unknown, string?]; more?: AgentMore | null; newBtn?: boolean };
 
-export function agentMenu(x: number, y: number, pick: (program: string) => unknown, head = '', pre = 'chat:', focus: boolean | string = false, o: AgentOpts = {}) {
+export function agentMenu(x: number, y: number, pick: (program: string) => unknown, head = '', pre = 'chat:', focus: boolean | string = false, o: AgentOpts = {}, fly = '') {
   const on = chatsOn(), place = o.place && on.length > 1 && pref('agent:pinRings') ? o.place : '', cur = place ? pinnedAt(place) : '';
   const ring = (k: string, label: string) => {
     if (!place) return '';
@@ -66,16 +66,29 @@ export function agentMenu(x: number, y: number, pick: (program: string) => unkno
   };
   const mo = o.more, more = mo ? `<div class="sep"></div><button class="mi" data-more${mo.none ? ` disabled title="${esc(mo.none)}"` : ' data-sub aria-haspopup="menu" aria-expanded="false"'}><i class="tb-ic">${mo.icon}</i><span class="mi-n">${esc(mo.label)}</span><span class="pk-ar">›</span></button>` : '';
   const tail = o.tail ? `<button class="mi" data-tail><i class="tb-ic">${o.tail[2] || ICONS.topBar}</i><span class="mi-n">${esc(o.tail[0])}</span>${chip('›')}</button>` : '';
+  const nbActs = o.newBtn ? newBtnColorRow(fly) : '';
+  const nbOpts = o.newBtn ? topRow(!!pref('newbtn:big'), 'data-nb-big title="Bigger button&#10;Shows the label, like + Agent or + Claude, taking 4 cells in the dashboard and showing its label at the top of the chat list."', gem('ai'), 'bigger button') : '';
   popMenu(
     x,
     y,
-    (head || menuHead(gem('ai'), 'agents')) + bands({ actions: copyHook.row(), pick: ['new chat', on.map(item).join('') + more], other: tail }),
+    (head || menuHead(gem('ai'), o.newBtn ? 'new agent' : 'agents')) + bands({ actions: copyHook.row() + nbActs, options: nbOpts, pick: ['new chat', on.map(item).join('') + more], other: tail }),
     (b) => {
       if (copyHook.pick(b)) return;
+      if (b.dataset.nbBig != null) return setPref('newbtn:big', !pref('newbtn:big'));
+      if (b.dataset.fly === 'nbc') {
+        const next = fly === 'nbc' ? '' : 'nbc';
+        agentMenu(x, y, pick, head, pre, false, o, next);
+        return (next ? flyFocus() : $<HTMLElement>('#colormenu [data-fly="nbc"]'))?.focus();
+      }
+      if ('nbc' in b.dataset) {
+        setNewBtnColor(b.dataset.nbc!);
+        agentMenu(x, y, pick, head, pre, false, o, 'nbc');
+        return flyFocus()?.focus();
+      }
       if (b.dataset.pin != null) {
         const k = b.dataset.pin;
         setPin(place, cur === k ? '' : k);
-        return agentMenu(x, y, pick, head, pre, `[data-pin="${k}"]`, o);
+        return agentMenu(x, y, pick, head, pre, `[data-pin="${k}"]`, o, fly);
       }
       if (b.dataset.tail != null) return o.tail?.[1]();
       if (b.dataset.more != null) return mo && subMenu(b, mo.rows(), mo.pick);
@@ -94,12 +107,29 @@ export function agentMenu(x: number, y: number, pick: (program: string) => unkno
         (oo) => {
           if (!oo.dataset.off) return;
           setOff('agents:off', oo.dataset.off, true);
-          if (chatsOn().length > 1) agentMenu(x, y, pick, head, pre, true, o);
+          if (chatsOn().length > 1) agentMenu(x, y, pick, head, pre, true, o, fly);
         },
       );
       $<HTMLElement>('#colormenu [data-off]')?.focus();
     },
   );
+  if (o.newBtn) {
+    keepMenu(() => agentMenu(x, y, pick, head, pre, false, o, fly));
+    const inp = $<HTMLInputElement | null>('#colormenu [data-nbc-pick]');
+    if (inp) {
+      const apply = () => {
+        setNewBtnColor(inp.value);
+        const c = $<HTMLElement | null>('#colormenu [data-fly="nbc"] .pk-cur > .nb-sw');
+        if (c) {
+          c.className = 'pk-ic sw-ic nb-sw nb-hex';
+          c.style.setProperty('--nb-c', inp.value);
+        }
+        $<HTMLElement>('#colormenu').querySelectorAll('.pk-grid .nb-sw.on').forEach((n) => n.classList.remove('on'));
+      };
+      inp.addEventListener('input', apply);
+      inp.addEventListener('change', apply);
+    }
+  }
   arrowIntoSub($<HTMLElement>('#colormenu [data-more][data-sub]'));
   if (typeof focus === 'string') $<HTMLElement>(`#colormenu ${focus}`)?.focus();
   else if (focus) $<HTMLElement>('#colormenu .mi[data-k]')?.focus();
@@ -113,11 +143,11 @@ export function launchAgent(place: string, x: number, y: number, start: (program
   return agentMenu(x, y, start, '', pre, false, { place, more });
 }
 
-export function agentRight(place: string, e: MouseEvent, start: (program: string) => unknown, tail?: [string, () => unknown, string?]): boolean {
-  if (chatsOn().length < 2) return false;
+export function agentRight(place: string, e: MouseEvent, start: (program: string) => unknown, tail?: [string, () => unknown, string?], newBtn = false): boolean {
+  if (!newBtn && chatsOn().length < 2) return false;
   e.preventDefault();
   e.stopPropagation();
   const r = (e.currentTarget as HTMLElement | null)?.getBoundingClientRect?.();
-  agentMenu(r?.width ? r.left : e.clientX, r?.width ? r.bottom + 6 : e.clientY, start, '', 'chat:', e.button !== 2, { place, tail });
+  agentMenu(r?.width ? r.left : e.clientX, r?.width ? r.bottom + 6 : e.clientY, start, '', 'chat:', e.button !== 2, { place, tail, newBtn });
   return true;
 }

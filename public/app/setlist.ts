@@ -1,4 +1,4 @@
-import { NEW_BTN, ocHead, ocRow } from './chatlist.ts';
+import { newBtnHtml, ocHead, ocRow } from './chatlist.ts';
 import { HIDE_BTN, SHOW_BTN, TERM_NEW } from '../decks/deck.ts';
 import { agentRow } from '../base/agentrow.ts';
 import { askHtml } from '../base/answer.ts';
@@ -49,7 +49,7 @@ function listPic(parts = ALL_PARTS) {
   let top = true;
   const head = (k: string, label: string, n: number) => {
     const add = top && !!pref(listKey('orch', 'newBtn')), h = ocHead(k, label, n, add).html;
-    const out = top && !add ? h.replace('</h4>', NEW_BTN + '</h4>') : h;
+    const out = top && !add ? h.replace('</h4>', newBtnHtml() + '</h4>') : h;
     top = false;
     return out;
   };

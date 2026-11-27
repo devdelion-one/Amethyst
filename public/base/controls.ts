@@ -104,6 +104,44 @@ export function setSwatches(icon: string, own: string | null | undefined, mark: 
 }
 export const flyFocus = () => ($('#colormenu .pk-fly .pk-grid .on') || $('#colormenu .pk-fly .pk-grid button')) as HTMLElement | null;
 
+const NB_HEX = /^#[0-9a-f]{6}$/i;
+export function newBtnColor(): string {
+  const raw = String(pref('newbtn:color') || '').trim().toLowerCase();
+  if (raw === 'clear' || raw === 'accent' || NB_HEX.test(raw)) return raw;
+  return pref('accentNewBtn') ? 'accent' : '';
+}
+export function setNewBtnColor(v: string) {
+  const raw = String(v || '').trim().toLowerCase();
+  const next = raw === 'clear' || raw === 'accent' || NB_HEX.test(raw) ? raw : '';
+  if (pref('newbtn:color') !== next) setPref('newbtn:color', next);
+  const acc = next === 'accent';
+  if (!!pref('accentNewBtn') !== acc) setPref('accentNewBtn', acc);
+  paintNewBtn();
+}
+export function paintNewBtn() {
+  const root = document.documentElement, c = newBtnColor();
+  const mode = !c ? 'default' : c === 'clear' ? 'clear' : c === 'accent' ? 'accent' : 'custom';
+  root.classList.toggle('newbtn-big', !!pref('newbtn:big'));
+  root.classList.toggle('accent-newbtn', mode === 'accent');
+  root.dataset.newbtnColor = mode;
+  if (mode === 'custom') root.style.setProperty('--nb-c', col(c));
+  else root.style.removeProperty('--nb-c');
+}
+export function newBtnColorRow(fly = ''): string {
+  const cur = newBtnColor(), isHex = NB_HEX.test(cur), star = gem('ai');
+  const cell = (cls: string, on: boolean, v: string, tip: string, style = '') => `<button class="sw-ic nb-sw ${cls}${on ? ' on' : ''}" data-nbc="${esc(v)}" aria-label="${esc(tip)}"${style ? ` style="${esc(style)}"` : ''}>${star}</button>`;
+  const grid = cell('nb-dft', !cur, '', 'Default')
+    + cell('nb-clr', cur === 'clear', 'clear', 'Grey or clear')
+    + cell('nb-acc', cur === 'accent', 'accent', 'Accent')
+    + tray().map((c) => cell('nb-hex', cur === c.hex.toLowerCase(), c.hex.toLowerCase(), c.name, `--nb-c:${col(c.hex)}`)).join('')
+    + trayAdd();
+  const chipCls = !cur ? 'nb-dft' : cur === 'clear' ? 'nb-clr' : cur === 'accent' ? 'nb-acc' : 'nb-hex';
+  const chipStyle = isHex ? ` style="--nb-c:${esc(col(cur))}"` : '';
+  const now = !cur ? 'default' : cur === 'clear' ? 'clear' : cur === 'accent' ? 'accent' : trayName(cur);
+  const foot = `<div class="sep"></div><label class="mi nb-pick" title="Any color&#10;Pick any custom color for the new agent button."><i class="tb-ic">${ICONS.drop}</i><span class="mi-n">any color…</span><input type="color" data-nbc-pick value="${esc(isHex ? cur : '#888888')}"></label>`;
+  return colorRow({ k: 'nbc', label: 'color', tip: "the new agent button's color", chip: `<i class="pk-ic sw-ic nb-sw ${chipCls}"${chipStyle}>${star}</i>`, now, attr: 'nbc', cls: 'sw-ic nb-sw', dfltCls: 'sw-ic nb-sw nb-dft', dfltTip: 'Default', dfltStyle: '', style: (h) => `--nb-c:${col(h)}`, icon: star, grid, foot }, cur, fly);
+}
+
 export const ICONS: Record<string, string> = {
   note: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 2.5h6l3 3v8h-9z M6 8h4 M6 10.5h4"/></svg>',
   mark0: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5" stroke-dasharray="2 2.4"/></svg>',
@@ -1109,11 +1147,18 @@ document.addEventListener('contextmenu', (e) => {
 });
 
 const accents = () => {
-  document.documentElement.classList.toggle('accent-newbtn', !!pref('accentNewBtn'));
+  paintNewBtn();
   document.documentElement.classList.toggle('accent-lines', !!pref('accentTurnLines'));
 };
 accents();
-onPref('accentNewBtn', accents);
+onPref('accentNewBtn', () => {
+  const on = !!pref('accentNewBtn'), cur = String(pref('newbtn:color') || '').trim().toLowerCase();
+  if (on && cur !== 'accent') setPref('newbtn:color', 'accent');
+  else if (!on && cur === 'accent') setPref('newbtn:color', '');
+  paintNewBtn();
+});
+onPref('newbtn:color', paintNewBtn);
+onPref('newbtn:big', paintNewBtn);
 onPref('accentTurnLines', accents);
 export const placeClass = (key: string, place: string) => `off-${key.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${place}`;
 const PLACED = Object.keys(PREFS).filter((k) => PREFS[k].places);

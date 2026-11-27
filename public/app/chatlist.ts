@@ -1,6 +1,6 @@
 import { chatsOn, listKey, pref, PREFS, setPref } from '../base/prefs.ts';
-import { agentMenu } from '../base/agentmenu.ts';
-import { amElse, amKey, esc, store, track } from '../base/util.ts';
+import { agentMenu, agentShort, pinOf } from '../base/agentmenu.ts';
+import { agentName, amElse, amKey, esc, store, track } from '../base/util.ts';
 import { busyNow, gem, workGem } from '../base/kinds.ts';
 import { crystalOf } from '../base/codes.ts';
 import { barMenu, ICONS, miRow, rowIcons, sortable, topRow } from '../base/controls.ts';
@@ -129,9 +129,14 @@ export function ocRow(a: Agent, c: RowCtx): Row {
   return { key: 'r:' + a.id, html, cmp, shape: '', text: '', at: a.at, a: ak ? a : null };
 }
 
-export const NEW_BTN = `<button class="oc-new" data-oc-new aria-label="a new agent chat" title="New chat&#10;Starts a new chat with an agent.&#10;&#10;Right-click to pick another agent, or to pin one.">${gem('ai')}</button>`;
+export function newBtnHtml() {
+  const big = !!pref('newbtn:big'), on = chatsOn(), k = pinOf('list'), one = on.length === 1 ? on[0][0] : k;
+  const text = one ? `+ ${agentShort(one)}` : '+ Agent';
+  const aria = one ? `a new ${agentName(one)} chat` : 'a new agent chat';
+  return `<button class="oc-new${big ? ' big' : ''}" data-oc-new aria-label="${esc(aria)}" title="New chat&#10;Starts a new chat with an agent.&#10;&#10;Right-click to pick another agent, pin one, or change its size and color.">${gem('ai')}${big ? `<span class="oc-new-l">${esc(text)}</span>` : ''}</button>`;
+}
 export const ocHead = (k: string, label: string, n: number, add = false): Row => {
-  const h = `<h4 class="dk-gh oc-gh" data-st="${k}"><b>${label}</b>${add ? NEW_BTN : `<span>${n}</span>`}</h4>`;
+  const h = `<h4 class="dk-gh oc-gh" data-st="${k}"><b>${label}</b>${add ? newBtnHtml() : `<span>${n}</span>`}</h4>`;
   return { key: 'h:' + k, html: h, cmp: h, shape: '', text: '', at: 0, a: null };
 };
 
@@ -181,7 +186,7 @@ export function listMenu(list: string, sel: string, menu: string, more: MenuMore
   });
 }
 
-export const listPrefs = (list: string) => ['folders', 'newBtn', 'look', 'sort', 'code', 'tools', 'wt', 'answer', 'subs'].map((x) => listKey(list, x)).concat(['list:eyeOrder', 'subagents:on', 'marks:on', 'marks:names']);
+export const listPrefs = (list: string) => ['folders', 'newBtn', 'look', 'sort', 'code', 'tools', 'wt', 'answer', 'subs'].map((x) => listKey(list, x)).concat(['list:eyeOrder', 'subagents:on', 'marks:on', 'marks:names', 'newbtn:big', 'agent:pin', 'agents:off']);
 
 const sortKeyOf = (list: string) => (list === 'orch' ? 'orch' : 'decklist') + ':placed:' + levelKey() + amKey;
 const keyOf = (a: Agent) => a.session || a.id;
@@ -235,11 +240,11 @@ export function createChatList(o: ListOpts) {
   const again = () => (o.repaint ? o.repaint() : o.shown() && paint());
   el.addEventListener('contextmenu', (e) => {
     const nb = (e.target as HTMLElement).closest<HTMLElement>('[data-oc-new]');
-    if (!nb || chatsOn().length < 2) return;
+    if (!nb) return;
     e.preventDefault();
     e.stopPropagation();
     const r = nb.getBoundingClientRect();
-    agentMenu(r.left, r.bottom + 6, (p) => o.newChat(nb, p), '', 'chat:', false, { place: 'list' });
+    agentMenu(r.left, r.bottom + 6, (p) => o.newChat(nb, p), '', 'chat:', false, { place: 'list', newBtn: true });
   }, true);
   const fh = folderHost(el, { list, attr, agentOf: (id) => agents.all.get(id), repaint: () => void again(), sort: { on: () => pref(k('sort')) !== 'latest', put: place } });
   sortable(el, {

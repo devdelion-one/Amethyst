@@ -2,7 +2,7 @@ import { newFolder, setSideOver, showSide, sideOver } from './actions.ts';
 import { togglePanel } from './pins.ts';
 import { bound, show } from '../base/binds.ts';
 import { toggleBottomBar } from '../base/bottombar.ts';
-import { actRow, ask, barMenu, buttonMenu, chip, menuButton, extColors, gripRow, hideMenu, ICONS, keepMenu, keyChip, moveMenu, popMenu, sortable, TOPBAR, topBarMenu, topBarRows, topRow } from '../base/controls.ts';
+import { actRow, ask, barMenu, buttonMenu, chip, menuButton, extColors, gripRow, hideMenu, ICONS, keepMenu, keyChip, moveMenu, paintNewBtn, popMenu, sortable, TOPBAR, topBarMenu, topBarRows, topRow } from '../base/controls.ts';
 import { renderEditorMeta } from '../editor/editor.ts';
 import { floatMake, padOut, toggleInbox } from './float.ts';
 import { refreshGit, cloneProject } from '../git/git.ts';
@@ -16,7 +16,7 @@ import { railChanged, setPinDrag, usePins } from './slots.ts';
 import { sideOf, stripMenu } from './railside.ts';
 import { api, atLaunch, atWs, mode, S } from '../base/model.ts';
 import { newQuickAgent, toggleQuickAgent } from '../chat/qagent.ts';
-import { agentRight, pinOf } from '../base/agentmenu.ts';
+import { agentRight, agentShort, pinOf } from '../base/agentmenu.ts';
 import { PROG, toggleQuick } from '../terminal/qterm.ts';
 import { I_WIN, showWindow, ueClick, ueMenu, ueTip, ueWinTip } from '../ue/ue.ts';
 import { dirIcon, extMenu, fileIcon, fileTint, pickExt } from '../base/filelook.ts';
@@ -377,11 +377,15 @@ qa.addEventListener('click', () => toggleQuickAgent());
 qa.addEventListener('contextmenu', (e: MouseEvent) => agentRight('quick', e, (k) => newQuickAgent(k), ['all rail buttons', () => topBarMenu(e.clientX, e.clientY, { tray: 'quick' })]));
 
 const nc = $('#btn-newchat');
-export const ncInner = () => gem('ai');
+export const ncInner = () => {
+  if (!pref('newbtn:big')) return gem('ai');
+  const on = chatsOn(), k = pinOf('top'), one = on.length === 1 ? on[0][0] : k;
+  return gem('ai') + `<span class="nc-l">${esc(one ? `+ ${agentShort(one)}` : '+ Agent')}</span>`;
+};
 const ncTip = () => {
   const on = chatsOn(), k = pinOf('top');
   const one = on.length === 1 ? on[0][1] : k ? agentName(k) : '';
-  nc.title = `New agent\nStarts a new chat with ${one || 'the agent you pick'}: a tab in the editor, a window in agents, a chat in orchestration.${on.length > 1 ? '\n\nRight-click to pick another agent, or to pin one.' : ''}`;
+  nc.title = `New agent\nStarts a new chat with ${one || 'the agent you pick'}: a tab in the editor, a window in agents, a chat in orchestration.\n\nRight-click to pick another agent, pin one, or change its size and color.`;
   nc.setAttribute('aria-label', one ? `a new ${one} chat` : 'a new agent chat');
 };
 const ncPaint = () => {
@@ -392,8 +396,9 @@ ncPaint();
 nc.addEventListener('mouseover', ncTip);
 onPref('agents:off', ncPaint);
 onPref('agent:pin', ncPaint);
+onPref('newbtn:big', ncPaint);
 menuButton(nc, () => addAgent());
-nc.addEventListener('contextmenu', (e: MouseEvent) => agentRight('top', e, (k) => addAgent('chat', nc, k), ['all rail buttons', () => topBarMenu(e.clientX, e.clientY, { tray: 'agent' })]));
+nc.addEventListener('contextmenu', (e: MouseEvent) => agentRight('top', e, (k) => addAgent('chat', nc, k), ['all rail buttons', () => topBarMenu(e.clientX, e.clientY, { tray: 'agent' })], true));
 
 const ib = $('#btn-inbox');
 ib.innerHTML = gem('inbox');
@@ -693,6 +698,7 @@ if (desk?.hitchWindow) {
 
 export function useTheme(name: string) {
   setTheme(name);
+  paintNewBtn();
   web.refreshTheme();
   if (shows('settings')) page.renderSettings();
   if (S.open) renderEditorMeta();

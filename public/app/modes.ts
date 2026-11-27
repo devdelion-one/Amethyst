@@ -4,7 +4,7 @@ import { agentMenu, launchAgent, pinOf } from '../base/agentmenu.ts';
 import type { TopRowRef } from '../base/controls.ts';
 import { ask, barMenu, flyFocus, ICONS, keepMenu, keyChip, menuHead, modeOrder, popMenu, railActions, setSwatches, sortable, sorting, topBarMenu, topRow } from '../base/controls.ts';
 import { addSet, agentLine, createDeck, dropSet, markSet, moveAway, moveSet, moveSetChats, nextColor, orderHex, putInSet, restoreSet, setAgents, setAway, setColor, setInfo, setInfos, setOf, setOn, sets, setsMenu, setTurn, shareDeck, showSet, takeHere, toOrch } from '../decks/deck.ts';
-import { aim, bottomBtns, btnShown, dragging, freeAt, freeNear, inDash, isCopy, moveRef, orderAt, paintSlots, pinDropIn, placeAt, placeBoth, railSel, slotDrag, topBtns, watchFold, watchSlots, withCopies } from './slots.ts';
+import { aim, bottomBtns, btnShown, dragging, freeAt, freeNear, inDash, isCopy, moveRef, orderAt, paintSlots, pinDropIn, placeAt, placeBoth, railSel, setSpan, slotDrag, topBtns, watchFold, watchSlots, withCopies } from './slots.ts';
 import type { Side, SlotView, Spot } from './slots.ts';
 import { drawDash, showDash } from './topdash.ts';
 import type { MoveHow } from '../decks/deck.ts';
@@ -269,6 +269,7 @@ export function paintSwitch() {
   }
   const order = modeOrder();
   views.sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind));
+  setSpan('btn:newchat', pref('newbtn:big') ? 4 : 1);
   const all = withCopies([...topBtns(), ...views, ...bottomBtns()]);
   lastAll = all;
   showDash(all.some((v) => v.shown && inDash(v.ref)));
@@ -699,6 +700,7 @@ onPref('modesHidden', () => {
   drawn = '';
   paintSwitch();
 });
+onPref('newbtn:big', redrawSwitch);
 for (const q of SURFS) $(q).addEventListener('click', (e: MouseEvent) => {
   const b = (e.target as Element).closest<HTMLElement>('[data-mode],[data-ed],[data-ed-add],[data-set],[data-set-add]');
   if (!b) return;
@@ -780,7 +782,7 @@ function paintProjects() {
   if (sorting(nav)) return;
   const n = agentCounts();
   const bits = (p: Project) => {
-    const c = n.get(p.id), st = c?.asks ? 'asks' : p.id === S.pid ? '' : c?.done ? 'done' : '', k = st ? c![st] : 0;
+    const c = n.get(p.id), st = c?.asks ? 'asks' : c?.done ? 'done' : '', k = st ? c![st] : 0;
     const ask = st === 'asks';
     const count = [c?.asks && `${c.asks} need${c.asks === 1 ? 's' : ''} you`, c?.done && `${c.done} finished`, c?.working && `${c.working} working`].filter(Boolean).join(', ');
     const say = [count && count + '.', pjHidden(p.id) && "It is hidden from this Amethyst's dock, and shows while it is open.", 'Click to open the project.', ask && 'Click the red count to answer here; shift + click it to go into the project.'].filter(Boolean).join(' ');

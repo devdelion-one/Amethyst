@@ -30,7 +30,7 @@ export const ueHead = (pop: boolean) => fwHead('Build', UE_ICON, winX('–', `da
 const I_ENG = svg(CUBE);
 const I_CFG = svg('<path d="M3 4.5h10M3 8h10M3 11.5h10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="6" cy="4.5" r="1.6" fill="var(--raised)" stroke="currentColor" stroke-width="1.2"/><circle cx="10.5" cy="8" r="1.6" fill="var(--raised)" stroke="currentColor" stroke-width="1.2"/><circle cx="5" cy="11.5" r="1.6" fill="var(--raised)" stroke="currentColor" stroke-width="1.2"/>');
 const I_EXT = svg('<path d="M6 3.5H3.5v9h9V10M9 2.5h4.5V7M13.5 2.5l-6 6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>');
-export const I_WIN = svg('<path d="M5 3.5V2.5h9v9h-1M2 5.5h3M2 5.5v7" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 5.5 12 7.8v4.4L8 14.5 4 12.2V7.8z M4 7.8 8 10.1 12 7.8 M8 10.1v4.4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>');
+export const I_WIN = svg('<rect x="1.75" y="2.25" width="12.5" height="11.5" rx="1.75" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M1.75 4a1.75 1.75 0 0 1 1.75-1.75h9A1.75 1.75 0 0 1 14.25 4v1.5H1.75Z" fill="currentColor"/><path d="M4.5 8.2h7M4.5 10.8h4.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>');
 const I_MORE = svg('<circle cx="3.5" cy="8" r="1.3" fill="currentColor"/><circle cx="8" cy="8" r="1.3" fill="currentColor"/><circle cx="12.5" cy="8" r="1.3" fill="currentColor"/>');
 const I_PLAY = svg('<path d="M5 3.2v9.6L12.6 8z" fill="currentColor"/>');
 const I_STOP = svg('<rect x="4" y="4" width="8" height="8" rx="1.5" fill="currentColor"/>');

@@ -119,8 +119,8 @@ body.resizing-y, body.resizing-y * { cursor: row-resize !important; user-select:
 :is(#switch, #dash) .sb > :is(#btn-index, #btn-git, #btn-github, #btn-setup).on { color: var(--text-strong); }
 :is(#switch, #dash) .sb > :is(#btn-index, #btn-git, #btn-github, #btn-setup).on::before { content: ""; position: absolute; left: -2px; top: 6px; bottom: 6px; width: 2px; border-radius: var(--r-mark); background: var(--accent); }
 :is(#switch, #dash) .ic { width: 18px; height: 18px; stroke-width: 1.5; }
-:is(#switch, #dash) .sv :is(.md-n, .act-n) { position: absolute; top: auto; bottom: -1px; right: -2px; z-index: 1; min-width: 13px; height: 12px; padding: 0 2.5px; font-size: var(--fs-mark); line-height: 10px; box-shadow: 0 0 0 1.5px var(--chrome); }
-:is(#switch, #dash) .sv :is(.md-n, .act-n):not([data-st="asks"]) { border: 1px solid color-mix(in srgb, var(--text-strong) 35%, var(--line)); background: var(--raised); color: var(--text-strong); }
+:is(#switch, #dash) .sv :is(.md-n, .act-n) { position: absolute; top: auto; bottom: -1px; right: -2px; z-index: 1; min-width: 13px; height: 12px; padding: 0 2.5px; font-size: var(--fs-mark); line-height: 12px; box-shadow: 0 0 0 1.5px var(--chrome); }
+:is(#switch, #dash) .sv :is(.md-n, .act-n):not([data-st="asks"], [data-st="done"]) { border: 1px solid color-mix(in srgb, var(--text-strong) 35%, var(--line)); background: var(--raised); color: var(--text-strong); line-height: 10px; }
 :is(#switch, #dash) .sv .ly-wk { right: 0; bottom: 0; width: 11px; height: 11px; box-shadow: none; }
 :is(#switch, #dash) .sv .ly-wk .gem { width: 8px; height: 8px; }
 #app.noagent #switch #btn-newchat { visibility: hidden; }
@@ -4546,10 +4546,8 @@ body:has(> .img-view) :is(#colormenu, #tip) { z-index: 110; }
 #ws-btn:has(#ws-go.on) { border-color: transparent; background: var(--flip); }
 #btn-scratch, #btn-sketch, #btn-inbox, #btn-qterm, #btn-qpwsh, #btn-qagent, .pn-qa { border-color: transparent; background: none; color: var(--text-dim); }
 #btn-scratch:hover, #btn-sketch:hover, #btn-inbox:hover, #btn-qterm:hover, #btn-qpwsh:hover, #btn-qagent:hover, .pn-qa:hover { border-color: transparent; background: var(--hover); color: var(--text-strong); }
-#btn-newchat, .pn-nc { border-color: color-mix(in srgb, var(--accent) 60%, transparent); background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--text); }
-#btn-newchat:hover, .pn-nc:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--text-strong); }
-:root[data-light] #status > #btn-settings.on, :root[data-light].accent-newbtn :is(#btn-newchat, .pn-nc) { border-color: var(--accent); background: var(--raised); }
-:root[data-light] #status > #btn-settings.on:hover, :root[data-light].accent-newbtn :is(#btn-newchat, .pn-nc):hover { background: color-mix(in srgb, var(--accent) 6%, var(--raised)); }
+:root[data-light] #status > #btn-settings.on { border-color: var(--accent); background: var(--raised); }
+:root[data-light] #status > #btn-settings.on:hover { background: color-mix(in srgb, var(--accent) 6%, var(--raised)); }
 #projects { border-left: 0; }
 
 
@@ -4614,7 +4612,7 @@ body:has(> .img-view) :is(#colormenu, #tip) { z-index: 110; }
 #btn-ue.ue-run { border-color: color-mix(in srgb, var(--accent) 60%, var(--line)); }
 #btn-uewin { flex: none; display: flex; align-items: center; justify-content: center; width: 24px; min-height: 0; height: 24px; padding: 0; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--raised); color: var(--text-dim); }
 #btn-uewin:hover { border-color: var(--text-dim); background: var(--hover); color: var(--accent); }
-#btn-uewin svg { width: 13px; height: 13px; }
+#btn-uewin svg { width: 14px; height: 14px; }
 .ue-ring { flex: none; width: 10px; height: 10px; border: 2px solid color-mix(in srgb, var(--text) 20%, transparent); border-top-color: var(--accent); border-radius: 50%; animation: ue-spin .8s linear infinite; }
 @keyframes ue-spin { to { transform: rotate(1turn); } }
 .uewin .qt-name .ue-ic { flex: none; width: 14px; height: 14px; color: var(--accent); }
@@ -5379,9 +5377,6 @@ body.dbg-pop #dbg .dgrip { display: none; }
 #colormenu .mi > .dk-code { flex: none; }
 #colormenu .mi > .m-tt { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .sub-row.sel, .ch-hist-list li.on, .cpo[aria-selected="true"], .sc-hc.sel, .th.on, :is(#colormenu, .hr-cm) .mi.on, #colormenu .am-card .mi[data-me], #colormenu .am-card .mi[data-me]:hover, #ue-new .nw-pr.on, #ue-new .nw-tpl.on, #palette li.on, .hr-pal li.on, #fpick li.on, #set-secs .ss.on, .hr-row.active, .pjr.on, #dbg .fr.on { background: var(--sel); box-shadow: inset 2px 0 0 var(--accent); border-radius: 0; }
-:root:not(.accent-newbtn) :is(#btn-newchat, .pn-nc, .oc-gh > .oc-new) { border-color: transparent; background: none; color: var(--text-strong); }
-:root:not(.accent-newbtn) :is(#btn-newchat, .pn-nc, .oc-gh > .oc-new):hover { border-color: transparent; background: var(--hover); color: var(--text-strong); }
-:root:not(.accent-newbtn) :is(#btn-newchat, .pn-nc, .oc-gh > .oc-new) .gem { color: var(--text-strong); }
 
 html.phone, html.phone body { overflow: hidden; height: 100%; }
 html.phone #app, html.phone #winbar { visibility: hidden; }
@@ -5432,6 +5427,49 @@ html.phone .ch-lv, html.phone .ch-tg, html.phone .ch-wt, html.phone .ch-mic { di
 
 :is(#activity #switch, #dash) :is(button, a) { border-color: transparent; background: none; box-shadow: none; }
 :is(#activity #switch, #dash) :is(button, a):hover { border-color: transparent; background: color-mix(in srgb, var(--text) 10%, transparent); box-shadow: none; }
-:is(#activity #switch, #dash) :is(button, a):not(.ly, [data-mode], #btn-newchat) { color: var(--text-strong); }
+:is(#activity #switch, #dash) :is(button, a):not(.ly, [data-mode], #btn-newchat, [data-copy="btn:newchat"]) { color: var(--text-strong); }
 :is(#activity #switch, #dash) :is(button, a):is(.on, .cur), :is(#activity #switch, #dash) :is(button, a):is(.on, .cur):hover { border-color: transparent; background: color-mix(in srgb, var(--text) 30%, transparent); }
 :is(#activity #switch, #dash) :is(button, a):is(.on, .cur):not(.mk)::before { content: none; }
+
+#dash .sv[data-span] { width: calc(var(--span, 1) * 32px); }
+#dash .sv[data-span] > :is(#btn-newchat, [data-copy="btn:newchat"]) { display: flex; align-items: center; justify-content: center; gap: 5px; width: calc(var(--span, 1) * 32px - 4px); padding: 0 8px; font-size: var(--fs-sm); font-weight: 600; }
+:is(#btn-newchat, [data-copy="btn:newchat"], .pn-nc) .nc-l { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#switch .sv > :is(#btn-newchat, [data-copy="btn:newchat"]) .nc-l { display: none; }
+.newbtn-big .pn-nc { display: inline-flex; align-items: center; justify-content: center; gap: 5px; width: auto; padding: 0 9px 0 7px; font-size: var(--fs-sm); font-weight: 600; }
+.oc-gh > .oc-new.big { display: inline-flex; align-items: center; justify-content: center; gap: 4px; width: auto; padding: 0 8px; font: 600 var(--fs-xs)/1 var(--font); white-space: nowrap; }
+.oc-gh > .oc-new.big .oc-new-l { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+:is(#app #btn-newchat, #app [data-copy="btn:newchat"], .pn-nc, .oc-gh > .oc-new) { border: 1px solid transparent; background: none; color: var(--text-strong); }
+:is(#app #btn-newchat, #app [data-copy="btn:newchat"], .pn-nc, .oc-gh > .oc-new):hover { border-color: transparent; background: color-mix(in srgb, var(--text) 10%, transparent); color: var(--text-strong); }
+:is(#app #btn-newchat, #app [data-copy="btn:newchat"], .pn-nc, .oc-gh > .oc-new) .gem { color: var(--c-violet); }
+:is(#app #btn-newchat, #app [data-copy="btn:newchat"], .pn-nc, .oc-gh > .oc-new) .gem .b { fill: var(--text-strong); }
+:root[data-newbtn-color="default"] :is(#app #dash .sv[data-span] > :is(#btn-newchat, [data-copy="btn:newchat"]), .newbtn-big .pn-nc, .oc-gh > .oc-new.big) { border-color: color-mix(in srgb, var(--text) 14%, transparent); background: color-mix(in srgb, var(--text) 8%, transparent); }
+:root[data-newbtn-color="default"] :is(#app #dash .sv[data-span] > :is(#btn-newchat, [data-copy="btn:newchat"]), .newbtn-big .pn-nc, .oc-gh > .oc-new.big):hover { border-color: color-mix(in srgb, var(--text) 24%, transparent); background: color-mix(in srgb, var(--text) 14%, transparent); }
+
+:root[data-newbtn-color="clear"] :is(#app #btn-newchat, #app [data-copy="btn:newchat"], .pn-nc, .oc-gh > .oc-new) { border-color: transparent; background: none; color: var(--text-dim); }
+:root[data-newbtn-color="clear"] :is(#app #btn-newchat, #app [data-copy="btn:newchat"], .pn-nc, .oc-gh > .oc-new):hover { border-color: transparent; background: color-mix(in srgb, var(--text) 10%, transparent); color: var(--text-strong); }
+:root[data-newbtn-color="clear"] :is(#app #btn-newchat, #app [data-copy="btn:newchat"], .pn-nc, .oc-gh > .oc-new) .gem { color: var(--text-dim); }
+:root[data-newbtn-color="clear"] :is(#app #btn-newchat, #app [data-copy="btn:newchat"], .pn-nc, .oc-gh > .oc-new) .gem .b { fill: var(--text-strong); }
+
+:root[data-newbtn-color="accent"] :is(#app #btn-newchat, #app [data-copy="btn:newchat"], .pn-nc, .oc-gh > .oc-new) { border-color: color-mix(in srgb, var(--accent) 60%, transparent); background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--text-strong); }
+:root[data-newbtn-color="accent"] :is(#app #btn-newchat, #app [data-copy="btn:newchat"], .pn-nc, .oc-gh > .oc-new):hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 26%, transparent); color: var(--text-strong); }
+:root[data-newbtn-color="accent"] :is(#app #btn-newchat, #app [data-copy="btn:newchat"], .pn-nc, .oc-gh > .oc-new) .gem { color: var(--accent); }
+:root[data-light][data-newbtn-color="accent"] :is(#app #btn-newchat, #app [data-copy="btn:newchat"], .pn-nc, .oc-gh > .oc-new) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--raised)); color: var(--text-strong); }
+:root[data-light][data-newbtn-color="accent"] :is(#app #btn-newchat, #app [data-copy="btn:newchat"], .pn-nc, .oc-gh > .oc-new):hover { background: color-mix(in srgb, var(--accent) 20%, var(--raised)); }
+
+:root[data-newbtn-color="custom"] :is(#app #btn-newchat, #app [data-copy="btn:newchat"], .pn-nc, .oc-gh > .oc-new) { border-color: color-mix(in srgb, var(--nb-c) 65%, transparent); background: color-mix(in srgb, var(--nb-c) 18%, transparent); color: var(--text-strong); }
+:root[data-newbtn-color="custom"] :is(#app #btn-newchat, #app [data-copy="btn:newchat"], .pn-nc, .oc-gh > .oc-new):hover { border-color: var(--nb-c); background: color-mix(in srgb, var(--nb-c) 28%, transparent); color: var(--text-strong); }
+:root[data-newbtn-color="custom"] :is(#app #btn-newchat, #app [data-copy="btn:newchat"], .pn-nc, .oc-gh > .oc-new) .gem { color: var(--nb-c); }
+:root[data-light][data-newbtn-color="custom"] :is(#app #btn-newchat, #app [data-copy="btn:newchat"], .pn-nc, .oc-gh > .oc-new) { border-color: var(--nb-c); background: color-mix(in srgb, var(--nb-c) 14%, var(--raised)); color: var(--text-strong); }
+:root[data-light][data-newbtn-color="custom"] :is(#app #btn-newchat, #app [data-copy="btn:newchat"], .pn-nc, .oc-gh > .oc-new):hover { background: color-mix(in srgb, var(--nb-c) 22%, var(--raised)); }
+
+#colormenu .nb-sw { border: 1px solid transparent; border-radius: var(--r-sm); }
+#colormenu .nb-sw .gem .b { fill: var(--text-strong); }
+#colormenu .nb-sw.nb-dft .gem { color: var(--c-violet); }
+#colormenu .nb-sw.nb-clr .gem { color: var(--text-dim); }
+#colormenu .nb-sw.nb-acc { border-color: color-mix(in srgb, var(--accent) 60%, transparent); background: color-mix(in srgb, var(--accent) 16%, transparent); }
+#colormenu .nb-sw.nb-acc .gem { color: var(--accent); }
+#colormenu .nb-sw.nb-hex { border-color: color-mix(in srgb, var(--nb-c) 65%, transparent); background: color-mix(in srgb, var(--nb-c) 18%, transparent); }
+#colormenu .nb-sw.nb-hex .gem { color: var(--nb-c); }
+#colormenu .nb-pick { position: relative; cursor: pointer; }
+#colormenu .nb-pick > input[type="color"] { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }

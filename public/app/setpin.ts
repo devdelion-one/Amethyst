@@ -1,4 +1,4 @@
-import { NEW_BTN } from './chatlist.ts';
+import { newBtnHtml } from './chatlist.ts';
 import { ncInner } from './header.ts';
 import { agentMenu, agentShort, newHint, PIN_PLACES, pinOf, pinSame, ringSvg, setPin, setPinSame } from '../base/agentmenu.ts';
 import { gem } from '../base/kinds.ts';
@@ -66,7 +66,7 @@ function real(id: string, cls: string, inner?: string) {
 }
 const pics: Record<string, () => string> = {
   top: () => `<span class="tray pn-tray">${real('btn-newchat', 'pn-nc', ncInner())}</span>`,
-  list: () => `<span class="oc-gh pn-lh">${quiet(NEW_BTN)}</span>`,
+  list: () => `<span class="oc-gh pn-lh">${quiet(newBtnHtml())}</span>`,
   agents: () => `<span class="dk-hint pn-hint">${quiet(newHint('chat'))}</span>`,
   text: () => `<span class="pn-col"><span class="pn-edsel">${real('ed-chat', '')}</span><span class="pn-seltxt">some selected text</span></span>`,
   tochat: () => `<span class="pn-col"><span class="pn-sel">${quiet(selBarHtml('＋ add to chat')).replace('<button type="button" class="sb-to"', `<button type="button" class="sb-to"${pref('tochat:pick') ? '' : ' hidden'}`)}</span><span class="pn-seltxt">some selected text</span></span>`,
