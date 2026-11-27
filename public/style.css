@@ -5473,6 +5473,7 @@ html.phone .ch-lv, html.phone .ch-tg, html.phone .ch-wt, html.phone .ch-mic { di
 #dash .sv[data-span] { width: calc(var(--span, 1) * 32px); }
 #dash .sv[data-span] > :is(#btn-newchat, [data-copy="btn:newchat"]) { display: flex; align-items: center; justify-content: center; gap: 5px; width: calc(var(--span, 1) * 32px - 4px); padding: 0 8px; font-size: var(--fs-sm); font-weight: 600; }
 :is(#btn-newchat, [data-copy="btn:newchat"]) .nc-l { display: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:is(#btn-newchat, [data-copy="btn:newchat"], .pn-nc, .oc-gh > .oc-new) .nc-l { text-box: trim-both cap alphabetic; overflow: clip visible; }
 #dash .sv[data-span] > :is(#btn-newchat, [data-copy="btn:newchat"]) .nc-l { display: inline; }
 .pn-nc:not(.big) .nc-l { display: none; }
 .pn-nc.big { display: inline-flex; align-items: center; justify-content: center; gap: 5px; width: auto; padding: 0 9px 0 7px; font-size: var(--fs-sm); font-weight: 600; }
