@@ -1,9 +1,10 @@
 import { filesChanged, setMark, togglePin } from './actions.ts';
 import { markMenu } from '../base/agentrow.ts';
 import { agentMenu, launchAgent, pinOf } from '../base/agentmenu.ts';
+import type { TopRowRef } from '../base/controls.ts';
 import { ask, barMenu, flyFocus, ICONS, keepMenu, keyChip, menuHead, modeOrder, popMenu, railActions, setSwatches, sortable, sorting, topBarMenu, topRow } from '../base/controls.ts';
 import { addSet, agentLine, createDeck, dropSet, markSet, moveAway, moveSet, moveSetChats, nextColor, orderHex, putInSet, restoreSet, setAgents, setAway, setColor, setInfo, setInfos, setOf, setOn, sets, setsMenu, setTurn, shareDeck, showSet, takeHere, toOrch } from '../decks/deck.ts';
-import { aim, bottomBtns, btnShown, dragging, freeAt, freeNear, inDash, moveRef, orderAt, paintSlots, pinDropIn, placeAt, placeBoth, railSel, slotDrag, topBtns, watchFold, watchSlots } from './slots.ts';
+import { aim, bottomBtns, btnShown, dragging, freeAt, freeNear, inDash, isCopy, moveRef, orderAt, paintSlots, pinDropIn, placeAt, placeBoth, railSel, slotDrag, topBtns, watchFold, watchSlots, withCopies } from './slots.ts';
 import type { Side, SlotView, Spot } from './slots.ts';
 import { drawDash, showDash } from './topdash.ts';
 import type { MoveHow } from '../decks/deck.ts';
@@ -268,7 +269,7 @@ export function paintSwitch() {
   }
   const order = modeOrder();
   views.sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind));
-  const all = [...topBtns(), ...views, ...bottomBtns()];
+  const all = withCopies([...topBtns(), ...views, ...bottomBtns()]);
   lastAll = all;
   showDash(all.some((v) => v.shown && inDash(v.ref)));
   const { at, first, fresh, rail, dash, dashAt } = placeBoth(all);
@@ -296,7 +297,12 @@ function syncOrders() {
   by('editor', eds.map((e) => e.id)).forEach((id, i) => eds[i]?.id !== id && moveEditor(id, i));
   for (const k of SLOT_KINDS) by(k, sets(k).list.map((x) => x.id)).forEach((id, i) => sets(k).list[i]?.id !== id && moveSet(k, id, i));
 }
-const allRefs = () => [
+export const redrawSwitch = () => {
+  drawn = '';
+  paintSwitch();
+};
+export const allRefs = () => [
+  ...lastAll.filter((v) => isCopy(v.ref)).map((v) => v.ref),
   ...topBtns().map((v) => v.ref),
   ...(atWs() ? ['editor:ws'] : eds.map((e) => `editor:${e.id}`)),
   ...SLOT_KINDS.filter((k) => !atWs() || k !== 'orch').flatMap((k) => sets(k).list.map((x) => `${k}:${x.id}`)),
@@ -670,10 +676,14 @@ const refsOfShow = (r: { k?: string; id?: string; sel?: string; pin?: string }) 
   if (r.k === 'modesHidden') return lastAll.filter((v) => v.kind === r.id).map((v) => v.ref);
   return lastAll.filter((v) => v.kind === 'btn' && railSel(v.ref) === r.sel).map((v) => v.ref);
 };
-const shownRefs = () => lastAll.filter((v) => (v.kind === 'btn' ? btnShown(v.ref) : !isOff('modesHidden', v.kind))).map((v) => v.ref);
+export const shownRefs = () => lastAll.filter((v) => (v.kind === 'btn' ? btnShown(v.ref) : !isOff('modesHidden', v.kind))).map((v) => v.ref);
+const slotCopy: { count: (r: TopRowRef) => number | null; put: (r: TopRowRef, at: Spot | null) => unknown } = { count: () => null, put: () => {} };
+export const useSlotCopy = (h: typeof slotCopy) => Object.assign(slotCopy, h);
 function slotMenu(e: MouseEvent, side: Side) {
   const at = freeAt(side === 'dash' ? e.clientX : e.clientY, side);
   topBarMenu(e.clientX, e.clientY, {
+    count: slotCopy.count,
+    onPut: (r) => slotCopy.put(r, at),
     head: side === 'dash' ? menuHead(ICONS.topDash, 'dashboard') : undefined,
     acts: newRowsAt(at),
     onPick: (b) => newPick(b, at),

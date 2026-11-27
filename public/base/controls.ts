@@ -759,7 +759,10 @@ export function offClasses(key: string, prefix: string) {
 
 type TopRow = { k: string; id: string; label: string; sel: string; icon: () => string; fixed?: boolean; when?: () => boolean; d?: string; tip?: string; why?: () => string };
 type TopPre = { rows: (grip?: boolean) => string; pick: (b: HTMLElement) => boolean; move: [string, (keys: string[]) => unknown] };
-type TopOpts = { tray?: string; head?: string; acts?: string; opts?: string; buttons?: string; pick?: [string, string]; onPick?: (b: HTMLElement) => unknown; onShow?: (r: { k?: string; id?: string; sel?: string; pin?: string }) => unknown };
+export type TopRowRef = { k: string; id: string; sel: string };
+type TopOpts = { tray?: string; head?: string; acts?: string; opts?: string; buttons?: string; pick?: [string, string]; onPick?: (b: HTMLElement) => unknown; onShow?: (r: { k?: string; id?: string; sel?: string; pin?: string }) => unknown; count?: (r: TopRowRef) => number | null; onPut?: (r: TopRowRef) => unknown };
+export const copyHook = { row: (): string => '', pick: (_b: HTMLElement): boolean => false };
+export const useCopyHook = (h: typeof copyHook) => Object.assign(copyHook, h);
 const shownBtn = (sel: string) => () => !atWs() && !document.querySelector(sel)?.hasAttribute('hidden');
 const rowIc = (k: string) => () => ROW_IC[k]?.() || '';
 export const TOPBAR: { g: string; name: string; sel: string; icon?: () => string; rows: TopRow[]; acts?: () => string; onAct?: (b: HTMLElement) => unknown; move?: (keys: string[]) => unknown; pre?: TopPre }[] = [
@@ -807,6 +810,12 @@ export const topRow = (on: boolean, attrs: string, icon: string, label: string, 
 export function topBarMenu(x: number, y: number, o: TopOpts = {}) {
   const row = (r: TopRow, g: (typeof TOPBAR)[number]) => {
     const say = r.why?.() || r.tip || (r.id ? PREFS[r.k].tips?.[r.id] : PREFS[r.k].desc) || r.d || '';
+    const n = o.tray ? null : o.count?.(r) ?? null;
+    if (n != null) {
+      const tip = `${cap(r.label)}
+${n ? `Puts one more here. ${n} on the rail and dashboard now.` : 'Puts it here.'} Right-click one to remove it.`;
+      return { html: `<button class="mi tb-put${n ? '' : ' none'}" data-tk="${r.k}" data-ti="${r.id}" data-put title="${esc(tip)}"><i class="tb-ic">${r.icon()}</i><span class="mi-n">${esc(r.label)}</span><span class="tb-here">put here</span><span class="tb-n">${n}</span></button>`, grip: false };
+    }
     const html = topRow(rowOn(r) || !!r.fixed, `data-tk="${r.k}" data-ti="${r.id}"${say ? ` title="${esc(cap(r.label))}&#10;${esc(say)}"` : ''}`, r.icon(), esc(r.label), '', r.fixed);
     return { html: useRow(r.k, r.id, r.sel, esc(r.label), html, !!g.move), grip: !!g.move };
   };
@@ -819,15 +828,17 @@ export function topBarMenu(x: number, y: number, o: TopOpts = {}) {
       return inner ? subLabel(name) + inner : '';
     };
     const tools = TOPBAR.map((g) => g.g).filter((g) => g !== 'strip' && g !== 'modes');
-    html = (o.head || menuHead(ICONS.strip, 'rail')) + bands({ actions: ((o.acts ?? railActs.rows()) || '') + dashRow() + railRow(), buttons: band('panels', ['strip']) + band('modes', ['modes']) + band('tools', tools) });
+    html = (o.head || menuHead(ICONS.strip, 'rail')) + bands({ actions: copyHook.row() + ((o.acts ?? railActs.rows()) || ''), options: dashRow() + railRow(), buttons: band('panels', ['strip']) + band('modes', ['modes']) + band('tools', tools) });
   } else {
     const g = TOPBAR.find((t) => t.g === o.tray)!;
-    html = (o.head || menuHead(g.icon?.() || '', g.name)) + bands({ actions: (o.acts || '') + (g.acts?.() || ''), options: o.opts, buttons: (o.buttons || '') + rowsOf(g), pick: o.pick, other: `<button class="mi tb-all" data-tball><i class="tb-ic">${ICONS.strip}</i><span class="mi-n">all rail buttons</span><span class="kc">›</span></button>` });
+    html = (o.head || menuHead(g.icon?.() || '', g.name)) + bands({ actions: copyHook.row() + (o.acts || '') + (g.acts?.() || ''), options: o.opts, buttons: (o.buttons || '') + rowsOf(g), pick: o.pick, other: `<button class="mi tb-all" data-tball><i class="tb-ic">${ICONS.strip}</i><span class="mi-n">all rail buttons</span><span class="kc">›</span></button>` });
   }
   popMenu(x, y, html, (b) => {
     const d = b.dataset;
+    if (copyHook.pick(b)) return;
     if (d.tk) {
       const r = TOPBAR.flatMap((t) => t.rows).find((t) => t.k === d.tk && t.id === d.ti)!;
+      if ('put' in d) return o.onPut?.(r);
       const wasOn = rowOn(r);
       if (!wasOn) o.onShow?.(r);
       return r.id ? setOff(r.k, r.id, wasOn) : setPref(r.k, !saved(r.k));
@@ -845,16 +856,9 @@ export function topBarMenu(x: number, y: number, o: TopOpts = {}) {
   keepMenu(() => topBarMenu(x, y, o));
   if (o.tray) for (const g of TOPBAR) if (g.move) moveMenu(g.g, g.move);
 }
-export const dashRow = () => {
-  const on = !!pref('dash:on'), say = `${PREFS['dash:on'].label}
-${PREFS['dash:on'].desc}`;
-  return `<button class="mi" data-dashhide title="${esc(say)}"><i class="tb-ic">${ICONS.topDash}</i><span class="mi-n">${on ? 'hide the dashboard' : 'show the dashboard'}</span>${keyChip('dashKey')}</button>`;
-};
+export const dashRow = () => topRow(!!pref('dash:on'), `data-dashhide title="Dashboard&#10;The row above the windows. Untick to hide it."`, ICONS.topDash, 'dashboard', keyChip('dashKey'));
 export const dashPick = (b: HTMLElement) => 'dashhide' in b.dataset && (setPref('dash:on', !pref('dash:on')), true);
-export const railRow = () => {
-  const r = !!pref('rail:right'), say = `Rail on the ${r ? 'left' : 'right'}\nMoves the rail to the ${r ? 'left' : 'right'} edge of the window. You can also drag an empty spot of the rail there.`;
-  return `<button class="mi" data-railside title="${esc(say)}"><i class="tb-ic">${r ? ICONS.strip : ICONS.stripR}</i><span class="mi-n">${r ? 'rail on the left' : 'rail on the right'}</span></button>`;
-};
+export const railRow = () => topRow(!!pref('rail:right'), `data-railside title="Rail on the right&#10;Puts the rail on the right edge of the window. Untick for the left. You can also drag an empty spot of the rail there."`, ICONS.stripR, 'rail on the right');
 export const railPick = (b: HTMLElement) => 'railside' in b.dataset && (setPref('rail:right', !pref('rail:right')), true);
 const railActs: { rows: () => string; pick: (b: HTMLElement, at: number | null) => unknown } = { rows: () => '', pick: () => {} };
 export const railActions = (rows: () => string, pick: (b: HTMLElement, at: number | null) => unknown) => Object.assign(railActs, { rows, pick });

@@ -30,6 +30,43 @@ function saveDash(at: Spots) {
   store.set(dashViewKey(), part(at, false));
 }
 const kindOf = (ref: string) => ref.slice(0, ref.indexOf(':'));
+export const baseOf = (ref: string) => ref.split('~')[0];
+export const isCopy = (ref: string) => ref.includes('~');
+const COPYABLE = ['btn:qterm', 'btn:qpwsh', 'btn:qagent', 'btn:inbox', 'btn:sketch', 'btn:scratch', 'btn:more', 'btn:newchat', 'btn:win', 'btn:pins', 'btn:ue', 'btn:uewin'];
+export const copyable = (ref: string) => COPYABLE.includes(baseOf(ref)) || kindOf(ref) === 'orch';
+const copyRefs = () => [...new Set([...Object.keys(spots()), ...Object.keys(dashSpots())])].filter(isCopy);
+export function withCopies(all: SlotView[]) {
+  const out = [...all];
+  for (const r of copyRefs()) {
+    const b = all.find((v) => v.ref === baseOf(r));
+    if (b && copyable(r)) out.push({ ...b, ref: r });
+  }
+  return out;
+}
+export const placedOf = (base: string) => [base, ...copyRefs().filter((r) => baseOf(r) === base)].filter((r) => Number.isInteger(spots()[r]) || Number.isInteger(dashSpots()[r]));
+export function newCopy(base: string) {
+  const used = new Set(copyRefs());
+  let n = 2;
+  while (used.has(`${base}~${n}`)) n++;
+  return `${base}~${n}`;
+}
+export function dropCopy(ref: string) {
+  const R = spots(), D = dashSpots(), base = baseOf(ref);
+  if (ref === base) {
+    const c = copyRefs().find((r) => baseOf(r) === base && (Number.isInteger(R[r]) || Number.isInteger(D[r])));
+    if (!c) return false;
+    const [from, other] = Number.isInteger(D[c]) ? [D, R] : [R, D];
+    from[base] = from[c];
+    delete other[base];
+    delete from[c];
+  } else {
+    delete R[ref];
+    delete D[ref];
+  }
+  save(R);
+  saveDash(D);
+  return true;
+}
 export const inDash = (ref: string) => Number.isInteger(dashSpots()[ref]);
 export const dashSpot = (ref: string): number | null => (Number.isInteger(dashSpots()[ref]) ? dashSpots()[ref] : null);
 
@@ -53,12 +90,14 @@ const RAIL: [string, string, 't' | 'b', string][] = [
   ['btn:newchat', '#btn-newchat', 'b', 'agent'],
 ];
 const WS_BTNS = ['btn:index', 'btn:site', 'btn:win', 'btn:ue', 'btn:uewin'];
-export const railSel = (ref: string) => RAIL.find((x) => x[0] === ref)?.[1] || '';
+export const refOfSel = (sel: string) => RAIL.find((x) => x[1] === sel)?.[0] || '';
+export const railSel = (ref: string) => RAIL.find((x) => x[0] === baseOf(ref))?.[1] || '';
 const elOf = (ref: string) => $<HTMLElement>(railSel(ref));
 type Pins = { views: () => SlotView[]; groups: () => string[][] };
 let pins: Pins = { views: () => [], groups: () => [] };
 export const usePins = (p: Pins) => (pins = p);
 export function btnShown(ref: string) {
+  ref = baseOf(ref);
   if (isPin(ref)) return !!pins.views().find((v) => v.ref === ref)?.shown;
   if (atWs() && !WS_BTNS.includes(ref)) return false;
   const el = elOf(ref);
@@ -73,10 +112,10 @@ export function bottomBtns() {
   b.splice(at < 0 ? b.length : at, 0, ...pins.views());
   return b;
 }
-const endOf = (ref: string) => (isPin(ref) ? 'b' : RAIL.find((x) => x[0] === ref)?.[2] || 't');
+const endOf = (ref: string) => (isPin(ref) ? 'b' : RAIL.find((x) => x[0] === baseOf(ref))?.[2] || 't');
 
 const spans: Record<string, number> = {};
-const spanOf = (ref: string) => spans[ref] || 1;
+const spanOf = (ref: string) => spans[baseOf(ref)] || 1;
 const local = (s: number) => (s < 0 ? -s - 1 : s);
 const spotOf = (e: string, i: number) => (e === 'b' ? -i - 1 : i);
 const cellKeys = (r: string, s: number) => Array.from({ length: spanOf(r) }, (_, k) => (s < 0 ? 'b' : 't') + (local(s) + k));
@@ -315,7 +354,7 @@ function nearest(sf: Surf, p: number) {
 const FOLD = ['btn:pins', 'btn:win', 'btn:scratch', 'btn:sketch', 'btn:qterm', 'btn:qpwsh', 'btn:qagent', 'btn:inbox', 'btn:quick', 'btn:more', 'btn:uewin', 'btn:ue', 'orch', 'btn:newchat', 'term', 'editor', 'btn:setup', 'btn:github', 'btn:git', 'btn:index', 'btn:site'];
 function fit(views: SlotView[], at: Spots, n: number) {
   const rank = new Map(views.map((v, p) => {
-    const i = FOLD.indexOf(isPin(v.ref) ? 'btn:quick' : isBtn(v.ref) ? v.ref : v.kind);
+    const i = FOLD.indexOf(isPin(v.ref) ? 'btn:quick' : isBtn(v.ref) ? baseOf(v.ref) : v.kind);
     return [v.ref, (i < 0 ? FOLD.length : i) * 1000 + (999 - (p % 1000))];
   }));
   const live = new Map(views.map((v) => [v.ref, absCells(v.ref, at[v.ref], n)]));
@@ -421,7 +460,10 @@ export function homeBtns(sw: HTMLElement) {
     if (el.parentNode !== at) at.append(el);
   }
   SURFS.forEach(placeFold);
+  homed();
 }
+let homed = () => {};
+export const onHomed = (f: () => void) => (homed = f);
 
 function placeFold(sf: Surf) {
   const sw = sf.el(), box = sw.querySelector<HTMLElement>('.rf-box'), b = sw.querySelector<HTMLElement>('.rf-btn');

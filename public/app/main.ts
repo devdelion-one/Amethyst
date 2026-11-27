@@ -7,6 +7,7 @@ import { gitRepoNow, prChanged } from '../git/git.ts';
 import { newPr, openPr } from '../github/ghpr.ts';
 import { openIssue } from '../github/ghissue.ts';
 import './edges.ts';
+import './copies.ts';
 import './keys.ts';
 import './dnd.ts';
 import '../usage/usage.ts';

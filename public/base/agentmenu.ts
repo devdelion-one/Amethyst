@@ -1,4 +1,4 @@
-import { arrowIntoSub, bands, chip, ICONS, menuHead, popMenu, subMenu } from './controls.ts';
+import { arrowIntoSub, bands, chip, copyHook, ICONS, menuHead, popMenu, subMenu } from './controls.ts';
 import { bound, show } from './binds.ts';
 import { gem } from './kinds.ts';
 import { tell } from './notify.ts';
@@ -69,8 +69,9 @@ export function agentMenu(x: number, y: number, pick: (program: string) => unkno
   popMenu(
     x,
     y,
-    (head || menuHead(gem('ai'), 'agents')) + bands({ pick: ['new chat', on.map(item).join('') + more], other: tail }),
+    (head || menuHead(gem('ai'), 'agents')) + bands({ actions: copyHook.row(), pick: ['new chat', on.map(item).join('') + more], other: tail }),
     (b) => {
+      if (copyHook.pick(b)) return;
       if (b.dataset.pin != null) {
         const k = b.dataset.pin;
         setPin(place, cur === k ? '' : k);

@@ -2277,6 +2277,13 @@ button:is(.sw-ic, .sw-pj):hover { background: none; }
 :is(#colormenu, .hr-cm) .mi .kc { flex: none; display: inline-flex; gap: 3px; margin-left: auto; padding-left: var(--s3); color: var(--text-dim); font-size: var(--fs-xs); font-weight: 400; }
 :is(#colormenu, .hr-cm) .mi .kc kbd { height: 14px; min-width: 14px; margin: 0; padding: 0 3px; border: 0; border-radius: var(--r-xs); background: color-mix(in srgb, var(--text) 11%, transparent); color: var(--text-dim); font-size: var(--fs-2xs); line-height: 14px; }
 #colormenu .mi.tb-row .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+#colormenu .mi.tb-put { padding-left: 26px; }
+#colormenu .mi.tb-put .mi-n { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+#colormenu .mi.tb-put .tb-here { flex: none; margin-left: auto; padding-left: var(--s3); color: var(--accent); font-size: var(--fs-xs); visibility: hidden; }
+#colormenu .mi.tb-put:is(:hover, :focus-visible) .tb-here { visibility: visible; }
+#colormenu .mi.tb-put .tb-n { flex: none; min-width: 16px; height: 14px; margin-left: var(--s2); padding: 0 3px; border-radius: var(--r-xs); background: color-mix(in srgb, var(--text) 11%, transparent); color: var(--text-dim); font-size: var(--fs-2xs); line-height: 14px; text-align: center; }
+#colormenu .mi.tb-put.none { color: var(--text-dim); }
+#colormenu .mi.tb-put.none .tb-n { background: none; color: var(--text-faint); }
 #colormenu .tb-ring { padding: 0; display: inline-grid; }
 #colormenu .pk-cur { flex: none; margin-left: auto; display: inline-grid; place-items: center; }
 #colormenu .pk-cur + .pk-ar { margin-left: 0; padding-left: var(--s2); }
