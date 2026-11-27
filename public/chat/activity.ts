@@ -10,7 +10,7 @@ import { cdOf, chipsOf, nameOf, runName } from './subagents.ts';
 import type { Run, Sub } from './subagents.ts';
 import { cmdPane, followSubs, paneClick, runDur, subDur, subPane } from './subview.ts';
 import { $, agentName, amTag, esc, store } from '../base/util.ts';
-import { claim, forMe, isSpare, on, send, SOLO } from '../base/windows.ts';
+import { claim, forMe, isSpare, on, send, SOLO, toSpare } from '../base/windows.ts';
 
 const OWN = !!window.amethyst?.desktop;
 const RS = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'].map((z) => `<i data-rs="${z}"></i>`).join('');
@@ -160,7 +160,7 @@ else if (!OWN) {
 }
 if (isSpare())
   on('claimact', (m) => {
-    if (!forMe(m) || !isSpare() || !m.chat) return;
+    if (!toSpare(m) || !m.chat) return;
     claim(`activity-${m.chat}`);
     beActivity(String(m.chat), m.sub || null);
     page.render?.();

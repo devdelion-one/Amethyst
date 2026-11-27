@@ -269,11 +269,23 @@ function placeExtra(w: BrowserWindow, addr: string) {
   const here = atNow.get(amOf(addr));
   if (here === undefined || w.isDestroyed() || !ofProject(w, addr)) return;
   if (stays(addr, here)) {
-    if (hiddenAway.has(w)) (clearTimeout(hiddenAway.get(w)), hiddenAway.delete(w), [...away.values()].includes(w) || w.showInactive());
+    if (!hiddenAway.has(w)) return;
+    clearTimeout(hiddenAway.get(w));
+    hiddenAway.delete(w);
+    if ([...away.values()].includes(w)) return void hitchLog(logName(w), `stays hidden at ${here}: minimized to the dock`);
+    const to = isPop(addr) && lastPlace(placeOf(addr));
+    if (to) w.setBounds(to);
+    w.showInactive();
+    hitchLog(logName(w), `shown again: its project ${here} is shown${to ? `, at the last ${placeOf(addr).slice(4)} place ${to.width}x${to.height}@${to.x},${to.y}` : ''}`);
   } else if (!hiddenAway.has(w)) {
     hiddenAway.set(w, setTimeout(() => (closeOk.set(w, true), w.close()), PARK_AFTER));
     w.hide();
+    hitchLog(logName(w), `hidden: the main window shows ${here}`);
   }
+}
+function lastPlace(key: string): Rectangle | null {
+  const s = state.places[key];
+  return s?.width && onScreen(s) ? { x: s.x, y: s.y, width: s.width, height: s.height } : null;
 }
 const owned = ownedWindows<BrowserWindow>({ here: (am) => atNow.get(am), away: (k, w) => away.get(k) === w, after: PARK_AFTER, tell: () => tellOwned() });
 const addrProj = (a: string) => (isExtra(a) ? projOf(a) : (atNow.get(amOf(a)) ?? projOf(a)));
@@ -319,7 +331,7 @@ function keepParked(addr: string) {
 }
 function remember() {
   state.open = [...wins].filter(([w]) => !spares.has(w) && !hiddenAway.has(w)).map(([, a]) => a);
-  for (const [w, addr] of wins) if (!w.isDestroyed() && !spares.has(w)) state.places[placeOf(addr)] = { ...w.getNormalBounds(), max: w.isMaximized() };
+  for (const [w, addr] of wins) if (!w.isDestroyed() && !spares.has(w) && !hiddenAway.has(w)) state.places[placeOf(addr)] = { ...w.getNormalBounds(), max: w.isMaximized() };
   for (const [w, addr] of wins) if (!w.isDestroyed() && !isExtra(addr) && !amLeaving.has(amOf(addr))) keepAm(amOf(addr), addr);
   save();
 }
@@ -517,6 +529,8 @@ ipcMain.handle('claim-spare', (e, of, opts?: { pop?: boolean; kind?: string; add
     w.setBounds(kept || fresh(from));
   }
   w.show();
+  const at = w.getBounds();
+  hitchLog(logName(w), `spare claimed by ${logName(from)} as ${opts?.pop === false ? 'a window' : opts?.kind || 'quick'}, at ${at.width}x${at.height}@${at.x},${at.y}`);
   remember();
   return true;
 });
@@ -1064,8 +1078,15 @@ const kindOf = (w: BrowserWindow | null | undefined) => {
   const a = wins.get(w!);
   return a && isPop(a) ? placeOf(a).slice(4) : '';
 };
+function logName(w: BrowserWindow | null | undefined) {
+  if (!w || w === hint) return w ? 'snap frame' : '';
+  const a = wins.get(w);
+  if (!a || !isExtra(a)) return kindOf(w) || a || '';
+  const q = new URL(a, BASE).searchParams;
+  return `${spares.has(w) ? 'spare' : kindOf(w) || 'window'} ${q.get('win')} of ${projOf(a)}`;
+}
 
-const hitchLog = hitch({ app, BrowserWindow, clipboard, ipcMain, powerMonitor, screen, shell, dir: DATA, ours, version: app.getVersion(), nameOf: (w) => (w === hint ? 'snap frame' : kindOf(w) || wins.get(w) || ''), viewers: () => owned.winsOf('hitch'), server: () => server, target: () => (lastMain && !lastMain.isDestroyed() ? lastMain : [...wins].find(([x, a]) => !isExtra(a) && !x.isDestroyed())?.[0]) });
+const hitchLog = hitch({ app, BrowserWindow, clipboard, ipcMain, powerMonitor, screen, shell, dir: DATA, ours, version: app.getVersion(), nameOf: (w) => logName(w), viewers: () => owned.winsOf('hitch'), server: () => server, target: () => (lastMain && !lastMain.isDestroyed() ? lastMain : [...wins].find(([x, a]) => !isExtra(a) && !x.isDestroyed())?.[0]) });
 
 const down = new Map<BrowserWindow, BrowserWindow[]>();
 function downWith(m: BrowserWindow) {
@@ -1122,6 +1143,8 @@ ipcMain.handle('flash-frame', (e) => {
 ipcMain.handle('window-back', (e, kind, focus) => {
   if (!ours(e.senderFrame?.url || '')) return;
   const from = BrowserWindow.fromWebContents(e.sender), w = kind ? away.get(ownKey(String(kind), projFrom(from))) : from;
+  if (!kind && from && (spares.has(from) || hiddenAway.has(from))) return void hitchLog(logName(from), `asked to show itself, refused: ${spares.has(from) ? 'it is a spare' : `its project is not shown (${atNow.get(amOf(wins.get(from) || '')) ?? 'none'} is)`}`);
+  if (w && !w.isDestroyed() && (!w.isVisible() || focus)) hitchLog(logName(w), `shown on request${kind ? ` (${kind})` : ''}${focus ? ', focused' : ''}`);
   reveal(w);
   if (focus && w && !w.isDestroyed()) (w.isMinimized() && w.restore(), keepInView(w), w.show(), w.moveTop(), w.focus());
 });
@@ -1134,6 +1157,7 @@ ipcMain.handle('quick-of', (e) => {
   const from = BrowserWindow.fromWebContents(e.sender), at = from && wins.get(from);
   if (!ours(e.senderFrame?.url || '') || !at) return 0;
   const hit = [...wins].find(([w, a]) => w !== from && !w.isDestroyed() && !spares.has(w) && placeOf(a) === 'pop:quick' && projOf(a) === projOf(at));
+  hitchLog(logName(from), `quick window of ${projOf(at)}: ${hit ? logName(hit[0]) + (hit[0].isVisible() ? ', on screen' : ', hidden') : 'none'}`);
   return hit ? Number(new URL(hit[1], BASE).searchParams.get('win')) || 0 : 0;
 });
 ipcMain.handle('solo-front', (e, kind) => {

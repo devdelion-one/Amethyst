@@ -22,7 +22,8 @@ export function on(t: string, fn: (m: Msg) => void) {
   subs.set(t, [...(subs.get(t) || []), fn]);
 }
 export const sameLevel = (m: { lv?: string }): boolean => !m.lv || !lvNow || m.lv === lvNow;
-export const forMe = (m: { win?: number; lv?: string }): boolean => m.win === WIN && sameLevel(m);
+export const forMe = (m: { win?: number; lv?: string }): boolean => !spare && m.win === WIN && sameLevel(m);
+export const toSpare = (m: { win?: number; lv?: string }): boolean => spare && m.win === WIN && sameLevel(m);
 
 const slot = (n: number, lv = lvNow) => lv + '#' + n;
 const open = new Map<string, string>();
@@ -48,6 +49,7 @@ export function lockText(n: number): string {
 }
 const given = new Map<string, number>();
 const taken = (n: number) => n === WIN || Date.now() - (given.get(slot(n)) || 0) < 10000;
+const anyLevel = (n: number) => [...open.keys()].some((k) => k.endsWith('#' + n)) || [...others.values()].some((o) => o.n === n) || [...given].some(([k, at]) => k.endsWith('#' + n) && Date.now() - at < 10000);
 const deadSubs: ((n: number, pop: boolean) => void)[] = [];
 export const onDead = (fn: (n: number, pop: boolean) => void) => deadSubs.push(fn);
 function dead(n: number) {
@@ -78,7 +80,7 @@ async function alive(n: number): Promise<boolean> {
 export async function freeNumber(pop = false): Promise<number> {
   for (let n = pop ? 100 : 2; ; n++) {
     if (taken(n) || (isOpen(n) && (pop || (await alive(n))))) continue;
-    if (taken(n) || isOpen(n)) continue;
+    if (taken(n) || isOpen(n) || (pop && anyLevel(n))) continue;
     given.set(slot(n), Date.now());
     return n;
   }

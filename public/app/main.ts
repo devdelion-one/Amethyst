@@ -45,7 +45,7 @@ import { dragKeys, dragWindow, isOpen, mark, pick, setOpen, sizeBar } from '../b
 import { roving } from '../base/roving.ts';
 import { $, anyFailed, anyUnsaved, showErr } from '../base/util.ts';
 import { catchUp, layout, moved, nameInTree, reload, reloadAll, render, renderList, renderTree, treeNear, treeRow } from './views.ts';
-import { claim, claimWin, forMe, hereIs, isSpare, on, onDead, POP, sameLevel, send, SOLO, WIN } from '../base/windows.ts';
+import { claim, claimWin, forMe, hereIs, isSpare, on, onDead, POP, sameLevel, send, SOLO, toSpare, WIN } from '../base/windows.ts';
 import type { Msg } from '../base/windows.ts';
 
 const DESKTOP = window.amethyst?.desktop ? window.amethyst : null;
@@ -219,7 +219,7 @@ if (WIN > 1) {
   document.documentElement.classList.add('xwin');
   on('here', (m) => m.n === 1 && (!DESKTOP || isSpare()) && follow(String(m.w ?? ''), String(m.p ?? '')));
   let redone = false, askCloseOn = false;
-  on('close', (m) => forMe(m) && ((redone = true), window.close()));
+  on('close', (m) => (forMe(m) || toSpare(m)) && ((redone = true), window.close()));
   on('tabstored', (m) => forMe(m) && (tabsLevel(), sync()));
   const watchAskClose = () => {
     if (askCloseOn || !DESKTOP?.onAskClose) return;
@@ -243,10 +243,10 @@ if (WIN > 1) {
   if (POP) {
     const settle = (m: Msg) => (typeof m.p === 'string' && m.p ? follow(String(m.w ?? ''), m.p) : Promise.resolve());
     const wireSize = (k: string) => DESKTOP?.onSize && DESKTOP.onSize(sizeBar($('#pop-acts'), (x) => DESKTOP.sizeWindow(x), k));
-    on('claimact', (m) => forMe(m) && (wireSize('activity'), void settle(m)));
-    on('claimrev', (m) => forMe(m) && (wireSize('review'), void settle(m)));
+    on('claimact', (m) => (forMe(m) || toSpare(m)) && (wireSize('activity'), void settle(m)));
+    on('claimrev', (m) => (forMe(m) || toSpare(m)) && (wireSize('review'), void settle(m)));
     on('claimsolo', (m) => {
-      if (!forMe(m) || !isSpare() || !m.kind) return;
+      if (!toSpare(m) || !m.kind) return;
       const k = String(m.kind);
       claim(k);
       document.documentElement.classList.add('xsolo');
@@ -254,7 +254,7 @@ if (WIN > 1) {
       settle(m).then(() => (openView(k), render(true), send('raised')));
     });
     on('claimwin', (m) => {
-      if (!forMe(m) || !isSpare() || !m.to) return;
+      if (!toSpare(m) || !m.to) return;
       const was = WIN, n = Number(m.to);
       claimWin(n);
       document.documentElement.classList.remove('xpop', 'xsolo');
@@ -279,7 +279,7 @@ if (WIN > 1) {
         if (t?.path && !t.abs) send('shownq', { path: t.path });
       };
       on('quickopen', (m) => forMe(m) && Promise.resolve(open(m.open)).then(report));
-      on('claim', (m) => forMe(m) && isSpare() && (claim(), wireSize('quick'), settle(m).then(() => open(m.open)).then(() => (render(true), report(), send('raised')))));
+      on('claim', (m) => toSpare(m) && (claim(), wireSize('quick'), settle(m).then(() => open(m.open)).then(() => (render(true), report(), send('raised')))));
       addEventListener('pointerdown', () => setTimeout(report, 50), true);
     }
     if (DESKTOP) {

@@ -7,7 +7,7 @@ import { tell } from '../base/notify.ts';
 import { page } from '../base/page.ts';
 import { agents, onAgents } from '../base/stream.ts';
 import { $, amTag, esc, onSelEnd, showErr } from '../base/util.ts';
-import { claim, forMe, isSpare, on, POP, send, SOLO } from '../base/windows.ts';
+import { claim, forMe, isSpare, on, POP, send, SOLO, toSpare } from '../base/windows.ts';
 import { selHide, selShow } from '../base/quote.ts';
 import type { EditorView } from '/vendor/codemirror.mjs';
 import { plural } from '../base/words.ts';
@@ -504,7 +504,7 @@ if (POP)
   });
 if (isSpare())
   on('claimrev', (m) => {
-    if (!forMe(m) || !isSpare() || !m.chat) return;
+    if (!toSpare(m) || !m.chat) return;
     claim(`review-${m.chat}`);
     beReview(String(m.chat), typeof m.path === 'string' ? m.path : null);
     page.render?.();
