@@ -38,6 +38,7 @@
       "license-state.ts",
       "owned.ts",
       "snap.ts",
+      "shellexe.ts",
       "preload.js",
       "package.json",
       "build/icon.png",

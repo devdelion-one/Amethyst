@@ -13,6 +13,7 @@ import { execFile, execSync } from 'child_process';
 import { createRequire } from 'module';
 import hitch from './hitch.ts';
 import { ownedWindows, SITE } from './owned.ts';
+import { SHELL_EXES, shellFile } from './shellexe.ts';
 import { amIn, amOf, inEvery, intoView, kindIn, leftBehind, noticePlan, ownAddr, ownKey, portPlan, projIn, projOf, sizeBox, soloIn, stays, userKey, userUrls, WAIT, withUser, zoneBox, zoneOf } from './snap.ts';
 import type { NoticeAm } from './snap.ts';
 import type { BrowserWindowConstructorOptions, NativeImage, Point, Rectangle, UtilityProcess, WebContents } from 'electron';
@@ -189,12 +190,11 @@ app.on('web-contents-created', (e, wc) => {
   });
   if (wc.getType() === 'webview') browsing(wc, () => wc.hostWebContents);
 });
-const SHELL_EXES: Record<string, string[]> = { PowerShell: ['pwsh.exe', 'powershell.exe'], 'Command Prompt': ['cmd.exe'] };
 const shellIcons = new Map<string, Promise<NativeImage | null>>();
 const whereExe = (exe: string) => new Promise<string | null>((done) => execFile('where', [exe], { windowsHide: true }, (err, out) => done(err ? null : String(out).split(/\r?\n/)[0].trim() || null)));
+const selfExe = (exe: string) => new Promise<string | null>((done) => execFile(exe, ['-NoProfile', '-NonInteractive', '-Command', '(Get-Process -Id $PID).Path'], { windowsHide: true, timeout: 5000 }, (err, out) => done(err ? null : String(out).trim() || null)));
 async function badged(name: string) {
-  let file: string | null = null;
-  for (const exe of SHELL_EXES[name]) if ((file = await whereExe(exe))) break;
+  const file = await shellFile(name, whereExe, selfExe);
   if (!file) return null;
   const S = 32, B = 16;
   const base = (await app.getFileIcon(file, { size: 'large' })).resize({ width: S, height: S });
