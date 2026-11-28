@@ -39,6 +39,7 @@ interface Term {
   lastIn: number;
   quiet: ReturnType<typeof setTimeout> | null;
   marks: boolean;
+  tui: boolean;
   ended: boolean;
   closed: boolean;
   osc: string;
@@ -69,7 +70,11 @@ const MARKS = Buffer.from(
   $global:__amRan = $false
   function global:PSConsoleHostReadLine {
     $l = & $global:__amRead
-    if ("$l".Trim()) { $global:__amRan = $true; [Console]::Write("$([char]27)]133;C$([char]7)") }
+    if ("$l".Trim()) {
+      $global:__amRan = $true
+      $k = if ("$l" -match '^ *&? *["'']?(claude|codex|agy|gemini|copilot|grok|agent|cursor-agent|qwen|opencode|aider)(.exe|.cmd)?["'']?( |$)') { ';1' } else { '' }
+      [Console]::Write("$([char]27)]133;C$k$([char]7)")
+    }
     $l
   }
   function global:prompt {
@@ -248,16 +253,21 @@ function watchOut(t: Term, d: string) {
   while ((m = OSC_MARK.exec(d))) {
     t.marks = true;
     clearTimeout(t.quiet!);
-    if (m[1] === 'C') mark(t, 'working', '');
-    else if (m[1] === 'D' && t.status === 'working') mark(t, 'done', m[2] && m[2] !== '0' ? `exit ${m[2]}` : lastOut(t.out) || 'finished');
+    if (m[1] === 'C') {
+      t.tui = m[2] === '1';
+      mark(t, t.tui ? 'idle' : 'working', '');
+    } else if (m[1] === 'D' && t.tui) {
+      t.tui = false;
+      if (t.status === 'working') mark(t, 'idle', '');
+    } else if (m[1] === 'D' && t.status === 'working') mark(t, 'done', m[2] && m[2] !== '0' ? `exit ${m[2]}` : lastOut(t.out) || 'finished');
   }
-  if (t.marks) return;
+  if (t.marks && !t.tui) return;
   const now = Date.now();
   if (!t.lastIn || now - t.lastIn < ECHO) return;
-  if (!t.P.shell && d.replace(OSC, '').includes('\x07')) return mark(t, 'asks', 'rang the bell');
+  if ((!t.P.shell || t.tui) && d.replace(OSC, '').includes('\x07')) return mark(t, 'asks', 'rang the bell');
   if (t.status !== 'working' && t.status !== 'asks') mark(t, 'working', '');
   clearTimeout(t.quiet!);
-  t.quiet = setTimeout(() => t.status === 'working' && mark(t, 'done', (t.P.shell && lastOut(t.out)) || 'finished'), QUIET);
+  t.quiet = setTimeout(() => t.status === 'working' && mark(t, 'done', (t.P.shell && !t.tui && lastOut(t.out)) || 'finished'), QUIET);
 }
 
 function ended(t: Term, code: number) {
@@ -316,7 +326,7 @@ const ROUTES: Routes = {
     const acc = program === 'claude' && claudeAccount ? claudeAccount(am) : null;
     const args = [...(P.fake ? [P.fake] : []), ...(P.args || []), ...(P.hooks && hookFile ? ['--settings', settingsFor(acc, root)] : [])];
     const [f, a] = commandOf(file, args);
-    const t: Term = { id, key, program, account: acc?.id, am, P, cwd: root, out: '', pending: '', flush: null, clients: new Set(), status: 'starting', lastIn: 0, quiet: null, marks: false, ended: false, closed: false, osc: '', osc7501: '', prompt: '', quick: !!qkey, qkey };
+    const t: Term = { id, key, program, account: acc?.id, am, P, cwd: root, out: '', pending: '', flush: null, clients: new Set(), status: 'starting', lastIn: 0, quiet: null, marks: false, tui: false, ended: false, closed: false, osc: '', osc7501: '', prompt: '', quick: !!qkey, qkey };
     try {
       t.p = pty.spawn(f, a, {
         name: 'xterm-256color',
@@ -350,7 +360,11 @@ const ROUTES: Routes = {
       t.p.write(data.slice(0, 1e6));
       if (!REPORT.test(data)) {
         t.lastIn = Date.now();
-        if (t.status === 'asks') mark(t, 'working', '');
+        if (t.marks && !t.tui && t.status === 'working') {
+          t.tui = true;
+          clearTimeout(t.quiet!);
+          mark(t, 'idle', '');
+        } else if (t.status === 'asks') mark(t, 'working', '');
       }
     }
     if (cols != null || rows != null) {
