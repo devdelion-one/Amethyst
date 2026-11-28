@@ -1496,7 +1496,7 @@ export function ask({ title, text = '', warn = '', safe = '', code, value = '', 
     }
     if (menu) {
       confirm = true;
-      row.innerHTML = `<button data-cancel>cancel</button>${end ? `<button class="m-end" data-end>${esc(end.label)}</button>` : ''}<button class="${main ? '' : 'primary '}m-mn" data-mn aria-haspopup="menu">${esc(menu.label)}<span class="m-chev">▾</span></button>${main ? `<button class="primary m-main" data-main><kbd>enter</kbd>${esc(main.label)}</button>` : ''}`;
+      row.innerHTML = `<button data-cancel>cancel</button>${end ? `<button class="m-end" data-end>${esc(end.label)}</button>` : ''}<button class="${main ? '' : 'primary '}m-mn" data-mn aria-haspopup="menu">${esc(menu.label)}<span class="m-chev">▾</span></button>${main ? `<button class="primary m-main" data-main>${esc(main.label)}<kbd>↵</kbd></button>` : ''}`;
     }
     let box: HTMLInputElement | null = null, box2: HTMLInputElement | null = null;
     if (tick) {
@@ -1514,7 +1514,7 @@ export function ask({ title, text = '', warn = '', safe = '', code, value = '', 
     }
     if (choices) {
       confirm = true;
-      row.innerHTML = `<button data-cancel><kbd>esc</kbd>cancel</button>` + choices.map((c, i) => `<button data-choice="${i}" ${i === top() ? 'data-ok class="primary"' : ''}>${i === top() ? '<kbd>enter</kbd>' : ''}${esc(c.label)}</button>`).join('');
+      row.innerHTML = `<button data-cancel>cancel<kbd>esc</kbd></button>` + choices.map((c, i) => `<button data-choice="${i}" ${i === top() ? 'data-ok class="primary"' : ''}>${esc(c.label)}${i === top() ? '<kbd>↵</kbd>' : ''}</button>`).join('');
     }
     let ticked: (() => string[]) | null = null;
     if (checks) {
@@ -1566,7 +1566,7 @@ export function ask({ title, text = '', warn = '', safe = '', code, value = '', 
       added.push(fd);
       path = fd.querySelector('.m-path') as HTMLInputElement;
       note = fd.querySelector('.m-note');
-      row.querySelector('[data-ok]').innerHTML = '<kbd>enter</kbd>create';
+      row.querySelector('[data-ok]').innerHTML = 'create<kbd>↵</kbd>';
       path.addEventListener('input', () => {
         own = true;
         follow();
