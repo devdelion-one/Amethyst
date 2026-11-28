@@ -580,7 +580,7 @@ async function read(age?: number) {
   }
   if (reading.claude.limits) limitsRead('claude', reading.claude.limits, reading.claude.account ?? null);
   limitsRead('codex', reading.codex?.limits || []);
-  limitsRead('antigravity', reading.antigravity?.limits || []);
+  if (reading.antigravity?.limits) limitsRead('antigravity', reading.antigravity.limits);
   draw();
   clearTimeout(again);
   if (!win.hidden && Date.now() < waitTill && reading.claude.accounts?.some((a: Acct) => !a.signedIn)) again = setTimeout(read, 3e3);

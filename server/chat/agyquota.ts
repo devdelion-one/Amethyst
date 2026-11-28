@@ -54,8 +54,10 @@ async function ask(cmd: string, pre: string[], env: NodeJS.ProcessEnv): Promise<
         signal: AbortSignal.timeout(5e3),
       }).catch(() => null);
       if (!r) continue;
-      if (r.status !== 200) return null;
-      return limitsOfSummary(await r.json().catch(() => null));
+      if (r.status === 401) return null;
+      if (r.status !== 200) continue;
+      const got = limitsOfSummary(await r.json().catch(() => null));
+      if (got) return got;
     }
     return null;
   } finally {

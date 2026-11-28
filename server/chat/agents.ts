@@ -2512,11 +2512,13 @@ let codexRead: { at: number; said: ReturnType<typeof readCodex> } | null = null;
 let agyRead: { at: number; key: string; said: Promise<AgyLimit[] | null> } | null = null;
 function agyLimits(max = 60e3) {
   const { method } = agyWay();
-  if (method && !AGY_GOOGLE.has(method)) return Promise.resolve(null);
+  if (method && !AGY_GOOGLE.has(method)) return Promise.resolve([] as AgyLimit[]);
   const key = agyKeyNow();
   if (!agyRead || agyRead.key !== key || Date.now() - agyRead.at > max) {
     const fake = process.env.MIND_FAKE_AGY_HUB;
-    agyRead = { at: Date.now(), key, said: agyQuota(fake ? process.execPath : AGY_CMD, fake ? [fake] : [], agyEnv()) };
+    const read = { at: Date.now(), key, said: agyQuota(fake ? process.execPath : AGY_CMD, fake ? [fake] : [], agyEnv()) };
+    agyRead = read;
+    read.said.then((list) => list || (read.at = 0));
   }
   return agyRead.said;
 }
@@ -2637,10 +2639,10 @@ const ROUTES: Routes = {
     pinAm(am);
     const age = Number(q?.get('age')), bg = q?.has('age') && age >= 60e3 ? age : 0;
     const [tokens, limits, codex, agy, cursor, copilot, grok] = await Promise.all([claudeTokens(), claudeLimits(undefined, bg || 60e3, am), codexUsage(bg || 60e3), installed(AGENTS.antigravity).catch(() => false), installed(AGENTS.cursor).then((v) => (v ? cursorInfo() : null), () => null), installed(AGENTS.copilot).then((v) => (v ? copilotInfo() : null), () => null), installed(AGENTS.grok).then((v) => (v ? grokInfo() : null), () => null), (!bg || Date.now() - claudeCode.at > bg) && readClaudeCode()]);
-    const agyLims = agy && q?.get('agy') === '1' ? await agyLimits(bg || 60e3) : null;
+    const agyLims = agy && q?.get('agy') === '1' ? await agyLimits(bg || 60e3) : [];
     const { accounts, account } = authInfo(am), a = readAuth();
     const ams = Object.fromEntries([1, ...Object.keys(a.ams || {}).map(Number)].map((n) => [n, accountNow(a, n).id]));
-    return { claude: { tokens, limits, accounts: claudeCode.path ? accounts : null, account, ams }, codex, antigravity: agy ? { ...agyInfo(), limits: agyLims || [] } : null, cursor, copilot, grok };
+    return { claude: { tokens, limits, accounts: claudeCode.path ? accounts : null, account, ams }, codex, antigravity: agy ? { ...agyInfo(), limits: agyLims } : null, cursor, copilot, grok };
   },
   'PUT /api/agent/auth': async (body) => {
     const method = body.method == null ? null : String(body.method);
